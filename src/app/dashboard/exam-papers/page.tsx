@@ -169,21 +169,29 @@ export default function ExamPapersPage() {
                     console.log('✅ Found paginated data with items:', responseData.data.items.length)
                     setExamPapers(responseData.data.items)
                     setTotalItems(responseData.data.total || 0)
+                    // Extract filter options from the loaded data
+                    extractFilterOptionsFromData(responseData.data.items)
                 } else if (Array.isArray(responseData)) {
                     console.log('✅ Found direct array data:', responseData.length)
                     setExamPapers(responseData)
                     setTotalItems(responseData.length)
+                    // Extract filter options from the loaded data
+                    extractFilterOptionsFromData(responseData)
                 } else {
                     console.warn('⚠️ Unexpected API response structure:', responseData)
                     console.warn('Using mock data as fallback')
                     setExamPapers(mockExamPapers)
                     setTotalItems(mockExamPapers.length)
+                    // Extract filter options from mock data
+                    extractFilterOptionsFromData(mockExamPapers)
                 }
             } else {
                 console.warn('⚠️ No data in API response:', response)
                 console.warn('Using mock data as fallback')
                 setExamPapers(mockExamPapers)
                 setTotalItems(mockExamPapers.length)
+                // Extract filter options from mock data
+                extractFilterOptionsFromData(mockExamPapers)
             }
         } catch (error) {
             console.error('Error loading exam papers:', error)
@@ -194,50 +202,50 @@ export default function ExamPapersPage() {
             })
             setExamPapers(mockExamPapers)
             setTotalItems(mockExamPapers.length)
+            // Extract filter options from mock data
+            extractFilterOptionsFromData(mockExamPapers)
         } finally {
             setLoading(false)
         }
     }
 
-    // Load filter options
-    const loadFilterOptions = async () => {
-        try {
-            // Load institutions
-            const institutionsResponse = await adminAPI.institutions.list({ limit: 100 })
-            if (institutionsResponse.data?.data?.items) {
-                setInstitutions(institutionsResponse.data.data.items.map(inst => ({
-                    id: inst.id,
-                    name: inst.name
-                })))
-            }
+    // Extract filter options from exam papers data (no additional API calls needed)
+    const extractFilterOptionsFromData = (papers: ExamPaperRead[]) => {
+        // Extract unique institutions
+        const uniqueInstitutions = Array.from(
+            new Map(
+                papers
+                    .filter(paper => paper.institution)
+                    .map(paper => [paper.institution!.id, { id: paper.institution!.id, name: paper.institution!.name }])
+            ).values()
+        )
+        setInstitutions(uniqueInstitutions)
 
-            // Load courses
-            const coursesResponse = await adminAPI.courses.list({ limit: 100 })
-            if (coursesResponse.data?.data?.items) {
-                setCourses(coursesResponse.data.data.items.map(course => ({
-                    id: course.id,
-                    name: course.name
-                })))
-            }
+        // Extract unique courses
+        const uniqueCourses = Array.from(
+            new Map(
+                papers
+                    .filter(paper => paper.course)
+                    .map(paper => [paper.course!.id, { id: paper.course!.id, name: paper.course!.name }])
+            ).values()
+        )
+        setCourses(uniqueCourses)
 
-            // Generate years (current year ± 5 years)
-            const currentYear = new Date().getFullYear()
-            const yearsList = []
-            for (let i = currentYear + 2;i >= currentYear - 5;i--) {
-                yearsList.push(`${i}/${i + 1}`)
-            }
-            setYears(yearsList)
+        // Extract unique years from exam papers
+        const uniqueYears = Array.from(
+            new Set(
+                papers
+                    .filter(paper => paper.year_of_exam)
+                    .map(paper => paper.year_of_exam!)
+            )
+        ).sort((a, b) => b.localeCompare(a)) // Sort descending
+        setYears(uniqueYears)
 
-        } catch (error) {
-            console.error('Error loading filter options:', error)
-            // Set default values
-            setInstitutions([{ id: '1', name: 'University of Technology' }])
-            setCourses([
-                { id: '1', name: 'Mathematics' },
-                { id: '2', name: 'Physics' }
-            ])
-            setYears(['2024/2025', '2023/2024', '2022/2023'])
-        }
+        console.log('📊 Extracted filter options:', {
+            institutions: uniqueInstitutions.length,
+            courses: uniqueCourses.length,
+            years: uniqueYears.length
+        })
     }
 
     // Load statistics
@@ -259,10 +267,6 @@ export default function ExamPapersPage() {
     useEffect(() => {
         loadExamPapers()
     }, [currentPage, searchTerm, selectedInstitution, selectedCourse, selectedYear, sortBy, sortOrder])
-
-    useEffect(() => {
-        loadFilterOptions()
-    }, [])
 
     useEffect(() => {
         loadStatistics()

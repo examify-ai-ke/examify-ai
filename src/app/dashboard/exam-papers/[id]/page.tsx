@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Edit, Trash2, Download, Calendar, Clock, Building2, BookOpen, FileText, Users, Tag, Eye, Plus } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Download, Calendar, Clock, Building2, BookOpen, FileText, Users, Tag, Eye, Plus, ChevronDown, ChevronUp, MessageSquare, MapPin, GraduationCap, Hash, ListChecks } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -82,8 +82,42 @@ export default function ExamPaperDetailsPage() {
     const [examPaper, setExamPaper] = useState<ExamPaperRead | null>(null)
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState('overview')
+    const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set())
 
     const examPaperId = params.id as string
+
+    // Helper functions for question expansion
+    const toggleQuestionExpansion = (questionId: string) => {
+        setExpandedQuestions(prev => {
+            const newSet = new Set(prev)
+            if (newSet.has(questionId)) {
+                newSet.delete(questionId)
+            } else {
+                newSet.add(questionId)
+            }
+            return newSet
+        })
+    }
+
+    const isQuestionExpanded = (questionId: string) => expandedQuestions.has(questionId)
+
+    // Helper function to render question text from Editor.js format
+    const renderQuestionText = (textData: any) => {
+        if (!textData || !textData.blocks) return 'No question text available'
+
+        return textData.blocks.map((block: any, index: number) => {
+            if (block.type === 'paragraph') {
+                return <p key={index} className="mb-2">{block.data.text}</p>
+            }
+            return <div key={index}>{block.data.text || ''}</div>
+        })
+    }
+
+    // Helper function to truncate long text
+    const truncateText = (text: string, maxLength: number = 150) => {
+        if (text.length <= maxLength) return text
+        return text.substring(0, maxLength) + '...'
+    }
 
     // Load exam paper data
     const loadExamPaper = async () => {
@@ -205,7 +239,7 @@ export default function ExamPaperDetailsPage() {
             />
 
             {/* Hero Section */}
-            <div className="relative h-72 bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900 overflow-hidden">
+            <div className="relative min-h-96 bg-gradient-to-br from-blue-900 via-indigo-900 to-purple-900 overflow-hidden">
                 {/* Background Pattern */}
                 <div className="absolute inset-0 opacity-10">
                     <div className="absolute inset-0" style={{
@@ -217,7 +251,7 @@ export default function ExamPaperDetailsPage() {
                 <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/30 to-black/40"></div>
 
                 {/* Content */}
-                <div className="relative container mx-auto px-6 py-8 h-full flex flex-col justify-between">
+                <div className="relative container mx-auto px-6 py-10 min-h-full flex flex-col justify-between">
                     <div className="flex items-center gap-4">
                         <Button
                             variant="ghost"
@@ -230,9 +264,10 @@ export default function ExamPaperDetailsPage() {
                         </Button>
                     </div>
 
-                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
-                        <div className="flex-1">
-                            <div className="flex flex-wrap items-center gap-3 mb-4">
+                    <div className="space-y-6">
+                        {/* Title and Description */}
+                        <div className="text-center lg:text-left">
+                            <div className="flex flex-wrap justify-center lg:justify-start items-center gap-3 mb-4">
                                 <Badge className="bg-blue-500/90 text-white border-0 px-3 py-1.5 text-sm font-medium backdrop-blur-sm">
                                     {examPaper.identifying_name}
                                 </Badge>
@@ -244,15 +279,99 @@ export default function ExamPaperDetailsPage() {
                                     {examPaper.exam_duration} minutes
                                 </Badge>
                             </div>
-                            <h1 className="text-4xl lg:text-5xl font-bold text-white mb-3 leading-tight">
+                            <h1 className="text-3xl lg:text-4xl xl:text-5xl font-bold text-white mb-3 leading-tight">
                                 {(examPaper.title as any)?.name || (examPaper.title as any)?.title || 'Untitled Exam'}
                             </h1>
-                            <p className="text-white/80 text-lg max-w-3xl leading-relaxed">
+                            <p className="text-white/80 text-base lg:text-lg max-w-4xl mx-auto lg:mx-0 leading-relaxed mb-6">
                                 {(examPaper.description as any)?.name || (examPaper.description as any)?.description || 'No description available'}
                             </p>
                         </div>
 
-                        <div className="flex flex-col sm:flex-row gap-3 lg:flex-col lg:gap-2">
+                        {/* Exam Information and Statistics Grid */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Exam Information Card */}
+                            <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 p-6">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                                        <FileText className="h-5 w-5 text-blue-300" />
+                                    </div>
+                                    <h3 className="text-xl font-semibold text-white">Exam Information</h3>
+                                </div>
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-3">
+                                        <Calendar className="h-4 w-4 text-white/60" />
+                                        <div className="flex-1">
+                                            <span className="text-white/70 text-sm block">Exam Date</span>
+                                            <span className="text-white font-medium">{examPaper.exam_date || 'Not scheduled'}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <Building2 className="h-4 w-4 text-white/60" />
+                                        <div className="flex-1">
+                                            <span className="text-white/70 text-sm block">Institution</span>
+                                            <span className="text-white font-medium">{examPaper.institution?.name || 'N/A'}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <GraduationCap className="h-4 w-4 text-white/60" />
+                                        <div className="flex-1">
+                                            <span className="text-white/70 text-sm block">Course</span>
+                                            <span className="text-white font-medium">{examPaper.course?.name || 'N/A'}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <Clock className="h-4 w-4 text-white/60" />
+                                        <div className="flex-1">
+                                            <span className="text-white/70 text-sm block">Duration</span>
+                                            <span className="text-white font-medium">{examPaper.exam_duration} minutes</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Statistics Card */}
+                            <div className="bg-white/10 backdrop-blur-sm rounded-xl border border-white/20 p-6">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                                        <Eye className="h-5 w-5 text-green-300" />
+                                    </div>
+                                    <h3 className="text-xl font-semibold text-white">Statistics</h3>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="text-center p-3 bg-white/5 rounded-lg">
+                                        <div className="flex items-center justify-center gap-2 mb-1">
+                                            <BookOpen className="h-4 w-4 text-white/60" />
+                                        </div>
+                                        <div className="text-2xl font-bold text-white">{examPaper.modules?.length || 0}</div>
+                                        <div className="text-white/70 text-xs">Modules</div>
+                                    </div>
+                                    <div className="text-center p-3 bg-white/5 rounded-lg">
+                                        <div className="flex items-center justify-center gap-2 mb-1">
+                                            <ListChecks className="h-4 w-4 text-white/60" />
+                                        </div>
+                                        <div className="text-2xl font-bold text-white">{examPaper.question_sets?.length || 0}</div>
+                                        <div className="text-white/70 text-xs">Question Sets</div>
+                                    </div>
+                                    <div className="text-center p-3 bg-white/5 rounded-lg">
+                                        <div className="flex items-center justify-center gap-2 mb-1">
+                                            <FileText className="h-4 w-4 text-white/60" />
+                                        </div>
+                                        <div className="text-2xl font-bold text-white">{examPaper.instructions?.length || 0}</div>
+                                        <div className="text-white/70 text-xs">Instructions</div>
+                                    </div>
+                                    <div className="text-center p-3 bg-white/5 rounded-lg">
+                                        <div className="flex items-center justify-center gap-2 mb-1">
+                                            <Hash className="h-4 w-4 text-white/60" />
+                                        </div>
+                                        <div className="text-2xl font-bold text-white">{examPaper.tags?.length || 0}</div>
+                                        <div className="text-white/70 text-xs">Tags</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
                             <Button
                                 onClick={handleEditExamPaper}
                                 className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm"
@@ -291,71 +410,6 @@ export default function ExamPaperDetailsPage() {
 
                 {/* Overview Tab */}
                 <TabsContent value="overview" className="space-y-6">
-                    <div className="grid gap-6 md:grid-cols-2">
-                        {/* Basic Information */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <FileText className="h-5 w-5" />
-                                    Exam Information
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid gap-3">
-                                    <div className="flex justify-between">
-                                        <span className="text-sm font-medium text-muted-foreground">Academic Year:</span>
-                                        <span className="text-sm">{examPaper.year_of_exam}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm font-medium text-muted-foreground">Duration:</span>
-                                        <span className="text-sm">{examPaper.exam_duration} minutes</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm font-medium text-muted-foreground">Exam Date:</span>
-                                        <span className="text-sm">{examPaper.exam_date || 'Not scheduled'}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm font-medium text-muted-foreground">Institution:</span>
-                                        <span className="text-sm">{examPaper.institution?.name}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm font-medium text-muted-foreground">Course:</span>
-                                        <span className="text-sm">{examPaper.course?.name || 'N/A'}</span>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Statistics */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Eye className="h-5 w-5" />
-                                    Statistics
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid gap-3">
-                                    <div className="flex justify-between">
-                                        <span className="text-sm font-medium text-muted-foreground">Modules:</span>
-                                        <span className="text-sm">{examPaper.modules?.length || 0}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm font-medium text-muted-foreground">Question Sets:</span>
-                                        <span className="text-sm">{examPaper.question_sets?.length || 0}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm font-medium text-muted-foreground">Instructions:</span>
-                                        <span className="text-sm">{examPaper.instructions?.length || 0}</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm font-medium text-muted-foreground">Tags:</span>
-                                        <span className="text-sm">{examPaper.tags?.length || 0}</span>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
 
                     {/* Tags */}
                     {examPaper.tags && examPaper.tags.length > 0 && (
@@ -395,6 +449,190 @@ export default function ExamPaperDetailsPage() {
                                                 {index + 1}
                                             </div>
                                             <p className="text-sm">{(instruction as any)?.name || (instruction as any)?.instruction || 'No instruction text'}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Questions Display */}
+                    {examPaper.question_sets && examPaper.question_sets.length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <MessageSquare className="h-5 w-5" />
+                                    Questions
+                                </CardTitle>
+                                <CardDescription>
+                                    All questions organized by sections
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-8">
+                                    {examPaper.question_sets.map((questionSet, setIndex) => (
+                                        <div key={questionSet.id} className="space-y-4">
+                                            {/* Question Set Header */}
+                                            <div className="flex items-center gap-3 pb-3 border-b">
+                                                <div className="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center text-sm font-bold">
+                                                    {setIndex + 1}
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-semibold">
+                                                        {(questionSet as any)?.title || `Question Set ${setIndex + 1}`}
+                                                    </h3>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {(questionSet as any)?.questions_count || (questionSet as any)?.questions?.length || 0} questions
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* Questions */}
+                                            {(questionSet as any)?.questions && (questionSet as any).questions.length > 0 && (
+                                                <div className="space-y-6 ml-4">
+                                                    {(questionSet as any).questions.map((question: any, questionIndex: number) => {
+                                                        const questionText = renderQuestionText(question.text)
+                                                        const questionTextString = question.text?.blocks?.map((b: any) => b.data.text).join(' ') || ''
+                                                        const isLongQuestion = questionTextString.length > 150
+                                                        const isExpanded = isQuestionExpanded(question.id)
+
+                                                        return (
+                                                            <div key={question.id} className="space-y-4 p-4 border rounded-lg bg-slate-50/50">
+                                                                {/* Question Header */}
+                                                                <div className="flex items-start justify-between">
+                                                                    <div className="flex items-start gap-3 flex-1">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Badge variant="outline" className="text-xs">
+                                                                                {question.question_number || `Q${questionIndex + 1}`}
+                                                                            </Badge>
+                                                                            <Badge variant="secondary" className="text-xs">
+                                                                                {question.marks} marks
+                                                                            </Badge>
+                                                                        </div>
+                                                                    </div>
+                                                                    {isLongQuestion && (
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onClick={() => toggleQuestionExpansion(question.id)}
+                                                                            className="ml-2"
+                                                                        >
+                                                                            {isExpanded ? (
+                                                                                <>
+                                                                                    <ChevronUp className="h-4 w-4 mr-1" />
+                                                                                    Collapse
+                                                                                </>
+                                                                            ) : (
+                                                                                <>
+                                                                                    <ChevronDown className="h-4 w-4 mr-1" />
+                                                                                    Expand
+                                                                                </>
+                                                                            )}
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Question Text */}
+                                                                <div className="prose prose-sm max-w-none">
+                                                                    {isLongQuestion && !isExpanded ? (
+                                                                        <div>
+                                                                            <p>{truncateText(questionTextString)}</p>
+                                                                        </div>
+                                                                    ) : (
+                                                                        questionText
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Sub-questions */}
+                                                                {question.children && question.children.length > 0 && (
+                                                                    <div className="ml-6 space-y-3 border-l-2 border-muted pl-4">
+                                                                        {question.children.map((subQuestion: any, subIndex: number) => {
+                                                                            const subQuestionText = renderQuestionText(subQuestion.text)
+                                                                            const subQuestionTextString = subQuestion.text?.blocks?.map((b: any) => b.data.text).join(' ') || ''
+                                                                            const isSubLongQuestion = subQuestionTextString.length > 150
+                                                                            const isSubExpanded = isQuestionExpanded(subQuestion.id)
+
+                                                                            return (
+                                                                                <div key={subQuestion.id} className="space-y-2 p-3 bg-white rounded border">
+                                                                                    <div className="flex items-start justify-between">
+                                                                                        <div className="flex items-center gap-2">
+                                                                                            <Badge variant="outline" className="text-xs">
+                                                                                                {subQuestion.question_number || `${question.question_number || questionIndex + 1}.${subIndex + 1}`}
+                                                                                            </Badge>
+                                                                                            <Badge variant="secondary" className="text-xs">
+                                                                                                {subQuestion.marks} marks
+                                                                                            </Badge>
+                                                                                        </div>
+                                                                                        {isSubLongQuestion && (
+                                                                                            <Button
+                                                                                                variant="ghost"
+                                                                                                size="sm"
+                                                                                                onClick={() => toggleQuestionExpansion(subQuestion.id)}
+                                                                                                className="ml-2"
+                                                                                            >
+                                                                                                {isSubExpanded ? (
+                                                                                                    <>
+                                                                                                        <ChevronUp className="h-4 w-4 mr-1" />
+                                                                                                        Collapse
+                                                                                                    </>
+                                                                                                ) : (
+                                                                                                    <>
+                                                                                                        <ChevronDown className="h-4 w-4 mr-1" />
+                                                                                                        Expand
+                                                                                                    </>
+                                                                                                )}
+                                                                                            </Button>
+                                                                                        )}
+                                                                                    </div>
+                                                                                    <div className="prose prose-sm max-w-none">
+                                                                                        {isSubLongQuestion && !isSubExpanded ? (
+                                                                                            <div>
+                                                                                                <p>{truncateText(subQuestionTextString)}</p>
+                                                                                            </div>
+                                                                                        ) : (
+                                                                                            subQuestionText
+                                                                                        )}
+                                                                                    </div>
+
+                                                                                    {/* Sub-question Answers */}
+                                                                                    {subQuestion.answers && subQuestion.answers.length > 0 && (
+                                                                                        <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded">
+                                                                                            <div className="flex items-center gap-2 mb-2">
+                                                                                                <MessageSquare className="h-4 w-4 text-green-600" />
+                                                                                                <span className="text-sm font-medium text-green-800">Answer:</span>
+                                                                                            </div>
+                                                                                            {subQuestion.answers.map((answer: any, answerIndex: number) => (
+                                                                                                <div key={answerIndex} className="text-sm text-green-700">
+                                                                                                    {renderQuestionText(answer.text)}
+                                                                                                </div>
+                                                                                            ))}
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            )
+                                                                        })}
+                                                                    </div>
+                                                                )}
+
+                                                                {/* Main Question Answers */}
+                                                                {question.answers && question.answers.length > 0 && (
+                                                                    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded">
+                                                                        <div className="flex items-center gap-2 mb-3">
+                                                                            <MessageSquare className="h-4 w-4 text-green-600" />
+                                                                            <span className="text-sm font-medium text-green-800">Answer:</span>
+                                                                        </div>
+                                                                        {question.answers.map((answer: any, answerIndex: number) => (
+                                                                            <div key={answerIndex} className="text-sm text-green-700">
+                                                                                {renderQuestionText(answer.text)}
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )
+                                                    })}
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>

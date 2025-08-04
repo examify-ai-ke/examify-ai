@@ -86,8 +86,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const mockUser = {
     first_name: 'John',
     last_name: 'Doe',
-    email: 'john.doe@example.com',
-    role: 'Student',
+    email: 'admin@example.com',
+    role: 'Admin',
     avatar_url: null,
   };
 

@@ -14,12 +14,12 @@ interface BreadcrumbProps {
   showHome?: boolean;
 }
 
-export function Breadcrumb({ 
-  items, 
+export function Breadcrumb({
+  items,
   className,
-  showHome = true 
+  showHome = true
 }: BreadcrumbProps) {
-  const allItems = showHome 
+  const allItems = showHome
     ? [{ label: 'Home', href: '/', icon: Home }, ...items]
     : items;
 
@@ -63,9 +63,9 @@ export function Breadcrumb({
 }
 
 // Predefined breadcrumb patterns
-export function DashboardBreadcrumb({ 
-  currentPage 
-}: { 
+export function DashboardBreadcrumb({
+  currentPage
+}: {
   currentPage: string;
 }) {
   return (
@@ -78,10 +78,10 @@ export function DashboardBreadcrumb({
   );
 }
 
-export function PapersBreadcrumb({ 
+export function PapersBreadcrumb({
   currentPage,
-  paperTitle 
-}: { 
+  paperTitle
+}: {
   currentPage: string;
   paperTitle?: string;
 }) {
@@ -98,16 +98,24 @@ export function PapersBreadcrumb({
   return <Breadcrumb items={items} />;
 }
 
-export function AdminBreadcrumb({ 
-  currentPage 
-}: { 
+export function AdminBreadcrumb({
+  currentPage,
+  items
+}: {
   currentPage: string;
+  items?: BreadcrumbItem[];
 }) {
+  const defaultItems = [
+    { label: 'Dashboard', href: '/dashboard' },
+    { label: 'Admin', href: '/dashboard/admin' },
+  ];
+
+  const breadcrumbItems = items ? [...defaultItems, ...items] : defaultItems;
+  
   return (
     <Breadcrumb
       items={[
-        { label: 'Dashboard', href: '/dashboard' },
-        { label: 'Admin', href: '/admin' },
+        ...breadcrumbItems,
         { label: currentPage }
       ]}
     />

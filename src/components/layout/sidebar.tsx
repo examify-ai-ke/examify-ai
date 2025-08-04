@@ -26,7 +26,19 @@ import {
   User,
   Bell,
   Menu,
-  X
+  X,
+  Shield,
+  Edit,
+  FolderOpen,
+  Archive,
+  TrendingUp,
+  Database,
+  Book,
+  School,
+  MapPin,
+  HelpCircle,
+  CheckCircle,
+  Upload
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -50,19 +62,48 @@ const navItems: NavItem[] = [
     icon: LayoutDashboard,
   },
   {
-    title: 'Past Questions',
-    href: '/dashboard/papers',
+    title: 'Exam Papers',
+    href: '/dashboard/exam-papers',
     icon: BookOpen,
     children: [
       {
-        title: 'All Papers',
-        href: '/dashboard/papers',
+        title: 'Browse Papers',
+        href: '/dashboard/exam-papers',
+        icon: Search,
+      },
+      {
+        title: 'My Favorites',
+        href: '/dashboard/exam-papers/favorites',
         icon: FileText,
       },
       {
+        title: 'Recent Papers',
+        href: '/dashboard/exam-papers/recent',
+        icon: TrendingUp,
+      },
+      {
+        title: 'Manage Papers',
+        href: '/dashboard/exam-papers/manage',
+        icon: FolderOpen,
+        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+      },
+      {
         title: 'Create Paper',
-        href: '/dashboard/papers/create',
+        href: '/dashboard/exam-papers/create',
         icon: Plus,
+        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+      },
+      {
+        title: 'Draft Papers',
+        href: '/dashboard/exam-papers/drafts',
+        icon: Edit,
+        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+      },
+      {
+        title: 'Archived Papers',
+        href: '/dashboard/exam-papers/archived',
+        icon: Archive,
+        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
       },
     ],
   },
@@ -71,11 +112,125 @@ const navItems: NavItem[] = [
     href: '/dashboard/institutions',
     icon: Building,
     roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+    children: [
+      {
+        title: 'All Institutions',
+        href: '/dashboard/institutions',
+        icon: Building,
+        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+      },
+      {
+        title: 'Manage Institutions',
+        href: '/dashboard/institutions/manage',
+        icon: Settings,
+        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+      },
+      {
+        title: 'Faculties',
+        href: '/dashboard/institutions/faculties',
+        icon: School,
+        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+      },
+      {
+        title: 'Departments',
+        href: '/dashboard/institutions/departments',
+        icon: Book,
+        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+      },
+      {
+        title: 'Courses',
+        href: '/dashboard/institutions/courses',
+        icon: GraduationCap,
+        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+      },
+    ],
+  },
+  {
+    title: 'Questions Bank',
+    href: '/dashboard/questions',
+    icon: HelpCircle,
+    roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+    children: [
+      {
+        title: 'All Questions',
+        href: '/dashboard/questions',
+        icon: HelpCircle,
+        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+      },
+      {
+        title: 'Manage Questions',
+        href: '/dashboard/questions/manage',
+        icon: Settings,
+        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+      },
+      {
+        title: 'Question Sets',
+        href: '/dashboard/questions/sets',
+        icon: FolderOpen,
+        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+      },
+      {
+        title: 'Answers Management',
+        href: '/dashboard/questions/answers',
+        icon: CheckCircle,
+        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+      },
+      {
+        title: 'Import Questions',
+        href: '/dashboard/questions/import',
+        icon: Upload,
+        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+      },
+    ],
+  },
+  {
+    title: 'Administration',
+    href: '/dashboard/admin',
+    icon: Shield,
+    roles: [USER_ROLES.ADMIN],
+    children: [
+      {
+        title: 'Overview',
+        href: '/dashboard/admin',
+        icon: LayoutDashboard,
+        roles: [USER_ROLES.ADMIN],
+      },
+      {
+        title: 'User Management',
+        href: '/dashboard/admin/users',
+        icon: Users,
+        roles: [USER_ROLES.ADMIN],
+      },
+      {
+        title: 'Role Management',
+        href: '/dashboard/admin/roles',
+        icon: Shield,
+        roles: [USER_ROLES.ADMIN],
+      },
+      {
+        title: 'System Settings',
+        href: '/dashboard/admin/settings',
+        icon: Settings,
+        roles: [USER_ROLES.ADMIN],
+      },
+      {
+        title: 'Analytics',
+        href: '/dashboard/admin/analytics',
+        icon: BarChart3,
+        roles: [USER_ROLES.ADMIN],
+      },
+      {
+        title: 'Data Management',
+        href: '/dashboard/admin/data',
+        icon: Database,
+        roles: [USER_ROLES.ADMIN],
+      },
+    ],
   },
   {
     title: 'My Progress',
     href: '/dashboard/progress',
-    icon: BarChart3,
+    icon: TrendingUp,
   },
   {
     title: 'Profile',
@@ -125,9 +280,31 @@ export function Sidebar({
     return expandedItems.includes(href);
   };
 
+  // Get current user with development bypass (similar to layout.tsx)
+  const currentUser = user || {
+    role: { name: 'Admin' },
+    email: 'admin@dev.local',
+    name: 'Admin User'
+  };
+
+  const userRole = typeof currentUser?.role === 'string'
+    ? currentUser?.role?.toLowerCase()
+    : currentUser?.role?.name?.toLowerCase() || 'user';
+
+  // Debug logging for role detection
+  console.log('🔍 Sidebar Debug:', {
+    currentUser,
+    userRole,
+    totalNavItems: navItems.length,
+    filteredNavItems: navItems.filter(item => {
+      if (!item.roles) return true;
+      return item.roles.includes(userRole);
+    }).length
+  });
+
   const filteredNavItems = navItems.filter(item => {
     if (!item.roles) return true;
-    return item.roles.includes(user?.role || USER_ROLES.USER);
+    return item.roles.includes(userRole);
   });
 
   const handleLogoutClick = async () => {
@@ -226,26 +403,31 @@ export function Sidebar({
               {/* Children */}
               {hasChildren && !isCollapsed && isItemExpanded && (
                 <div className="ml-6 mt-2 space-y-1">
-                  {item.children!.map((child) => {
-                    const ChildIcon = child.icon;
-                    const isChildActive = isActive(child.href);
+                  {item.children!
+                    .filter(child => {
+                      if (!child.roles) return true;
+                      return child.roles.includes(userRole);
+                    })
+                    .map((child) => {
+                      const ChildIcon = child.icon;
+                      const isChildActive = isActive(child.href);
 
-                    return (
-                      <Link
-                        key={child.href}
-                        href={child.href}
-                        className={cn(
-                          'flex items-center space-x-3 rounded-lg px-3 py-2 text-sm transition-colors',
-                          isChildActive
-                            ? 'bg-blue-600/20 text-blue-300'
-                            : 'text-gray-400 hover:bg-gray-800 hover:text-white'
-                        )}
-                      >
-                        <ChildIcon className="h-4 w-4" />
-                        <span>{child.title}</span>
-                      </Link>
-                    );
-                  })}
+                      return (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          className={cn(
+                            'flex items-center space-x-3 rounded-lg px-3 py-2 text-sm transition-colors',
+                            isChildActive
+                              ? 'bg-blue-600/20 text-blue-300'
+                              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                          )}
+                        >
+                          <ChildIcon className="h-4 w-4" />
+                          <span>{child.title}</span>
+                        </Link>
+                      );
+                    })}
                 </div>
               )}
             </div>

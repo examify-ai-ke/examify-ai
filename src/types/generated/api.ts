@@ -5417,23 +5417,6 @@ export interface components {
             /** Data */
             data?: components["schemas"]["DepartmentRead"][] | null;
         };
-        /** IGetResponseBase[list[ExamPaperRead]] */
-        IGetResponseBase_list_ExamPaperRead__: {
-            /**
-             * Message
-             * @default Data got correctly
-             */
-            message: string | null;
-            /**
-             * Meta
-             * @default {}
-             */
-            meta: {
-                [key: string]: unknown;
-            } | unknown | null;
-            /** Data */
-            data?: components["schemas"]["ExamPaperRead"][] | null;
-        };
         /** IGetResponseBase[list[FacultyRead]] */
         IGetResponseBase_list_FacultyRead__: {
             /**
@@ -13145,7 +13128,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponseBase_list_ExamPaperRead__"];
+                    "application/json": components["schemas"]["IGetResponseBase_ExamPaperRead_"];
                 };
             };
             /** @description Validation Error */

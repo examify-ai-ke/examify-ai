@@ -107,15 +107,17 @@ export default function CreateExamPaperPage() {
     const [instructions, setInstructions] = useState<InstructionRead[]>([])
     const [loadingLookups, setLoadingLookups] = useState<boolean>(true)
     const academicYears = useMemo(() => generateAcademicYears(1990), [])
+    const [institutionSearch, setInstitutionSearch] = useState('')
+    const [institutionsLoading, setInstitutionsLoading] = useState(false)
 
     useEffect(() => {
         const fetchLookups = async () => {
             try {
                 setLoadingLookups(true)
-                const [titlesRes, descRes, instRes, courseRes, moduleRes, instrRes] = await Promise.all([
+                // Fetch titles/descriptions/courses/modules/instructions concurrently
+                const [titlesRes, descRes, courseRes, moduleRes, instrRes] = await Promise.all([
                     adminAPI.examTitles.list({ limit: 50, skip: 0 }),
                     adminAPI.examDescriptions.list({ limit: 50, skip: 0 }),
-                    adminAPI.institutions.list({ limit: 50, skip: 0 }),
                     adminAPI.courses.list({ limit: 50, skip: 0 }),
                     adminAPI.modules.list({ limit: 100, skip: 0 }),
                     adminAPI.instructions.list({ limit: 100, skip: 0 }),
@@ -123,17 +125,16 @@ export default function CreateExamPaperPage() {
 
                 const titleItems = titlesRes.data?.data?.items ?? []
                 const descItems = descRes.data?.data?.items ?? []
-                const instItems = instRes.data?.data?.items ?? []
                 const courseItems = courseRes.data?.data?.items ?? []
                 const moduleItems = moduleRes.data?.data?.items ?? []
                 const instrItems = instrRes.data?.data?.items ?? []
 
                 setTitles(titleItems as ExamTitleRead[])
                 setDescriptions(descItems as ExamDescriptionRead[])
-                setInstitutions(instItems as InstitutionRead[])
                 setCourses(courseItems as CourseRead[])
                 setModules(moduleItems as ModuleRead[])
                 setInstructions(instrItems as InstructionRead[])
+
             } catch (error) {
                 console.error('Failed to load lookups', error)
                 addNotification({ type: 'error', title: 'Failed to load data', message: 'Some dropdowns may be empty.' })
@@ -143,6 +144,32 @@ export default function CreateExamPaperPage() {
         }
         fetchLookups()
     }, [addNotification])
+
+    // Server-side institution search with debounce
+    useEffect(() => {
+        let cancelled = false
+        setInstitutionsLoading(true)
+        const h = setTimeout(async () => {
+            try {
+                const q = institutionSearch.trim() || '*'
+                const res = await adminAPI.institutions.search({ q, limit: 50, skip: 0, highlight: false })
+                if (!cancelled) {
+                    const items = (res.data?.data?.items ?? []) as InstitutionRead[]
+                    setInstitutions(items)
+                }
+            } catch (e) {
+                if (!cancelled) {
+                    setInstitutions([])
+                }
+            } finally {
+                if (!cancelled) setInstitutionsLoading(false)
+            }
+        }, 300)
+        return () => {
+            cancelled = true
+            clearTimeout(h)
+        }
+    }, [institutionSearch])
 
     const onSubmit = async (values: any) => {
         try {
@@ -378,10 +405,25 @@ export default function CreateExamPaperPage() {
                                                                     <SelectValue placeholder="Select institution" />
                                                                 </SelectTrigger>
                                                             </FormControl>
-                                                            <SelectContent>
-                                                                {institutions.map((i) => (
-                                                                    <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
-                                                                ))}
+                                                            <SelectContent className="w-[24rem] max-h-72 overflow-auto">
+                                                                <div className="p-2 sticky top-0 bg-background">
+                                                                    <Input
+                                                                        placeholder="Search institutions..."
+                                                                        value={institutionSearch}
+                                                                        onChange={(e) => setInstitutionSearch(e.target.value)}
+                                                                        onClick={(e) => e.stopPropagation()}
+                                                                        onKeyDown={(e) => e.stopPropagation()}
+                                                                    />
+                                                                </div>
+                                                                {institutionsLoading ? (
+                                                                    <div className="px-3 py-2 text-sm text-muted-foreground">Searching...</div>
+                                                                ) : institutions.length > 0 ? (
+                                                                    institutions.map((i) => (
+                                                                        <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
+                                                                    ))
+                                                                ) : (
+                                                                    <div className="px-3 py-2 text-sm text-muted-foreground">No results</div>
+                                                                )}
                                                             </SelectContent>
                                                         </Select>
                                                         <FormMessage />

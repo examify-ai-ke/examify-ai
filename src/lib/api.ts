@@ -38,7 +38,7 @@ api.use({
       }
       
       // Log error for debugging
-      console.error('API Error:', {
+      console.log('API Error:', {
         status: response.status,
         statusText: response.statusText,
         url: response.url,

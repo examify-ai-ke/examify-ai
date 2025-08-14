@@ -2,6 +2,7 @@ import createClient from 'openapi-fetch';
 import type { paths } from '@/types/generated/api';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://fastapi.localhost/';
+const AUTO_REDIRECT_ON_401 = process.env.NEXT_PUBLIC_AUTH_AUTO_REDIRECT_ON_401 === 'true';
 
 // Create the main API client
 export const api = createClient<paths>({
@@ -13,30 +14,29 @@ api.use({
   onRequest({ request }) {
     // Get token from localStorage or cookies
     const token = getAuthToken();
-    
+
     if (token) {
       request.headers.set('Authorization', `Bearer ${token}`);
     }
-    
+
     // Set common headers for all requests
     request.headers.set('accept', 'application/json');
     request.headers.set('Content-Type', 'application/json');
-    
+
     console.log('Request:', request);
     return request;
   },
-  
+
   onResponse({ response }) {
     if (!response.ok) {
-      // Handle 401 Unauthorized
+      // Handle 401 Unauthorized without force-logging the user out
       if (response.status === 401) {
-        // Clear token and redirect to login
-        clearAuthToken();
-        if (typeof window !== 'undefined') {
+        console.warn('API 401 Unauthorized:', response.url);
+        if (AUTO_REDIRECT_ON_401 && typeof window !== 'undefined') {
           window.location.href = '/auth/login';
         }
       }
-      
+
       // Log error for debugging
       console.log('API Error:', {
         status: response.status,
@@ -44,7 +44,7 @@ api.use({
         url: response.url,
       });
     }
-    
+
     return response;
   },
 });
@@ -54,7 +54,7 @@ export const setAuthToken = (token: string) => {
   if (typeof window !== 'undefined') {
     // Store in localStorage for client-side access
     localStorage.setItem('auth-token', token);
-    
+
     // Store in cookie for server-side middleware access
     document.cookie = `auth-token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; samesite=strict`;
   }
@@ -64,7 +64,7 @@ export const setAuthToken = (token: string) => {
 export const clearAuthToken = () => {
   if (typeof window !== 'undefined') {
     localStorage.removeItem('auth-token');
-    
+
     // Clear cookie
     document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
   }
@@ -78,7 +78,7 @@ export const getAuthToken = (): string | null => {
     if (localToken) {
       return localToken;
     }
-    
+
     // Fallback to cookie
     const cookies = document.cookie.split(';');
     for (const cookie of cookies) {

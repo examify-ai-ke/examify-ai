@@ -248,6 +248,58 @@ const adminAPI = {
         },
     },
 
+    /**
+     * Exam Titles
+     */
+    examTitles: {
+        async list(params?: { skip?: number; limit?: number }) {
+            return api.GET('/api/v1/exam-title', {
+                params: {
+                    query: params
+                }
+            });
+        },
+    },
+
+    /**
+     * Exam Descriptions
+     */
+    examDescriptions: {
+        async list(params?: { skip?: number; limit?: number }) {
+            return api.GET('/api/v1/exam-description', {
+                params: {
+                    query: params
+                }
+            });
+        },
+    },
+
+    /**
+     * Modules
+     */
+    modules: {
+        async list(params?: { skip?: number; limit?: number }) {
+            return api.GET('/api/v1/module', {
+                params: {
+                    query: params
+                }
+            });
+        },
+    },
+
+    /**
+     * Instructions
+     */
+    instructions: {
+        async list(params?: { skip?: number; limit?: number }) {
+            return api.GET('/api/v1/instruction', {
+                params: {
+                    query: params
+                }
+            });
+        },
+    },
+
     // Groups & Teams
     groups: {
         async list() {
@@ -353,7 +405,8 @@ const adminAPI = {
                 params: {
                     path: { faculty_id: facultyId }
                 },
-                body: formData
+                // OpenAPI typing expects a JSON shape; cast FormData
+                body: formData as any
             });
         },
 
@@ -430,7 +483,7 @@ const adminAPI = {
                 params: {
                     path: { department_id: departmentId }
                 },
-                body: formData
+                body: formData as any
             });
         },
 
@@ -518,7 +571,7 @@ const adminAPI = {
                 params: {
                     path: { course_id: courseId }
                 },
-                body: formData
+                body: formData as any
             });
         },
 
@@ -934,7 +987,7 @@ export const adminHelpers = {
         },
 
         async getById(questionSetId: string) {
-            const response = await api.GET('/api/v1/question-set/{question_set_id}', {
+            const response = await api.GET('/api/v1/question-set/get_by_id/{question_set_id}', {
                 params: {
                     path: { question_set_id: questionSetId }
                 }

@@ -52,7 +52,7 @@ export function middleware(request: NextRequest) {
     // Create login URL with redirect parameter
     const loginUrl = new URL('/auth/login', request.url);
     loginUrl.searchParams.set('redirect', pathname);
-    
+
     // Create redirect response
     const response = NextResponse.redirect(loginUrl);
 
@@ -71,7 +71,16 @@ export function middleware(request: NextRequest) {
   if (isAuthRoute && isAuthenticated) {
     // Check if there's a redirect parameter
     const redirectUrl = request.nextUrl.searchParams.get('redirect');
-    const targetUrl = redirectUrl && redirectUrl.startsWith('/') ? redirectUrl : '/dashboard';
+
+    // Prevent redirect loops: don't redirect to auth routes
+    const isRedirectToAuthRoute = redirectUrl && authRoutes.some(route =>
+      redirectUrl.startsWith(route)
+    );
+
+    const targetUrl = redirectUrl && redirectUrl.startsWith('/') && !isRedirectToAuthRoute
+      ? redirectUrl
+      : '/dashboard';
+
     return NextResponse.redirect(new URL(targetUrl, request.url));
   }
 

@@ -32,17 +32,24 @@ function LoginForm() {
     // Get redirect URL from query params or default to dashboard
     const redirectUrl = searchParams.get('redirect') || '/dashboard';
 
-    // Clear expired tokens on component mount
+    // Handle authentication state on component mount
     useEffect(() => {
         // If user is already authenticated, redirect them
         if (isAuthenticated) {
             router.push(redirectUrl);
-            return;
         }
+    }, [isAuthenticated, redirectUrl, router]);
 
-        // Clear any existing tokens that might be expired
-        logout();
-    }, [isAuthenticated, redirectUrl, router, logout]);
+    // Clear any expired tokens on component mount (only once)
+    useEffect(() => {
+        // Check if there are any expired tokens to clear
+        const token = localStorage.getItem('auth-token');
+        if (token && !isAuthenticated) {
+            // Only call logout if we have a token but are not authenticated
+            // This suggests the token might be expired
+            logout();
+        }
+    }, []); // Empty dependency array - runs only once on mount
 
     const onSubmit = async (data: LoginFormData) => {
         setIsLoading(true);

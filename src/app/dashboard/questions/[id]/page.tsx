@@ -26,7 +26,7 @@ import { LoadingSpinner, LoadingOverlay } from '@/components/ui/loading-spinner'
 import { AdminBreadcrumb } from '@/components/ui/breadcrumb';
 import { useAuth } from '@/hooks/useAuth';
 import { useUIStore } from '@/stores/ui';
-import { api } from '@/lib/api';
+import { adminAPI } from '@/lib/api-admin';
 import { formatDate, formatRelativeTime } from '@/lib/utils';
 import Link from 'next/link';
 import type { components } from '@/types/generated/api';
@@ -46,8 +46,9 @@ export default function QuestionDetailPage() {
 
     // State management
     const [question, setQuestion] = useState<QuestionRead | null>(null);
+    const [parentQuestion, setParentQuestion] = useState<QuestionRead | null>(null);
+    const [subQuestions, setSubQuestions] = useState<QuestionRead[]>([]);
     const [loading, setLoading] = useState(true);
-    const [editing, setEditing] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
     // Load question data
@@ -55,110 +56,55 @@ export default function QuestionDetailPage() {
         try {
             setLoading(true);
 
-            if (questionId) {
-                const response = await api.GET('/api/v1/questions/{question_id}', {
-                    params: {
-                        path: { question_id: questionId as string },
-                        query: { include_children: true },
-                    },
-                });
-                const data = (response as any).data?.data ?? (response as any).data;
-                if (data) {
-                    setQuestion(data as QuestionRead);
-                }
-            } else {
-                // Fallback to mock data for development
-                console.log('Using mock data - questions API not available');
-                setQuestion({
-                    id: (questionId as string) || 'unknown-id',
-                    text: {
-                        time: Date.now(),
-                        blocks: [
-                            {
-                                id: 'block-1',
-                                type: 'paragraph',
-                                data: { text: 'This is a sample question about object-oriented programming principles. Explain the key concepts of encapsulation, inheritance, and polymorphism with examples.' }
-                            }
-                        ]
-                    },
-                    marks: 15,
-                    numbering_style: 'roman',
-                    question_number: 'i',
-                    slug: 'oop-principles-question',
-                    created_at: '2024-12-15T10:30:00Z',
-                    question_set_id: 'set-1',
-                    exam_paper_id: 'paper-1',
-                    parent_id: null,
-                    children: [],
-                    answers: [],
-                    is_main_question: true,
-                    is_sub_question: false,
-                    /*children: [
-                        {
-                            id: '1a',
-                            text: { time: Date.now(), blocks: [{ id: 'b-a', type: 'paragraph', data: { text: 'Define encapsulation with an example.' } }] },
-                            marks: 5,
-                            numbering_style: 'alpha',
-                            question_number: 'a',
-                            created_at: '2024-12-15T10:30:00Z',
-                            question_set_id: 'set-1',
-                            exam_paper_id: 'paper-1',
-                            parent_id: (questionId as string) || 'unknown-id',
-                            children: [],
-                            answers: [],
-                            slug: 'encapsulation-definition',
-                        },
-                        {
-                            id: '1b',
-                            text: { time: Date.now(), blocks: [{ id: 'b-b', type: 'paragraph', data: { text: 'Explain inheritance and provide a code example.' } }] },
-                            marks: 5,
-                            numbering_style: 'alpha',
-                            question_number: 'b',
-                            created_at: '2024-12-15T10:30:00Z',
-                            question_set_id: 'set-1',
-                            exam_paper_id: 'paper-1',
-                            parent_id: (questionId as string) || 'unknown-id',
-                            children: [],
-                            answers: [],
-                            slug: 'inheritance-explanation',
-                        },
-                        {
-                            id: '1c',
-                            text: { time: Date.now(), blocks: [{ id: 'b-c', type: 'paragraph', data: { text: 'Describe polymorphism and give examples of method overriding.' } }] },
-                            marks: 5,
-                            numbering_style: 'alpha',
-                            question_number: 'c',
-                            created_at: '2024-12-15T10:30:00Z',
-                            question_set_id: 'set-1',
-                            exam_paper_id: 'paper-1',
-                            parent_id: (questionId as string) || 'unknown-id',
-                            children: [],
-                            answers: [],
-                            slug: 'polymorphism-description',
-                        }
-                    ],
-                    answers: [
-                        {
-                            id: 'a1',
-                            text: { time: Date.now(), blocks: [{ id: 'ans-1', type: 'paragraph', data: { text: 'Encapsulation is the bundling of data and methods that operate on that data within a single unit or object. It provides data hiding and protects the internal state of an object from external interference.' } }] },
-                            likes: 0,
-                            dislikes: 0,
-                            reviewed: false,
-                            auto_answer: false,
-                            created_at: '2024-12-15T11:00:00Z',
-                            created_by_id: 'user-1',
-                            parent_id: null,
-                            created_by: { id: 'user-1', email: 'professor@university.edu', full_name: 'Dr. Smith' } as any
-                        }
-                    ],*/
-                });
+            if (!questionId) {
+                throw new Error('Question ID is required');
             }
+
+            console.log('Loading question details for ID:', questionId);
+
+            // Load the main question
+            const questionResponse = await adminAPI.questions.getById(questionId as string);
+
+            if (!questionResponse.data?.data) {
+                throw new Error('Question not found');
+            }
+
+            const questionData = questionResponse.data.data;
+            setQuestion(questionData);
+
+            // If this is a sub-question, load its parent
+            if (questionData.parent_id) {
+                try {
+                    const parentResponse = await adminAPI.questions.getById(questionData.parent_id);
+                    if (parentResponse.data?.data) {
+                        setParentQuestion(parentResponse.data.data);
+                    }
+                } catch (error) {
+                    console.warn('Failed to load parent question:', error);
+                }
+            }
+
+            // If this is a main question, load its sub-questions
+            if (!questionData.parent_id) {
+                try {
+                    const subQuestionsResponse = await adminAPI.questions.list({
+                        parent_id: questionData.id,
+                        limit: 100
+                    });
+                    if (subQuestionsResponse.data?.data?.items) {
+                        setSubQuestions(subQuestionsResponse.data.data.items);
+                    }
+                } catch (error) {
+                    console.warn('Failed to load sub-questions:', error);
+                }
+            }
+
         } catch (error) {
             console.error('Error loading question:', error);
             addNotification({
                 type: 'error',
                 title: 'Failed to load question',
-                message: 'Please try again later.',
+                message: error instanceof Error ? error.message : 'Please try again later.',
             });
         } finally {
             setLoading(false);
@@ -183,64 +129,22 @@ export default function QuestionDetailPage() {
         try {
             setDeleting(true);
 
-            if (question.id) {
-                await api.DELETE('/api/v1/questions/{question_id}', {
-                    params: {
-                        path: { question_id: question.id },
-                        query: { cascade: false },
-                    },
-                });
-                addNotification({
-                    type: 'success',
-                    title: 'Question Deleted',
-                    message: 'The question has been deleted successfully.',
-                });
-                router.push('/dashboard/questions');
-            }
+            await adminAPI.questions.delete(question.id);
+            addNotification({
+                type: 'success',
+                title: 'Question Deleted',
+                message: 'The question has been deleted successfully.',
+            });
+            router.push('/dashboard/questions');
         } catch (error) {
             console.error('Error deleting question:', error);
             addNotification({
                 type: 'error',
                 title: 'Deletion Failed',
-                message: 'Failed to delete question. Please try again.',
+                message: error instanceof Error ? error.message : 'Failed to delete question. Please try again.',
             });
         } finally {
             setDeleting(false);
-        }
-    };
-
-    // Handle question update
-    const handleUpdate = async (data: any) => {
-        if (!question) return;
-
-        try {
-            setEditing(true);
-
-            if (question.id) {
-                const response = await api.PUT('/api/v1/questions/{question_id}', {
-                    params: { path: { question_id: question.id } },
-                    body: data,
-                });
-                const updated = (response as any).data?.data ?? (response as any).data;
-                if (updated) {
-                    setQuestion(updated as QuestionRead);
-                    addNotification({
-                        type: 'success',
-                        title: 'Question Updated',
-                        message: 'The question has been updated successfully.',
-                    });
-                    setEditing(false);
-                }
-            }
-        } catch (error) {
-            console.error('Error updating question:', error);
-            addNotification({
-                type: 'error',
-                title: 'Update Failed',
-                message: 'Failed to update question. Please try again.',
-            });
-        } finally {
-            setEditing(false);
         }
     };
 
@@ -269,8 +173,56 @@ export default function QuestionDetailPage() {
     }
 
     const isMainQuestion = !question.parent_id;
-    const hasSubQuestions = question.children && question.children.length > 0;
+    const hasSubQuestions = subQuestions.length > 0;
     const hasAnswers = question.answers && question.answers.length > 0;
+
+    // Helper function to extract text from Editor.js format
+    const extractQuestionText = (questionData: QuestionRead): string => {
+        if (questionData.text?.blocks && Array.isArray(questionData.text.blocks)) {
+            const textBlocks = questionData.text.blocks
+                .filter(block => block.type === 'paragraph' || block.type === 'header')
+                .map(block => block.data?.text || '')
+                .join(' ');
+            return textBlocks || 'No text content';
+        }
+        return 'No text content';
+    };
+
+    // Helper function to sort sub-questions by their question_number
+    const sortSubQuestions = (subQuestions: QuestionRead[]): QuestionRead[] => {
+        return [...subQuestions].sort((a, b) => {
+            // Extract numeric or alphabetic parts for sorting
+            const aNum = a.question_number;
+            const bNum = b.question_number;
+
+            // Try to parse as numbers first
+            const aNumeric = parseInt(aNum);
+            const bNumeric = parseInt(bNum);
+
+            if (!isNaN(aNumeric) && !isNaN(bNumeric)) {
+                return aNumeric - bNumeric;
+            }
+
+            // Fall back to string comparison for alphabetic numbering
+            return aNum.localeCompare(bNum);
+        });
+    };
+
+    // Helper function to format question number based on numbering style
+    const formatQuestionNumber = (questionNumber: string, numberingStyle: string, isSubQuestion = false): string => {
+        if (isSubQuestion) {
+            // For sub-questions, show them as sub-parts
+            switch (numberingStyle) {
+                case 'roman':
+                    return `(${questionNumber})`;
+                case 'alpha':
+                    return `(${questionNumber})`;
+                default:
+                    return `(${questionNumber})`;
+            }
+        }
+        return questionNumber;
+    };
 
     return (
         <div className="space-y-6 p-6">
@@ -286,19 +238,45 @@ export default function QuestionDetailPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">
-                        Question {question.question_number}
-                    </h1>
-                    <p className="text-gray-600">
-                        {isMainQuestion ? 'Main Question' : 'Sub-Question'} • {question.marks} marks
-                    </p>
+                    <div className="flex items-center space-x-3 mb-2">
+                        <h1 className="text-3xl font-bold tracking-tight">
+                            Question {formatQuestionNumber(question.question_number, question.numbering_style, !isMainQuestion)}
+                        </h1>
+                        <Badge variant={isMainQuestion ? 'default' : 'secondary'} className="text-lg px-3 py-1">
+                            {isMainQuestion ? 'Main Question' : 'Sub-Question'}
+                        </Badge>
+                        <Badge variant="outline" className="text-sm">
+                            {question.numbering_style} numbering
+                        </Badge>
+                    </div>
+                    <div className="flex items-center space-x-4 text-gray-600">
+                        <div className="flex items-center">
+                            <Star className="mr-1 h-4 w-4 text-yellow-500" />
+                            <span className="font-medium">{question.marks} marks</span>
+                        </div>
+                        {parentQuestion && (
+                            <div className="flex items-center">
+                                <ArrowLeft className="mr-1 h-4 w-4 text-blue-500" />
+                                <span>Sub-question of </span>
+                                <Link href={`/dashboard/questions/${parentQuestion.id}`} className="text-blue-600 hover:underline font-medium ml-1">
+                                    Question {formatQuestionNumber(parentQuestion.question_number, parentQuestion.numbering_style)}
+                                </Link>
+                            </div>
+                        )}
+                        {isMainQuestion && hasSubQuestions && (
+                            <div className="flex items-center">
+                                <Hash className="mr-1 h-4 w-4 text-green-500" />
+                                <span>{subQuestions.length} sub-question{subQuestions.length !== 1 ? 's' : ''}</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
                 <div className="flex space-x-3">
                     <Button variant="outline" onClick={() => router.back()}>
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Back
                     </Button>
-                    <Button onClick={() => setEditing(true)}>
+                    <Button onClick={() => router.push(`/dashboard/questions/${question.id}/edit`)}>
                         <Edit className="mr-2 h-4 w-4" />
                         Edit
                     </Button>
@@ -319,26 +297,47 @@ export default function QuestionDetailPage() {
                     {/* Question Content */}
                     <Card>
                         <CardHeader>
-                            <CardTitle className="flex items-center">
-                                <HelpCircle className="h-5 w-5 text-blue-600 mr-2" />
-                                Question Content
+                            <CardTitle className="flex items-center justify-between">
+                                <div className="flex items-center">
+                                    <HelpCircle className="h-5 w-5 text-blue-600 mr-2" />
+                                    Question Content
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Badge variant="outline" className="text-xs">
+                                        {formatQuestionNumber(question.question_number, question.numbering_style, !isMainQuestion)}
+                                    </Badge>
+                                    <Badge variant={isMainQuestion ? 'default' : 'secondary'} className="text-xs">
+                                        {isMainQuestion ? 'Main' : 'Sub'}
+                                    </Badge>
+                                </div>
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
+                            {!isMainQuestion && parentQuestion && (
+                                <div className="mb-4 p-3 bg-blue-50 border-l-4 border-blue-200 rounded-r">
+                                    <div className="flex items-center space-x-2 text-sm text-blue-800 mb-2">
+                                        <ArrowLeft className="h-4 w-4" />
+                                        <span className="font-medium">Parent Question:</span>
+                                        <Link href={`/dashboard/questions/${parentQuestion.id}`} className="hover:underline">
+                                            Question {formatQuestionNumber(parentQuestion.question_number, parentQuestion.numbering_style)}
+                                        </Link>
+                                    </div>
+                                    <p className="text-sm text-blue-700 italic">
+                                        {extractQuestionText(parentQuestion).substring(0, 150)}...
+                                    </p>
+                                </div>
+                            )}
+
                             <div className="prose max-w-none">
                                 <p className="text-lg leading-relaxed">
-                                    {(() => {
-                                        const firstBlock = (question.text as any)?.blocks?.[0];
-                                        const content = typeof firstBlock?.data?.['text'] === 'string' ? firstBlock.data['text'] : '';
-                                        return content || 'No question text available';
-                                    })()}
+                                    {extractQuestionText(question)}
                                 </p>
                             </div>
 
                             <div className="mt-6 flex items-center space-x-4 text-sm text-gray-600">
                                 <div className="flex items-center">
                                     <Hash className="mr-1 h-4 w-4" />
-                                    <span>Number: {question.question_number}</span>
+                                    <span>Number: {formatQuestionNumber(question.question_number, question.numbering_style, !isMainQuestion)}</span>
                                 </div>
                                 <div className="flex items-center">
                                     <Star className="mr-1 h-4 w-4 text-yellow-500" />
@@ -359,7 +358,7 @@ export default function QuestionDetailPage() {
                                 <CardTitle className="flex items-center justify-between">
                                     <div className="flex items-center">
                                         <Hash className="h-5 w-5 text-green-600 mr-2" />
-                                        Sub-Questions ({question.children!.length})
+                                        Sub-Questions ({subQuestions.length})
                                     </div>
                                     <Button size="sm" variant="outline">
                                         <Plus className="mr-2 h-4 w-4" />
@@ -369,34 +368,52 @@ export default function QuestionDetailPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-4">
-                                    {question.children!.map((subQuestion) => (
-                                        <div key={subQuestion.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                                    {sortSubQuestions(subQuestions).map((subQuestion, index) => (
+                                        <div key={subQuestion.id} className="border-l-4 border-blue-200 bg-blue-50/30 rounded-lg p-4 hover:bg-blue-50/50 transition-colors">
                                             <div className="flex items-start justify-between">
                                                 <div className="flex-1">
-                                                    <div className="flex items-center space-x-3 mb-2">
-                                                        <Badge variant="secondary">
-                                                            {subQuestion.question_number}
-                                                        </Badge>
-                                                        <span className="text-sm text-gray-600">
-                                                            {subQuestion.marks} marks
-                                                        </span>
+                                                    <div className="flex items-center space-x-3 mb-3">
+                                                        <div className="flex items-center space-x-2">
+                                                            <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
+                                                                Sub-Question {formatQuestionNumber(subQuestion.question_number, subQuestion.numbering_style, true)}
+                                                            </Badge>
+                                                            <Badge variant="secondary" className="text-xs">
+                                                                {subQuestion.numbering_style} style
+                                                            </Badge>
+                                                        </div>
+                                                        <div className="flex items-center space-x-2 text-sm text-gray-600">
+                                                            <Star className="h-3 w-3 text-yellow-500" />
+                                                            <span className="font-medium">{subQuestion.marks} marks</span>
+                                                        </div>
                                                     </div>
-                                                    <p className="text-gray-900">
-                                                        {(() => {
-                                                            const fb = (subQuestion.text as any)?.blocks?.[0];
-                                                            const txt = typeof fb?.data?.['text'] === 'string' ? fb.data['text'] : '';
-                                                            return txt || 'No text available';
-                                                        })()}
-                                                    </p>
+                                                    <div className="pl-4 border-l-2 border-gray-200">
+                                                        <p className="text-gray-900 leading-relaxed">
+                                                            {extractQuestionText(subQuestion)}
+                                                        </p>
+                                                        <div className="mt-3 flex items-center space-x-4 text-xs text-gray-500">
+                                                            <div className="flex items-center">
+                                                                <Clock className="mr-1 h-3 w-3" />
+                                                                <span>Created {formatRelativeTime(subQuestion.created_at)}</span>
+                                                            </div>
+                                                            {subQuestion.answers && subQuestion.answers.length > 0 && (
+                                                                <div className="flex items-center">
+                                                                    <CheckCircle className="mr-1 h-3 w-3 text-green-500" />
+                                                                    <span>{subQuestion.answers.length} answer{subQuestion.answers.length !== 1 ? 's' : ''}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                                 <div className="flex space-x-2">
-                                                    <Button size="sm" variant="ghost" asChild>
+                                                    <Button size="sm" variant="ghost" asChild className="text-blue-600 hover:text-blue-800 hover:bg-blue-100">
                                                         <Link href={`/dashboard/questions/${subQuestion.id}`}>
                                                             <Eye className="h-4 w-4" />
                                                         </Link>
                                                     </Button>
-                                                    <Button size="sm" variant="ghost">
-                                                        <Edit className="h-4 w-4" />
+                                                    <Button size="sm" variant="ghost" className="text-gray-600 hover:text-gray-800 hover:bg-gray-100" asChild>
+                                                        <Link href={`/dashboard/questions/${subQuestion.id}/edit`}>
+                                                            <Edit className="h-4 w-4" />
+                                                        </Link>
                                                     </Button>
                                                 </div>
                                             </div>
@@ -505,6 +522,29 @@ export default function QuestionDetailPage() {
                                 <span className="text-sm">{formatDate(question.created_at)}</span>
                             </div>
 
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-gray-600">Question Set ID</span>
+                                <span className="text-sm font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                                    {question.question_set_id ? question.question_set_id.slice(0, 8) + '...' : 'None'}
+                                </span>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium text-gray-600">Exam Paper ID</span>
+                                <span className="text-sm font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                                    {question.exam_paper_id ? question.exam_paper_id.slice(0, 8) + '...' : 'None'}
+                                </span>
+                            </div>
+
+                            {question.parent_id && (
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium text-gray-600">Parent Question</span>
+                                    <Link href={`/dashboard/questions/${question.parent_id}`} className="text-sm text-blue-600 hover:underline">
+                                        {parentQuestion ? `Question ${parentQuestion.question_number}` : 'View Parent'}
+                                    </Link>
+                                </div>
+                            )}
+
                             {question.slug && (
                                 <div className="flex items-center justify-between">
                                     <span className="text-sm font-medium text-gray-600">Slug</span>
@@ -553,7 +593,7 @@ export default function QuestionDetailPage() {
                             <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-600">Sub-Questions</span>
                                 <span className="text-sm font-semibold">
-                                    {question.children?.length || 0}
+                                    {subQuestions.length}
                                 </span>
                             </div>
 
@@ -567,7 +607,7 @@ export default function QuestionDetailPage() {
                             <div className="flex items-center justify-between">
                                 <span className="text-sm text-gray-600">Total Marks</span>
                                 <span className="text-sm font-semibold">
-                                    {(question.marks || 0) + (question.children?.reduce((sum, child) => sum + (child.marks || 0), 0) || 0)}
+                                    {(question.marks || 0) + subQuestions.reduce((sum, child) => sum + (child.marks || 0), 0)}
                                 </span>
                             </div>
                         </CardContent>

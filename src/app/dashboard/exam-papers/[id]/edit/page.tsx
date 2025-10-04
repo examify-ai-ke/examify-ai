@@ -24,6 +24,7 @@ import {
     Search,
     Filter,
     History,
+    MapPin,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -57,6 +58,7 @@ type ExamTitleRead = components['schemas']['ExamTitleRead']
 type ExamDescriptionRead = components['schemas']['ExamDescriptionRead']
 type InstitutionRead = components['schemas']['InstitutionRead']
 type CourseRead = components['schemas']['CourseRead']
+type InstructionRead = components['schemas']['InstructionRead']
 type QuestionRead = components['schemas']['QuestionRead'] & {
     // Add missing properties for UI compatibility
     question_text?: string
@@ -75,7 +77,7 @@ const examPaperEditSchema = z.object({
     institution_id: z.string().min(1, 'Institution is required'),
     course_id: z.string().min(1, 'Course is required'),
     tags: z.array(z.string()).optional(),
-    instructions: z.array(z.string()).optional(),
+    instruction_ids: z.array(z.string()).optional(), // Changed from instructions to instruction_ids
 })
 
 type ExamPaperEditFormData = z.infer<typeof examPaperEditSchema>
@@ -430,21 +432,21 @@ function AddQuestionSetDialog({ availableQuestionSets, currentQuestionSets, onAd
                     Add Question Set
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-                <DialogHeader>
+            <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+                <DialogHeader className="flex-shrink-0">
                     <DialogTitle>Add Question Set to Exam Paper</DialogTitle>
                     <DialogDescription>
                         Select a question set to add to this exam paper. All questions in the set will be included.
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-4">
+                <div className="flex-1 overflow-y-auto min-h-0 py-4">
                     {filteredQuestionSets.length > 0 ? (
-                        <div className="space-y-3">
+                        <div className="space-y-3 pr-2">
                             {filteredQuestionSets.map((questionSet) => (
                                 <Card
                                     key={questionSet.id}
-                                    className={`cursor-pointer transition-colors ${selectedQuestionSet === questionSet.id ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+                                    className={`cursor-pointer transition-colors hover:shadow-md ${selectedQuestionSet === questionSet.id ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
                                         }`}
                                     onClick={() => setSelectedQuestionSet(questionSet.id)}
                                 >
@@ -453,17 +455,43 @@ function AddQuestionSetDialog({ availableQuestionSets, currentQuestionSets, onAd
                                             <Checkbox
                                                 checked={selectedQuestionSet === questionSet.id}
                                                 onChange={() => { }} // Handled by card click
+                                                className="mt-1"
                                             />
-                                            <div className="flex-1">
+                                            <div className="flex-1 min-w-0">
                                                 <div className="flex items-center space-x-2 mb-2">
-                                                    <Badge variant="outline">{questionSet.title || 'Question Set'}</Badge>
-                                                    <Badge variant="secondary">
+                                                    <Badge variant="outline" className="text-xs">
+                                                        {questionSet.title || 'Question Set'}
+                                                    </Badge>
+                                                    <Badge variant="secondary" className="text-xs">
                                                         {questionSet.questions_count || questionSet.questions?.length || 0} questions
                                                     </Badge>
                                                 </div>
-                                                <p className="text-sm text-gray-600">
+                                                <h4 className="font-medium text-sm text-gray-900 mb-1 truncate">
                                                     Question Set ID: {questionSet.slug || questionSet.id}
+                                                </h4>
+                                                <p className="text-xs text-gray-600 mb-2">
+                                                    Created: {questionSet.created_at ? new Date(questionSet.created_at).toLocaleDateString() : 'Unknown date'}
                                                 </p>
+                                                {questionSet.questions && questionSet.questions.length > 0 && (
+                                                    <div className="text-xs text-gray-500">
+                                                        <p className="mb-1 font-medium">Sample questions:</p>
+                                                        <ul className="list-disc list-inside space-y-1 ml-2">
+                                                            {questionSet.questions.slice(0, 2).map((question, idx) => (
+                                                                <li key={idx} className="truncate">
+                                                                    Q{question.question_number}: {
+                                                                        question.text?.blocks?.[0]?.data?.text?.substring?.(0, 60) ||
+                                                                        'Question content...'
+                                                                    }...
+                                                                </li>
+                                                            ))}
+                                                            {questionSet.questions.length > 2 && (
+                                                                <li className="text-gray-400">
+                                                                    +{questionSet.questions.length - 2} more questions
+                                                                </li>
+                                                            )}
+                                                        </ul>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </CardContent>
@@ -471,7 +499,7 @@ function AddQuestionSetDialog({ availableQuestionSets, currentQuestionSets, onAd
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center py-8 text-gray-500">
+                        <div className="text-center py-12 text-gray-500">
                             <ListChecks className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                             <h4 className="text-lg font-medium mb-2">No available question sets</h4>
                             <p className="text-sm">All available question sets have been added to this exam paper.</p>
@@ -479,13 +507,14 @@ function AddQuestionSetDialog({ availableQuestionSets, currentQuestionSets, onAd
                     )}
                 </div>
 
-                <DialogFooter>
+                <DialogFooter className="flex-shrink-0 border-t pt-4">
                     <Button variant="outline" onClick={() => setOpen(false)}>
                         Cancel
                     </Button>
                     <Button
                         onClick={handleAddQuestionSet}
                         disabled={!selectedQuestionSet}
+                        className="bg-blue-600 hover:bg-blue-700"
                     >
                         Add Question Set
                     </Button>
@@ -514,6 +543,7 @@ export default function EditExamPaperPage() {
     const [examPaper, setExamPaper] = useState<ExamPaperRead | null>(null)
     const [institutions, setInstitutions] = useState<InstitutionRead[]>([])
     const [courses, setCourses] = useState<CourseRead[]>([])
+    const [instructions, setInstructions] = useState<InstructionRead[]>([])
     const [questions, setQuestions] = useState<QuestionRead[]>([])
     const [availableQuestions, setAvailableQuestions] = useState<QuestionRead[]>([])
     const [questionSets, setQuestionSets] = useState<QuestionSetRead[]>([])
@@ -537,7 +567,7 @@ export default function EditExamPaperPage() {
             institution_id: '',
             course_id: '',
             tags: [],
-            instructions: [],
+            instruction_ids: [],
         },
         mode: 'onChange',
     })
@@ -555,7 +585,7 @@ export default function EditExamPaperPage() {
                 exam_date: data.exam_date || null,
                 exam_duration: data.exam_duration || null,
                 tags: data.tags || null,
-                instruction_ids: [],
+                instruction_ids: data.instruction_ids || [],
                 module_ids: [],
             }
 
@@ -606,11 +636,12 @@ export default function EditExamPaperPage() {
                     return
                 }
 
-                // Load exam paper, institutions, courses, and questions from real API
-                const [paperResponse, institutionsResponse, coursesResponse, questionsResponse] = await Promise.all([
+                // Load exam paper, institutions, courses, instructions, and questions from real API
+                const [paperResponse, institutionsResponse, coursesResponse, instructionsResponse, questionsResponse] = await Promise.all([
                     adminAPI.examPapers.getById(params.id as string),
                     adminAPI.institutions.list(),
                     adminAPI.courses.list(),
+                    adminAPI.instructions.list(),
                     adminAPI.questionSets.list()
                 ])
 
@@ -638,9 +669,7 @@ export default function EditExamPaperPage() {
                         institution_id: paperData.institution?.id || '',
                         course_id: paperData.course?.id || '',
                         tags: paperData.tags || [],
-                        instructions: paperData.instructions?.map((i: any) =>
-                            typeof i === 'string' ? i : i.instruction || i.name
-                        ) || [],
+                        instruction_ids: paperData.instructions?.map((i: any) => i.id) || [],
                     })
 
                     // Mark as initially saved
@@ -670,6 +699,16 @@ export default function EditExamPaperPage() {
                 } else {
                     console.warn('Failed to load courses:', coursesResponse.error)
                     setCourses([])
+                }
+
+                if (!instructionsResponse.error && instructionsResponse.data) {
+                    console.log('Instructions response:', instructionsResponse.data)
+                    const instructionsData = instructionsResponse.data.data?.items || []
+                    console.log('Instructions data to set:', instructionsData)
+                    setInstructions(Array.isArray(instructionsData) ? instructionsData : [])
+                } else {
+                    console.warn('Failed to load instructions:', instructionsResponse.error)
+                    setInstructions([])
                 }
 
                 if (!questionsResponse.error && questionsResponse.data) {
@@ -729,7 +768,7 @@ export default function EditExamPaperPage() {
                 exam_date: data.exam_date || null,
                 exam_duration: data.exam_duration || null,
                 tags: data.tags || null,
-                instruction_ids: [], // Instructions would need separate handling
+                instruction_ids: data.instruction_ids || [], // Updated to use instruction_ids
                 module_ids: [], // Modules would need separate handling
             }
 
@@ -781,17 +820,25 @@ export default function EditExamPaperPage() {
         form.setValue('tags', currentTags.filter(tag => tag !== tagToRemove))
     }
 
-    const handleAddInstruction = () => {
-        if (newInstruction.trim()) {
-            const currentInstructions = form.getValues('instructions') || []
-            form.setValue('instructions', [...currentInstructions, newInstruction.trim()])
-            setNewInstruction('')
+    const handleAddInstruction = (instructionId: string) => {
+        const currentInstructionIds = form.getValues('instruction_ids') || []
+        if (!currentInstructionIds.includes(instructionId)) {
+            form.setValue('instruction_ids', [...currentInstructionIds, instructionId])
         }
     }
 
-    const handleRemoveInstruction = (index: number) => {
-        const currentInstructions = form.getValues('instructions') || []
-        form.setValue('instructions', currentInstructions.filter((_, i) => i !== index))
+    const handleRemoveInstruction = (instructionId: string) => {
+        const currentInstructionIds = form.getValues('instruction_ids') || []
+        form.setValue('instruction_ids', currentInstructionIds.filter(id => id !== instructionId))
+    }
+
+    const handleToggleInstruction = (instructionId: string) => {
+        const currentInstructionIds = form.getValues('instruction_ids') || []
+        if (currentInstructionIds.includes(instructionId)) {
+            handleRemoveInstruction(instructionId)
+        } else {
+            handleAddInstruction(instructionId)
+        }
     }
 
     const handleAddQuestion = (question: QuestionRead) => {
@@ -827,25 +874,30 @@ export default function EditExamPaperPage() {
 
     const handleAddQuestionSet = async (questionSet: QuestionSetRead) => {
         try {
+            console.log('Adding question set to exam paper:', {
+                examPaperId: params.id,
+                questionSetId: questionSet.id
+            });
+
             const response = await adminAPI.examPapers.addQuestionSet(params.id as string, questionSet.id)
 
-            if (!response.error) {
-                // Add to current question sets
-                setQuestionSets(prev => [...prev, questionSet])
+            console.log('API Response:', response);
 
-                // Add questions from the question set to the questions list
-                const newQuestions = questionSet.questions || []
-                setQuestions(prev => [...prev, ...newQuestions])
-
-                addNotification({
-                    type: 'success',
-                    title: 'Success',
-                    message: 'Question set added successfully!',
-                })
-                setHasUnsavedChanges(true)
-            } else {
+            if (response.error) {
                 throw new Error(response.error?.message || 'Failed to add question set')
             }
+
+            // Only add the question set to the list - do NOT add individual questions
+            setQuestionSets(prev => [...prev, questionSet])
+
+            addNotification({
+                type: 'success',
+                title: 'Success',
+                message: `Question set "${questionSet.title || 'Question Set'}" added successfully!`,
+            })
+
+            // Mark as having unsaved changes since we modified the exam paper
+            setHasUnsavedChanges(true)
         } catch (error) {
             console.error('Error adding question set:', error)
             addNotification({
@@ -858,28 +910,31 @@ export default function EditExamPaperPage() {
 
     const handleRemoveQuestionSet = async (questionSetId: string) => {
         try {
+            console.log('Removing question set from exam paper:', {
+                examPaperId: params.id,
+                questionSetId: questionSetId
+            });
+
             const response = await adminAPI.examPapers.removeQuestionSet(params.id as string, questionSetId)
 
-            if (!response.error) {
-                // Remove from current question sets
-                const removedQuestionSet = questionSets.find(qs => qs.id === questionSetId)
-                setQuestionSets(prev => prev.filter(qs => qs.id !== questionSetId))
+            console.log('API Response:', response);
 
-                // Remove questions from the removed question set
-                if (removedQuestionSet?.questions) {
-                    const questionIdsToRemove = removedQuestionSet.questions.map(q => q.id)
-                    setQuestions(prev => prev.filter(q => !questionIdsToRemove.includes(q.id)))
-                }
-
-                addNotification({
-                    type: 'success',
-                    title: 'Success',
-                    message: 'Question set removed successfully!',
-                })
-                setHasUnsavedChanges(true)
-            } else {
+            if (response.error) {
                 throw new Error(response.error?.message || 'Failed to remove question set')
             }
+
+            // Only remove the question set from the list - do NOT remove individual questions
+            const removedQuestionSet = questionSets.find(qs => qs.id === questionSetId)
+            setQuestionSets(prev => prev.filter(qs => qs.id !== questionSetId))
+
+            addNotification({
+                type: 'success',
+                title: 'Success',
+                message: `Question set "${removedQuestionSet?.title || 'Question Set'}" removed successfully!`,
+            })
+
+            // Mark as having unsaved changes since we modified the exam paper
+            setHasUnsavedChanges(true)
         } catch (error) {
             console.error('Error removing question set:', error)
             addNotification({
@@ -1096,51 +1151,120 @@ export default function EditExamPaperPage() {
                                         <FormField
                                             control={form.control}
                                             name="institution_id"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Institution</FormLabel>
-                                                    <Select onValueChange={field.onChange} value={field.value}>
-                                                        <FormControl>
-                                                            <SelectTrigger>
-                                                                <SelectValue placeholder="Select institution" />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            {(institutions || []).map((institution) => (
-                                                                <SelectItem key={institution.id} value={institution.id}>
-                                                                    {institution.name}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
+                                            render={({ field }) => {
+                                                const selectedInstitution = institutions?.find(inst => inst.id === field.value)
+                                                return (
+                                                    <FormItem>
+                                                        <FormLabel>Institution</FormLabel>
+                                                        <Select onValueChange={field.onChange} value={field.value}>
+                                                            <FormControl>
+                                                                <SelectTrigger>
+                                                                    <SelectValue placeholder="Select institution">
+                                                                        {selectedInstitution && (
+                                                                            <div className="flex items-center justify-between w-full">
+                                                                                <span className="font-medium">{selectedInstitution.name}</span>
+                                                                                {selectedInstitution.key && (
+                                                                                    <Badge variant="secondary" className="ml-2 text-xs">
+                                                                                        {selectedInstitution.key}
+                                                                                    </Badge>
+                                                                                )}
+                                                                            </div>
+                                                                        )}
+                                                                    </SelectValue>
+                                                                </SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent className="max-h-[300px]">
+                                                                {(institutions || []).map((institution) => (
+                                                                    <SelectItem key={institution.id} value={institution.id}>
+                                                                        <div className="flex flex-col w-full">
+                                                                            <div className="flex items-center justify-between w-full">
+                                                                                <span className="font-medium">{institution.name}</span>
+                                                                                {institution.key && (
+                                                                                    <Badge variant="secondary" className="ml-2 text-xs">
+                                                                                        {institution.key}
+                                                                                    </Badge>
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                                                                                {institution.location && (
+                                                                                    <div className="flex items-center gap-1">
+                                                                                        <MapPin className="h-3 w-3" />
+                                                                                        <span>{institution.location}</span>
+                                                                                    </div>
+                                                                                )}
+                                                                                {institution.category && (
+                                                                                    <Badge variant="outline" className="text-xs px-1 py-0">
+                                                                                        {institution.category}
+                                                                                    </Badge>
+                                                                                )}
+                                                                                {institution.institution_type && (
+                                                                                    <Badge variant="outline" className="text-xs px-1 py-0">
+                                                                                        {institution.institution_type}
+                                                                                    </Badge>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )
+                                            }}
                                         />
 
                                         <FormField
                                             control={form.control}
                                             name="course_id"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Course</FormLabel>
-                                                    <Select onValueChange={field.onChange} value={field.value}>
-                                                        <FormControl>
-                                                            <SelectTrigger>
-                                                                <SelectValue placeholder="Select course" />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            {(courses || []).map((course) => (
-                                                                <SelectItem key={course.id} value={course.id}>
-                                                                    {course.name}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
+                                            render={({ field }) => {
+                                                const selectedCourse = courses?.find(course => course.id === field.value)
+                                                return (
+                                                    <FormItem>
+                                                        <FormLabel>Course</FormLabel>
+                                                        <Select onValueChange={field.onChange} value={field.value}>
+                                                            <FormControl>
+                                                                <SelectTrigger>
+                                                                    <SelectValue placeholder="Select course">
+                                                                        {selectedCourse && (
+                                                                            <div className="flex items-center justify-between w-full">
+                                                                                <span className="font-medium">{selectedCourse.name}</span>
+                                                                                {selectedCourse.course_acronym && (
+                                                                                    <Badge variant="secondary" className="ml-2 text-xs">
+                                                                                        {selectedCourse.course_acronym}
+                                                                                    </Badge>
+                                                                                )}
+                                                                            </div>
+                                                                        )}
+                                                                    </SelectValue>
+                                                                </SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent className="max-h-[300px]">
+                                                                {(courses || []).map((course) => (
+                                                                    <SelectItem key={course.id} value={course.id}>
+                                                                        <div className="flex flex-col w-full">
+                                                                            <div className="flex items-center justify-between w-full">
+                                                                                <span className="font-medium">{course.name}</span>
+                                                                                {course.course_acronym && (
+                                                                                    <Badge variant="secondary" className="ml-2 text-xs">
+                                                                                        {course.course_acronym}
+                                                                                    </Badge>
+                                                                                )}
+                                                                            </div>
+                                                                            {course.description && (
+                                                                                <div className="text-xs text-muted-foreground mt-1">
+                                                                                    {course.description}
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )
+                                            }}
                                         />
                                     </div>
                                 </CardContent>
@@ -1278,35 +1402,65 @@ export default function EditExamPaperPage() {
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="text-sm font-medium">Instructions</CardTitle>
+                                    <CardDescription>
+                                        Select exam instructions from available options
+                                    </CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
+                                    {/* Selected Instructions Display */}
                                     <div className="space-y-2">
-                                        {(form.watch('instructions') || []).map((instruction, index) => (
-                                            <div key={index} className="flex items-start space-x-2 p-2 bg-gray-50 rounded text-sm">
-                                                <span className="flex-1">{index + 1}. {instruction}</span>
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-4 w-4 p-0 text-gray-400 hover:text-red-600"
-                                                    onClick={() => handleRemoveInstruction(index)}
-                                                >
-                                                    <X className="h-3 w-3" />
-                                                </Button>
+                                        {(form.watch('instruction_ids') || []).map((instructionId, index) => {
+                                            const instruction = instructions.find(i => i.id === instructionId)
+                                            return instruction ? (
+                                                <div key={instructionId} className="flex items-start space-x-2 p-2 bg-gray-50 rounded text-sm">
+                                                    <span className="flex-1">{index + 1}. {instruction.name}</span>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-4 w-4 p-0 text-gray-400 hover:text-red-600"
+                                                        onClick={() => handleRemoveInstruction(instructionId)}
+                                                    >
+                                                        <X className="h-3 w-3" />
+                                                    </Button>
+                                                </div>
+                                            ) : null
+                                        })}
+                                        {(form.watch('instruction_ids') || []).length === 0 && (
+                                            <div className="text-sm text-muted-foreground p-2 text-center">
+                                                No instructions selected
                                             </div>
-                                        ))}
+                                        )}
                                     </div>
-                                    <div className="flex space-x-2">
-                                        <Input
-                                            placeholder="Add instruction"
-                                            value={newInstruction}
-                                            onChange={(e) => setNewInstruction(e.target.value)}
-                                            onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddInstruction())}
-                                            className="text-sm"
-                                        />
-                                        <Button type="button" size="sm" onClick={handleAddInstruction}>
-                                            <Plus className="h-4 w-4" />
-                                        </Button>
+
+                                    {/* Available Instructions Multi-Select */}
+                                    <div className="border rounded-md p-3">
+                                        <Label className="text-sm font-medium mb-2 block">Available Instructions</Label>
+                                        <div className="max-h-[200px] overflow-y-auto space-y-2">
+                                            {instructions.map((instruction) => {
+                                                const isSelected = (form.watch('instruction_ids') || []).includes(instruction.id)
+                                                return (
+                                                    <div key={instruction.id} className="flex items-center space-x-2">
+                                                        <Checkbox
+                                                            id={`instruction-${instruction.id}`}
+                                                            checked={isSelected}
+                                                            onCheckedChange={() => handleToggleInstruction(instruction.id)}
+                                                        />
+                                                        <Label
+                                                            htmlFor={`instruction-${instruction.id}`}
+                                                            className="text-sm cursor-pointer flex-1"
+                                                        >
+                                                            {instruction.name}
+                                                        </Label>
+                                                    </div>
+                                                )
+                                            })}
+                                            {instructions.length === 0 && (
+                                                <div className="text-sm text-muted-foreground text-center py-2">
+                                                    No instructions available
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </CardContent>
                             </Card>

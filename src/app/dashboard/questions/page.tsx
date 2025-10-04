@@ -52,6 +52,7 @@ import { adminAPI } from '@/lib/api-admin';
 import { api } from '@/lib/api';
 import { formatDate, formatRelativeTime } from '@/lib/utils';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { components } from '@/types/generated/api';
 
 // Type definitions from API schema
@@ -97,6 +98,7 @@ interface QuestionsFilters {
 export default function AllQuestionsPage() {
     const { user } = useAuth();
     const { addNotification } = useUIStore();
+    const router = useRouter();
 
     // State management
     const [questions, setQuestions] = useState<QuestionRead[]>([]);
@@ -718,11 +720,7 @@ export default function AllQuestionsPage() {
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                    <DropdownMenuItem onClick={() => addNotification({
-                                                        type: 'info',
-                                                        title: 'View Question',
-                                                        message: `Opening details for question ${mainQuestion.question_number}...`,
-                                                    })}>
+                                                    <DropdownMenuItem onClick={() => router.push(`/dashboard/questions/${mainQuestion.id}`)}>
                                                         <Eye className="mr-2 h-4 w-4" />
                                                         View Details
                                                     </DropdownMenuItem>
@@ -832,11 +830,7 @@ export default function AllQuestionsPage() {
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent align="end">
                                                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                                <DropdownMenuItem onClick={() => addNotification({
-                                                                    type: 'info',
-                                                                    title: 'View Sub-question',
-                                                                    message: `Opening details for sub-question ${subQuestion.question_number}...`,
-                                                                })}>
+                                                                <DropdownMenuItem onClick={() => router.push(`/dashboard/questions/${subQuestion.id}`)}>
                                                                     <Eye className="mr-2 h-4 w-4" />
                                                                     View Details
                                                                 </DropdownMenuItem>

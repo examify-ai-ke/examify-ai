@@ -17,6 +17,8 @@ export type InstitutionDetailedStatistics = components['schemas']['InstitutionDe
 
 // Exam Papers related types
 export type ExamPaperRead = components['schemas']['ExamPaperRead'];
+export type ExamPaperReadForInstitution = components['schemas']['ExamPaperReadForInstitution'];
+export type ExamPaperReadForModule = components['schemas']['ExamPaperReadForModule'];
 export type ExamPaperCreate = components['schemas']['ExamPaperCreate'];
 export type ExamPaperUpdate = components['schemas']['ExamPaperUpdate'];
 export type InstitutionRead = components['schemas']['InstitutionRead'];
@@ -597,6 +599,17 @@ const adminAPI = {
 
     /**
      * Exam Papers Management
+     * 
+     * Note: Different endpoints return different levels of detail:
+     * - getById() returns full ExamPaperRead with all relationships
+     * - list() and search() return full ExamPaperRead 
+     * - Institution views use simplified ExamPaperReadForInstitution (no instructions, modules, question_sets)
+     * 
+     * Search endpoint supports flexible filtering:
+     * - Only search query: Returns exam papers matching the search term
+     * - Only institution_id: Returns all exam papers for that institution  
+     * - Both provided: Returns exam papers for that institution that also match the search term
+     * - Neither provided: Returns all exam papers (with other filters if specified)
      */
     examPapers: {
         async list(params?: {
@@ -614,8 +627,7 @@ const adminAPI = {
 
                 // If we have search or filter parameters, use the search endpoint
                 if (params?.search || params?.institution_id || params?.course_id || params?.year) {
-                    const searchParams = {
-                        q: params.search || '*', // Use wildcard if no search term
+                    const searchParams: any = {
                         skip: params.skip,
                         limit: params.limit,
                         institution_id: params.institution_id,
@@ -624,6 +636,11 @@ const adminAPI = {
                         sort_by: params.sort_by,
                         sort_order: params.sort_order
                     };
+
+                    // Only add q parameter if search term is provided
+                    if (params.search) {
+                        searchParams.q = params.search;
+                    }
 
                     console.log('🔍 Using search endpoint with params:', searchParams);
                     const response = await api.GET('/api/v1/exampaper/search', {
@@ -637,7 +654,10 @@ const adminAPI = {
                             message: response.data.message,
                             totalItems: response.data.data.total,
                             itemsCount: response.data.data.items.length,
-                            searchQuery: searchParams.q
+                            searchQuery: searchParams.q || 'No search term (filter only)',
+                            institutionFilter: searchParams.institution_id || 'None',
+                            courseFilter: searchParams.course_id || 'None',
+                            yearFilter: searchParams.year || 'None'
                         });
                     } else {
                         console.log('🔍 Search response:', response);
@@ -681,7 +701,7 @@ const adminAPI = {
         },
 
         async search(params: {
-            q: string;
+            q?: string; // Made optional to support filtering without search term
             year?: string;
             course_id?: string;
             institution_id?: string;

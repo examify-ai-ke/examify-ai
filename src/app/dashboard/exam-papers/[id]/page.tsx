@@ -119,20 +119,62 @@ export default function ExamPaperDetailsPage() {
         return text.substring(0, maxLength) + '...'
     }
 
+    // Helper function to check network connectivity
+    const checkNetworkConnectivity = async () => {
+        try {
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+            console.log('🌐 Testing network connectivity to:', baseUrl)
+
+            // Try to fetch the health endpoint
+            const response = await fetch(`${baseUrl}/api/v1/health`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                }
+            })
+
+            if (response.ok) {
+                console.log('✅ Network connectivity: OK')
+                return true
+            } else {
+                console.log('⚠️ Network connectivity: Server responded with', response.status)
+                return false
+            }
+        } catch (error) {
+            console.log('❌ Network connectivity: Failed', error)
+            return false
+        }
+    }
+
     // Load exam paper data
     const loadExamPaper = async () => {
         try {
             setLoading(true)
 
             console.log('🔄 Loading exam paper with ID:', examPaperId)
+            console.log('🔧 API Base URL:', process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000')
+            console.log('🔑 Auth Token:', localStorage.getItem('auth-token') ? 'Present' : 'Missing')
+
+            // Test network connectivity first
+            const isConnected = await checkNetworkConnectivity()
+            if (!isConnected) {
+                throw new Error('Network connectivity test failed. Backend server may not be running.')
+            }
+
             const response = await adminAPI.examPapers.getById(examPaperId)
 
             console.log('📄 API response received:', {
                 hasData: !!response.data,
                 hasExamPaper: !!response.data?.data,
                 examPaperId: response.data?.data?.id,
-                title: (response.data?.data as any)?.title?.name
+                title: (response.data?.data as any)?.title?.name,
+                error: response.error
             })
+
+            if (response.error) {
+                console.error('🚨 API Error Details:', response.error)
+                throw new Error(`API Error: ${JSON.stringify(response.error)}`)
+            }
 
             if (response.data?.data) {
                 console.log('✅ Found exam paper data with ID:', response.data.data.id)
@@ -143,12 +185,36 @@ export default function ExamPaperDetailsPage() {
                 setExamPaper(mockExamPaper)
             }
         } catch (error) {
-            console.error('Error loading exam paper:', error)
-            addNotification({
-                type: 'error',
-                title: 'Error',
-                message: 'Failed to load exam paper details. Using offline data.'
-            })
+            console.error('❌ loadExamPaper error:', error)
+
+            // Enhanced error reporting
+            if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+                console.error('🌐 Network Error Details:', {
+                    message: 'Failed to fetch - possible causes:',
+                    causes: [
+                        '1. Backend server not running on http://localhost:8000',
+                        '2. Network connectivity issue',
+                        '3. CORS configuration problem',
+                        '4. Firewall blocking the request'
+                    ],
+                    suggestion: 'Check if backend server is running and accessible'
+                })
+
+                addNotification({
+                    type: 'error',
+                    title: 'Connection Error',
+                    message: 'Unable to connect to the server. Please check if the backend is running.',
+                })
+            } else {
+                addNotification({
+                    type: 'error',
+                    title: 'Failed to load exam paper',
+                    message: error instanceof Error ? error.message : 'Unknown error occurred',
+                })
+            }
+
+            // Fallback to mock data for development
+            console.warn('📋 Using mock data as fallback due to error')
             setExamPaper(mockExamPaper)
         } finally {
             setLoading(false)

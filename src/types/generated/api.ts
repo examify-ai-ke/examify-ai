@@ -4340,30 +4340,14 @@ export interface components {
              * @default []
              */
             tags: string[] | null;
-            /**
-             * Instructions
-             * @default []
-             */
-            instructions: components["schemas"]["InstructionRead"][] | null;
-            /** @default [] */
             title: components["schemas"]["ExamTitleReadForExamPaperRead"];
             description: components["schemas"]["ExamDescriptionReadForExamPaper"];
-            /**
-             * Modules
-             * @default []
-             */
-            modules: components["schemas"]["ModuleReadForExamPaper"][] | null;
             /**
              * Created By Id
              * Format: uuid
              */
             created_by_id: string;
             course: components["schemas"]["CourseReadForExamPaper"] | null;
-            /**
-             * Question Sets
-             * @default []
-             */
-            question_sets: components["schemas"]["QuestionSetRead"][] | null;
         };
         /** ExamPaperReadForModule */
         ExamPaperReadForModule: {
@@ -12959,9 +12943,9 @@ export interface operations {
     };
     search_exam_papers_api_v1_exampaper_search_get: {
         parameters: {
-            query: {
+            query?: {
                 /** @description Search query for exam papers */
-                q: string;
+                q?: string;
                 /** @description Filter by exam year */
                 year?: string;
                 /** @description Filter by course ID */

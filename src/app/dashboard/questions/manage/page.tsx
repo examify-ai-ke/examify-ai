@@ -63,6 +63,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUIStore } from '@/stores/ui';
 import { adminAPI } from '@/lib/api-admin';
 import { formatDate } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 import type { components } from '@/types/generated/api';
 
 // Type definitions from API schema
@@ -120,6 +121,7 @@ const initialStats: QuestionsStats = {
 export default function QuestionsManagePage() {
     const { user } = useAuth();
     const { addNotification } = useUIStore();
+    const router = useRouter();
 
     // State management
     const [questions, setQuestions] = useState<QuestionRead[]>([]);
@@ -400,11 +402,7 @@ export default function QuestionsManagePage() {
     };
 
     const handleViewQuestion = (questionId: string) => {
-        addNotification({
-            type: 'info',
-            title: 'View Question',
-            message: `Opening details for question ${questionId}...`,
-        });
+        router.push(`/dashboard/questions/${questionId}`);
     };
 
     const handleDeleteQuestion = async (questionId: string) => {
@@ -468,16 +466,16 @@ export default function QuestionsManagePage() {
             const response = await adminAPI.questions.getStats();
             if (response.data?.data) {
                 // If API provides stats, use them
-                const apiStats = response.data.data;
+                const apiStats = response.data.data as any; // Type assertion for API stats
                 setStats({
-                    totalQuestions: apiStats.total_questions || 0,
-                    mainQuestions: apiStats.main_questions || 0,
-                    subQuestions: apiStats.sub_questions || 0,
-                    totalMarks: apiStats.total_marks || 0,
-                    averageMarks: apiStats.average_marks || 0,
-                    recentQuestions: apiStats.recent_questions || 0,
-                    questionsWithAnswers: apiStats.questions_with_answers || 0,
-                    orphanQuestions: apiStats.orphan_questions || 0,
+                    totalQuestions: (apiStats.total_questions as number) || 0,
+                    mainQuestions: (apiStats.main_questions as number) || 0,
+                    subQuestions: (apiStats.sub_questions as number) || 0,
+                    totalMarks: (apiStats.total_marks as number) || 0,
+                    averageMarks: (apiStats.average_marks as number) || 0,
+                    recentQuestions: (apiStats.recent_questions as number) || 0,
+                    questionsWithAnswers: (apiStats.questions_with_answers as number) || 0,
+                    orphanQuestions: (apiStats.orphan_questions as number) || 0,
                 });
             }
         } catch (error) {

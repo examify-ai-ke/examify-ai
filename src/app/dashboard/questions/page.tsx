@@ -20,6 +20,7 @@ import {
     Clock,
     AlertTriangle,
     RefreshCw,
+    Unlink,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -86,14 +87,21 @@ interface QuestionsOverviewStats {
 // Filter interface
 interface QuestionsFilters {
     search?: string;
-    numbering_style?: string;
-    has_answers?: 'yes' | 'no';
-    question_type?: 'main' | 'sub';
+    question_type?: 'main' | 'sub' | 'all';
     marks_range?: 'low' | 'medium' | 'high';
     exam_paper_id?: string;
+    question_set_id?: string;
+    institution_id?: string;
+    course_id?: string;
+    module_id?: string;
+    programme_id?: string;
+    numbering_style?: string;
+    has_answers?: 'yes' | 'no' | 'all';
+    sort_by?: 'relevance' | 'marks' | 'created_at';
+    sort_order?: 'asc' | 'desc';
 }
 
-// No mock data – always use backend API
+// Always uses backend API - no mock data
 
 export default function AllQuestionsPage() {
     const { user } = useAuth();
@@ -103,7 +111,7 @@ export default function AllQuestionsPage() {
     // State management
     const [questions, setQuestions] = useState<QuestionRead[]>([]);
     const [loading, setLoading] = useState(false);
-    const [viewMode, setViewMode] = useState<'hierarchical' | 'table'>('hierarchical');
+    const [viewMode, setViewMode] = useState<'hierarchical' | 'table'>('table');
     const [stats, setStats] = useState<QuestionsOverviewStats>({
         totalQuestions: 0,
         mainQuestions: 0,
@@ -118,16 +126,45 @@ export default function AllQuestionsPage() {
     const [currentPage, setCurrentPage] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
     const [totalItems, setTotalItems] = useState(0);
+    const [pageSize, setPageSize] = useState(20);
     const [apiStatus, setApiStatus] = useState<'connected' | 'error'>('error');
     const hasInitializedRef = useRef(false);
 
-    const ITEMS_PER_PAGE = 20;
+    // Academic hierarchy data for filters
+    const [institutions, setInstitutions] = useState<any[]>([]);
+    const [courses, setCourses] = useState<any[]>([]);
+    const [modules, setModules] = useState<any[]>([]);
+    const [programmes, setProgrammes] = useState<any[]>([]);
+    const [loadingHierarchy, setLoadingHierarchy] = useState(false);
+
+    // Load academic hierarchy data for filters
+    const loadHierarchyData = async () => {
+        try {
+            setLoadingHierarchy(true);
+            const [institutionsResponse, coursesResponse, modulesResponse, programmesResponse] = await Promise.all([
+                adminAPI.institutions.list({ limit: 100 }),
+                adminAPI.courses.list({ limit: 100 }),
+                adminAPI.modules.list({ limit: 100 }),
+                adminAPI.programmes.list({ limit: 100 })
+            ]);
+
+            setInstitutions(institutionsResponse.data?.data?.items || []);
+            setCourses(coursesResponse.data?.data?.items || []);
+            setModules(modulesResponse.data?.data?.items || []);
+            setProgrammes(programmesResponse.data?.data?.items || []);
+        } catch (error) {
+            console.error('Error loading hierarchy data:', error);
+        } finally {
+            setLoadingHierarchy(false);
+        }
+    };
 
     // Initial load (guarded to avoid React StrictMode double-fetch in dev)
     useEffect(() => {
         if (!hasInitializedRef.current) {
             hasInitializedRef.current = true;
             void loadQuestions();
+            void loadHierarchyData();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -136,76 +173,96 @@ export default function AllQuestionsPage() {
     const loadQuestions = async () => {
         try {
             setLoading(true);
-            console.log('Loading main questions with sub-questions from backend API...');
+            console.log('Loading questions with comprehensive filtering from backend API...');
 
-            // Load main questions and all questions for hierarchy building
-            const [mainQuestionsResponse, allQuestionsResponse] = await Promise.all([
-                // Load main questions
-                filters.search && filters.search.trim() !== ''
-                    ? adminAPI.questions.search({
-                        q: filters.search,
-                        question_type: 'main', // Only main questions
-                        numbering_style: filters.numbering_style,
-                        has_answers: filters.has_answers === 'yes' ? true : filters.has_answers === 'no' ? false : undefined,
-                        exam_paper_id: filters.exam_paper_id,
-                        skip: currentPage * ITEMS_PER_PAGE,
-                        limit: ITEMS_PER_PAGE,
-                    })
-                    : adminAPI.questions.list({
-                        question_type: 'main', // Only main questions
-                        exam_paper_id: filters.exam_paper_id,
-                        skip: currentPage * ITEMS_PER_PAGE,
-                        limit: ITEMS_PER_PAGE,
-                    }),
-                // Load all questions to build parent-child relationships
-                adminAPI.questions.list({ limit: 100 }) // Load questions to find sub-questions (API max limit is 100)
-            ]);
+            // Build search parameters
+            const searchParams: any = {
+                question_type: filters.question_type || 'main',
+                include_children: true, // Include sub-questions
+                skip: currentPage * pageSize,
+                limit: pageSize,
+                highlight: true, // Enable search highlighting
+            };
 
-            console.log('Main questions API response:', mainQuestionsResponse);
-            console.log('All questions API response:', allQuestionsResponse);
+            // Add search query if provided
+            if (filters.search && filters.search.trim() !== '') {
+                searchParams.q = filters.search.trim();
+            }
 
-            if (mainQuestionsResponse.data?.data) {
-                const responseData = mainQuestionsResponse.data.data;
-                const mainQuestionsData = responseData.items || [];
+            // Add filters
+            if (filters.exam_paper_id) {
+                searchParams.exam_paper_id = filters.exam_paper_id;
+            }
+            if (filters.question_set_id) {
+                searchParams.question_set_id = filters.question_set_id;
+            }
+            if (filters.institution_id) {
+                searchParams.institution_id = filters.institution_id;
+            }
+            if (filters.course_id) {
+                searchParams.course_id = filters.course_id;
+            }
+            if (filters.module_id) {
+                searchParams.module_id = filters.module_id;
+            }
+            if (filters.programme_id) {
+                searchParams.programme_id = filters.programme_id;
+            }
+            if (filters.numbering_style) {
+                searchParams.numbering_style = filters.numbering_style;
+            }
+            if (filters.has_answers && filters.has_answers !== 'all') {
+                searchParams.has_answers = filters.has_answers === 'yes';
+            }
 
-                // Get all questions to find sub-questions
-                const allQuestionsData = allQuestionsResponse.data?.data?.items || [];
+            // Add marks range filter
+            if (filters.marks_range) {
+                const marksMin = getMarksRangeMin(filters.marks_range);
+                const marksMax = getMarksRangeMax(filters.marks_range);
+                if (marksMin !== undefined) searchParams.marks_min = marksMin;
+                if (marksMax !== undefined) searchParams.marks_max = marksMax;
+            }
 
-                // Build hierarchy: attach sub-questions to their parent main questions
-                const questionsWithChildren = mainQuestionsData.map(mainQuestion => {
-                    const subQuestions = allQuestionsData.filter(q => q.parent_id === mainQuestion.id);
-                    return {
-                        ...mainQuestion,
-                        children: subQuestions
-                    };
-                });
+            // Add sorting
+            searchParams.sort_by = filters.sort_by || 'relevance';
+            searchParams.sort_order = filters.sort_order || 'desc';
 
-                setQuestions(questionsWithChildren);
+            // Use search endpoint for all queries (more powerful than list)
+            const questionsResponse = await adminAPI.questions.search(searchParams);
+
+            console.log('Questions API response:', questionsResponse);
+
+            if (questionsResponse.data?.data) {
+                const responseData = questionsResponse.data.data;
+                const questionsData = responseData.items || [];
+
+                // Questions already include their children from the API
+                setQuestions(questionsData);
                 setTotalItems(responseData.total || 0);
-                setTotalPages(Math.ceil((responseData.total || 0) / ITEMS_PER_PAGE));
+                setTotalPages(Math.ceil((responseData.total || 0) / pageSize));
 
                 // Calculate stats from loaded data
-                const totalSubQuestions = questionsWithChildren.reduce((sum, q) => sum + (q.children?.length || 0), 0);
-                const questionsWithAnswers = questionsWithChildren.filter(q => q.answers && q.answers.length > 0).length;
-                const totalMarks = questionsWithChildren.reduce((sum, q) => {
+                const totalSubQuestions = questionsData.reduce((sum: any, q: any) => sum + (q.children?.length || 0), 0);
+                const questionsWithAnswers = questionsData.filter((q: any) => q.answers && q.answers.length > 0).length;
+                const totalMarks = questionsData.reduce((sum: any, q: any) => {
                     const mainMarks = q.marks || 0;
-                    const subMarks = (q.children || []).reduce((subSum, sub) => subSum + (sub.marks || 0), 0);
+                    const subMarks = (q.children || []).reduce((subSum: any, sub: any) => subSum + (sub.marks || 0), 0);
                     return sum + mainMarks + subMarks;
                 }, 0);
-                const totalQuestionCount = questionsWithChildren.length + totalSubQuestions;
+                const totalQuestionCount = questionsData.length + totalSubQuestions;
                 const averageMarks = totalQuestionCount > 0 ? totalMarks / totalQuestionCount : 0;
 
                 // For recent questions, count those created in the last 7 days
                 const sevenDaysAgo = new Date();
                 sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-                const recentQuestions = questionsWithChildren.filter(q => new Date(q.created_at) > sevenDaysAgo).length;
+                const recentQuestions = questionsData.filter((q: any) => new Date(q.created_at) > sevenDaysAgo).length;
 
                 // Orphan questions are main questions without question_set_id or exam_paper_id
-                const orphanQuestions = questionsWithChildren.filter(q => !q.question_set_id && !q.exam_paper_id).length;
+                const orphanQuestions = questionsData.filter((q: any) => !q.question_set_id && !q.exam_paper_id).length;
 
                 setStats({
                     totalQuestions: totalQuestionCount,
-                    mainQuestions: questionsWithChildren.length,
+                    mainQuestions: questionsData.length,
                     subQuestions: totalSubQuestions,
                     questionsWithAnswers,
                     totalMarks,
@@ -368,6 +425,24 @@ export default function AllQuestionsPage() {
                             Add Sub-question
                         </DropdownMenuItem>
                     )}
+                    {question.parent_id && (
+                        <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() => handleRemoveSubQuestion(question.parent_id!, question.id)}
+                        >
+                            <Unlink className="mr-2 h-4 w-4" />
+                            Remove from Main Question
+                        </DropdownMenuItem>
+                    )}
+                    {!question.parent_id && question.question_set_id && (
+                        <DropdownMenuItem
+                            className="text-orange-600"
+                            onClick={() => handleUnlinkFromQuestionSet(question.id)}
+                        >
+                            <Unlink className="mr-2 h-4 w-4" />
+                            Unlink from Question Set
+                        </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className="text-red-600">
                         <Trash2 className="mr-2 h-4 w-4" />
@@ -400,12 +475,54 @@ export default function AllQuestionsPage() {
         setCurrentPage(0);
     };
 
+    // Handle removing sub-question from main question
+    const handleRemoveSubQuestion = async (mainQuestionId: string, subQuestionId: string) => {
+        try {
+            await adminAPI.questions.removeSubQuestion(mainQuestionId, subQuestionId);
+            useUIStore.getState().addNotification({
+                type: 'success',
+                title: 'Success',
+                message: 'Sub-question removed successfully'
+            });
+            // Reload questions to reflect changes
+            void loadQuestions();
+        } catch (error) {
+            console.error('Error removing sub-question:', error);
+            useUIStore.getState().addNotification({
+                type: 'error',
+                title: 'Error',
+                message: 'Failed to remove sub-question'
+            });
+        }
+    };
+
+    // Handle unlinking question from question set
+    const handleUnlinkFromQuestionSet = async (mainQuestionId: string) => {
+        try {
+            await adminAPI.questions.unlinkFromQuestionSet(mainQuestionId);
+            useUIStore.getState().addNotification({
+                type: 'success',
+                title: 'Success',
+                message: 'Question unlinked from question set successfully'
+            });
+            // Reload questions to reflect changes
+            void loadQuestions();
+        } catch (error) {
+            console.error('Error unlinking from question set:', error);
+            useUIStore.getState().addNotification({
+                type: 'error',
+                title: 'Error',
+                message: 'Failed to unlink from question set'
+            });
+        }
+    };
+
     // Load when filters/page change (skip if not initialized yet)
     useEffect(() => {
         if (!hasInitializedRef.current) return;
         void loadQuestions();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentPage, filters]);
+    }, [currentPage, filters, pageSize]);
 
     // Define table columns
     const columns = [
@@ -430,21 +547,7 @@ export default function AllQuestionsPage() {
                 </div>
             ),
             sortable: false,
-            width: '40%',
-        },
-        {
-            key: 'paperInfo' as keyof QuestionTableData,
-            header: 'Paper & Set',
-            cell: (item: QuestionTableData) => item.paperInfo,
-            sortable: false,
-            width: '15%',
-        },
-        {
-            key: 'statusDisplay' as keyof QuestionTableData,
-            header: 'Answers',
-            cell: (item: QuestionTableData) => item.statusDisplay,
-            sortable: false,
-            width: '15%',
+            width: '45%',
         },
         {
             key: 'createdAtDisplay' as keyof QuestionTableData,
@@ -454,11 +557,76 @@ export default function AllQuestionsPage() {
             width: '15%',
         },
         {
+            key: 'institution' as keyof QuestionTableData,
+            header: 'Institution',
+            cell: (item: QuestionTableData) => (
+                <div className="max-w-[120px]">
+                    <div className="font-medium text-sm truncate" title={item.institution?.name || 'N/A'}>
+                        {item.institution?.name || 'N/A'}
+                    </div>
+                </div>
+            ),
+            sortable: false,
+            width: '15%',
+        },
+        {
+            key: 'programme' as keyof QuestionTableData,
+            header: 'Programme',
+            cell: (item: QuestionTableData) => (
+                <div className="max-w-[120px]">
+                    <div className="font-medium text-sm truncate" title={item.programme?.name || 'N/A'}>
+                        {item.programme?.name || 'N/A'}
+                    </div>
+                </div>
+            ),
+            sortable: false,
+            width: '15%',
+        },
+        {
+            key: 'course' as keyof QuestionTableData,
+            header: 'Course',
+            cell: (item: QuestionTableData) => (
+                <div className="max-w-[120px]">
+                    <div className="font-medium text-sm truncate" title={item.course?.name || 'N/A'}>
+                        {item.course?.name || 'N/A'}
+                    </div>
+                </div>
+            ),
+            sortable: false,
+            width: '15%',
+        },
+        {
+            key: 'modules' as keyof QuestionTableData,
+            header: 'Modules',
+            cell: (item: QuestionTableData) => (
+                <div className="max-w-[150px]">
+                    {item.modules && item.modules.length > 0 ? (
+                        <div className="space-y-1">
+                            {item.modules.slice(0, 2).map((module, index) => (
+                                <div key={index} className="text-xs bg-gray-100 px-2 py-1 rounded truncate" title={module.name || 'Unnamed Module'}>
+                                    {module.name || 'Unnamed Module'}
+                                </div>
+                            ))}
+                            {item.modules.length > 2 && (
+                                <div className="text-xs text-gray-500">
+                                    +{item.modules.length - 2} more
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <span className="text-gray-400 text-sm">No modules</span>
+                    )}
+                </div>
+            ),
+            sortable: false,
+            width: '20%',
+        },
+        {
             key: 'actions' as keyof QuestionTableData,
             header: '',
             cell: (item: QuestionTableData) => item.actions,
             sortable: false,
-            width: '15%',
+            width: '10%',
         },
     ];
 
@@ -478,14 +646,13 @@ export default function AllQuestionsPage() {
                     {/* API Status Indicator */}
                     <div className="flex items-center gap-2 mt-2">
                         <div className={`w-2 h-2 rounded-full ${apiStatus === 'connected' ? 'bg-green-500' :
-                            apiStatus === 'error' ? 'bg-red-500' : 'bg-yellow-500'
+                            'bg-red-500'
                             }`} />
                         <span className={`text-sm ${apiStatus === 'connected' ? 'text-green-700' :
-                            apiStatus === 'error' ? 'text-red-700' : 'text-yellow-700'
+                            'text-red-700'
                             }`}>
                             {apiStatus === 'connected' ? 'Connected to Backend' :
-                                apiStatus === 'error' ? 'API Error - Using Mock Data' :
-                                    'Using Mock Data'}
+                                'API Connection Error'}
                         </span>
                     </div>
                 </div>
@@ -579,64 +746,120 @@ export default function AllQuestionsPage() {
                 </Card>
             </div>
 
-            {/* Filters and Search */}
+            {/* Advanced Filters and Search */}
             <Card>
                 <CardContent className="pt-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                        <div className="lg:col-span-2">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                <Input
-                                    placeholder="Search questions by content..."
-                                    className="pl-10"
-                                    value={filters.search || ''}
-                                    onChange={(e) => handleSearch(e.target.value)}
-                                />
-                            </div>
+                    <div className="space-y-4">
+                        {/* Search Bar */}
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                            <Input
+                                placeholder="Search questions by content, number, or slug..."
+                                className="pl-10"
+                                value={filters.search || ''}
+                                onChange={(e) => handleSearch(e.target.value)}
+                            />
                         </div>
 
-                        <Select
-                            value={filters.question_type || 'all'}
-                            onValueChange={(value) => handleFilterChange('question_type', value)}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Question type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Types</SelectItem>
-                                <SelectItem value="main">Main Questions</SelectItem>
-                                <SelectItem value="sub">Sub-questions</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        {/* Academic Hierarchy Filters */}
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-medium text-gray-700">Academic Hierarchy Filters</h3>
+                            <div className="flex items-center space-x-3">
+                                {/* Institution Filter */}
+                                <Select
+                                    value={filters.institution_id || 'all'}
+                                    onValueChange={(value) => handleFilterChange('institution_id', value)}
+                                    disabled={loadingHierarchy}
+                                >
+                                    <SelectTrigger className="w-48">
+                                        <SelectValue placeholder="Institution" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Institutions</SelectItem>
+                                        {institutions.map((institution) => (
+                                            <SelectItem key={institution.id} value={institution.id}>
+                                                {institution.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
 
-                        <Select
-                            value={filters.has_answers || 'all'}
-                            onValueChange={(value) => handleFilterChange('has_answers', value)}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Answer status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Questions</SelectItem>
-                                <SelectItem value="yes">With Answers</SelectItem>
-                                <SelectItem value="no">Without Answers</SelectItem>
-                            </SelectContent>
-                        </Select>
+                                {/* Programme Filter */}
+                                <Select
+                                    value={filters.programme_id || 'all'}
+                                    onValueChange={(value) => handleFilterChange('programme_id', value)}
+                                    disabled={loadingHierarchy}
+                                >
+                                    <SelectTrigger className="w-48">
+                                        <SelectValue placeholder="Programme" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Programmes</SelectItem>
+                                        {programmes.map((programme) => (
+                                            <SelectItem key={programme.id} value={programme.id}>
+                                                {programme.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
 
-                        <Select
-                            value={filters.marks_range || 'all'}
-                            onValueChange={(value) => handleFilterChange('marks_range', value)}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Marks range" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Marks</SelectItem>
-                                <SelectItem value="low">Low (1-3 pts)</SelectItem>
-                                <SelectItem value="medium">Medium (4-7 pts)</SelectItem>
-                                <SelectItem value="high">High (8+ pts)</SelectItem>
-                            </SelectContent>
-                        </Select>
+                                {/* Course Filter */}
+                                <Select
+                                    value={filters.course_id || 'all'}
+                                    onValueChange={(value) => handleFilterChange('course_id', value)}
+                                    disabled={loadingHierarchy}
+                                >
+                                    <SelectTrigger className="w-48">
+                                        <SelectValue placeholder="Course" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Courses</SelectItem>
+                                        {courses.map((course) => (
+                                            <SelectItem key={course.id} value={course.id}>
+                                                {course.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+
+                                {/* Module Filter */}
+                                <Select
+                                    value={filters.module_id || 'all'}
+                                    onValueChange={(value) => handleFilterChange('module_id', value)}
+                                    disabled={loadingHierarchy}
+                                >
+                                    <SelectTrigger className="w-48">
+                                        <SelectValue placeholder="Module" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All Modules</SelectItem>
+                                        {modules.map((module) => (
+                                            <SelectItem key={module.id} value={module.id}>
+                                                {module.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+
+                                {/* Clear Filters Button */}
+                                {(filters.search ||
+                                    filters.institution_id !== 'all' ||
+                                    filters.course_id !== 'all' ||
+                                    filters.module_id !== 'all' ||
+                                    filters.programme_id !== 'all') && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                                setFilters({});
+                                                setCurrentPage(0);
+                                            }}
+                                        >
+                                            Clear All Filters
+                                        </Button>
+                                    )}
+                            </div>
+                        </div>
                     </div>
                 </CardContent>
             </Card>
@@ -890,17 +1113,121 @@ export default function AllQuestionsPage() {
                                 </Link>
                             </div>
                         )}
+
+                        {/* Pagination for Hierarchical View */}
+                        {questions.length > 0 && (
+                            <div className="flex items-center justify-between mt-6">
+                                <div className="text-sm text-gray-500">
+                                    Showing {currentPage * pageSize + 1} to {Math.min((currentPage + 1) * pageSize, totalItems)} of {totalItems} questions
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(0)}
+                                        disabled={currentPage === 0}
+                                    >
+                                        First
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(currentPage - 1)}
+                                        disabled={currentPage === 0}
+                                    >
+                                        Previous
+                                    </Button>
+                                    <span className="text-sm text-gray-500">
+                                        Page {currentPage + 1} of {totalPages}
+                                    </span>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(currentPage + 1)}
+                                        disabled={currentPage >= totalPages - 1}
+                                    >
+                                        Next
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setCurrentPage(totalPages - 1)}
+                                        disabled={currentPage >= totalPages - 1}
+                                    >
+                                        Last
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <Card>
+                        {/* Quick Filters Above Table */}
+                        <div className="p-6 pb-4 border-b">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-4">
+                                    <h3 className="text-lg font-semibold">{totalItems} Questions</h3>
+                                    <div className="flex items-center space-x-2">
+                                        <span className="text-sm text-gray-500">Quick filters:</span>
+                                        <Select
+                                            value={filters.question_type || 'main'}
+                                            onValueChange={(value) => handleFilterChange('question_type', value)}
+                                        >
+                                            <SelectTrigger className="w-32">
+                                                <SelectValue placeholder="Type" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="main">Main</SelectItem>
+                                                <SelectItem value="sub">Sub</SelectItem>
+                                                <SelectItem value="all">All</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <Select
+                                            value={filters.has_answers || 'all'}
+                                            onValueChange={(value) => handleFilterChange('has_answers', value)}
+                                        >
+                                            <SelectTrigger className="w-32">
+                                                <SelectValue placeholder="Answers" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All</SelectItem>
+                                                <SelectItem value="yes">With</SelectItem>
+                                                <SelectItem value="no">Without</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <Select
+                                            value={filters.sort_by || 'relevance'}
+                                            onValueChange={(value) => handleFilterChange('sort_by', value)}
+                                        >
+                                            <SelectTrigger className="w-32">
+                                                <SelectValue placeholder="Sort" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="relevance">Relevance</SelectItem>
+                                                <SelectItem value="marks">Marks</SelectItem>
+                                                <SelectItem value="created_at">Date</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <DataTable
                             data={transformedQuestions}
                             columns={columns}
-                            title={`${totalItems} Questions`}
                             searchable={false}
                             filterable={false}
-                            pagination={true}
-                            pageSize={ITEMS_PER_PAGE}
+                            pagination={{
+                                currentPage: currentPage,
+                                totalPages: totalPages,
+                                totalItems: totalItems,
+                                pageSize: pageSize,
+                                onPageChange: setCurrentPage,
+                                onPageSizeChange: (newPageSize: number) => {
+                                    setPageSize(newPageSize);
+                                    setCurrentPage(0); // Reset to first page when changing page size
+                                }
+                            }}
                             emptyMessage="No questions found. Try adjusting your search criteria."
                             loading={loading}
                         />

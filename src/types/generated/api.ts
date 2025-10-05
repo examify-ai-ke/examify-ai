@@ -3018,6 +3018,7 @@ export interface paths {
          *     - **question_set_id**: Filter main questions by question set
          *     - **parent_id**: Filter sub-questions by parent question
          *     - **exam_paper_id**: Filter main questions by exam paper
+         *     - **include_children**: Include sub-questions in response (default: True)
          */
         get: operations["get_questions_api_v1_questions_get"];
         put?: never;
@@ -3207,6 +3208,54 @@ export interface paths {
          */
         post: operations["create_multiple_sub_questions_api_v1_questions__question_id__sub_questions_bulk_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/questions/{main_question_id}/sub-questions/{sub_question_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Remove Sub Question From Main
+         * @description Remove a sub-question from a main question (deletes the sub-question from database)
+         *
+         *     Required roles:
+         *     - admin
+         *     - manager
+         */
+        delete: operations["remove_sub_question_from_main_api_v1_questions__main_question_id__sub_questions__sub_question_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/questions/{main_question_id}/question-set": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Unlink Main Question From Question Set
+         * @description Unlink a main question from its question set (question becomes orphan but remains in database)
+         *
+         *     Required roles:
+         *     - admin
+         *     - manager
+         */
+        delete: operations["unlink_main_question_from_question_set_api_v1_questions__main_question_id__question_set_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -4195,6 +4244,18 @@ export interface components {
             /** Name */
             name: string;
         };
+        /** CourseReadMinimal */
+        CourseReadMinimal: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name?: string | null;
+            /** Course Acronym */
+            course_acronym?: string | null;
+        };
         /** CourseUpdate */
         CourseUpdate: {
             /** Name */
@@ -4508,6 +4569,16 @@ export interface components {
             /** Tags */
             tags: unknown[] | null;
             title: components["schemas"]["ExamTitleReadForExamPaperRead"] | null;
+        };
+        /** ExamPaperReadMinimal */
+        ExamPaperReadMinimal: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Year Of Exam */
+            year_of_exam?: string | null;
         };
         /** ExamPaperUpdate */
         ExamPaperUpdate: {
@@ -7084,6 +7155,18 @@ export interface components {
             /** Name */
             name: string;
         };
+        /** InstitutionReadMinimal */
+        InstitutionReadMinimal: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name?: string | null;
+            /** Slug */
+            slug?: string | null;
+        };
         /**
          * InstitutionType
          * @enum {string}
@@ -7241,6 +7324,32 @@ export interface components {
              * @default []
              */
             answers: components["schemas"]["AnswerReadForQuestion"][] | null;
+            question_set?: components["schemas"]["QuestionSetReadMinimal"] | null;
+            exam_paper?: components["schemas"]["ExamPaperReadMinimal"] | null;
+            created_by?: components["schemas"]["UserReadMinimal"] | null;
+            institution?: components["schemas"]["InstitutionReadMinimal"] | null;
+            course?: components["schemas"]["CourseReadMinimal"] | null;
+            /**
+             * Modules
+             * @default []
+             */
+            modules: components["schemas"]["ModuleReadMinimal"][] | null;
+            programme?: components["schemas"]["ProgrammeReadMinimal"] | null;
+            /**
+             * Children Count
+             * @default 0
+             */
+            children_count: number | null;
+            /**
+             * Answers Count
+             * @default 0
+             */
+            answers_count: number | null;
+            /**
+             * Total Marks
+             * @default 0
+             */
+            total_marks: number | null;
             /**
              * Is Main Question
              * @default false
@@ -7349,6 +7458,18 @@ export interface components {
             slug: string;
             /** Unit Code */
             unit_code: string;
+        };
+        /** ModuleReadMinimal */
+        ModuleReadMinimal: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name?: string | null;
+            /** Unit Code */
+            unit_code?: string | null;
         };
         /** ModuleUpdate */
         ModuleUpdate: {
@@ -7986,6 +8107,16 @@ export interface components {
             /** Name */
             name: string;
         };
+        /** ProgrammeReadMinimal */
+        ProgrammeReadMinimal: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name?: string | null;
+        };
         /**
          * ProgrammeTypes
          * @enum {string}
@@ -8086,6 +8217,32 @@ export interface components {
              * @default []
              */
             answers: components["schemas"]["AnswerReadForQuestion"][] | null;
+            question_set?: components["schemas"]["QuestionSetReadMinimal"] | null;
+            exam_paper?: components["schemas"]["ExamPaperReadMinimal"] | null;
+            created_by?: components["schemas"]["UserReadMinimal"] | null;
+            institution?: components["schemas"]["InstitutionReadMinimal"] | null;
+            course?: components["schemas"]["CourseReadMinimal"] | null;
+            /**
+             * Modules
+             * @default []
+             */
+            modules: components["schemas"]["ModuleReadMinimal"][] | null;
+            programme?: components["schemas"]["ProgrammeReadMinimal"] | null;
+            /**
+             * Children Count
+             * @default 0
+             */
+            children_count: number | null;
+            /**
+             * Answers Count
+             * @default 0
+             */
+            answers_count: number | null;
+            /**
+             * Total Marks
+             * @default 0
+             */
+            total_marks: number | null;
             /**
              * Is Main Question
              * @default false
@@ -8159,6 +8316,18 @@ export interface components {
              * @default 0
              */
             questions_count: number | null;
+        };
+        /** QuestionSetReadMinimal */
+        QuestionSetReadMinimal: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title?: string | null;
+            /** Slug */
+            slug?: string | null;
         };
         /**
          * QuestionSetTitleEnum
@@ -8251,6 +8420,32 @@ export interface components {
              * @default []
              */
             answers: components["schemas"]["AnswerReadForQuestion"][] | null;
+            question_set?: components["schemas"]["QuestionSetReadMinimal"] | null;
+            exam_paper?: components["schemas"]["ExamPaperReadMinimal"] | null;
+            created_by?: components["schemas"]["UserReadMinimal"] | null;
+            institution?: components["schemas"]["InstitutionReadMinimal"] | null;
+            course?: components["schemas"]["CourseReadMinimal"] | null;
+            /**
+             * Modules
+             * @default []
+             */
+            modules: components["schemas"]["ModuleReadMinimal"][] | null;
+            programme?: components["schemas"]["ProgrammeReadMinimal"] | null;
+            /**
+             * Children Count
+             * @default 0
+             */
+            children_count: number | null;
+            /**
+             * Answers Count
+             * @default 0
+             */
+            answers_count: number | null;
+            /**
+             * Total Marks
+             * @default 0
+             */
+            total_marks: number | null;
             /**
              * Is Main Question
              * @default false
@@ -8295,6 +8490,20 @@ export interface components {
          * @description Minimal user schema for use in answer responses
          */
         UserMinimal: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** First Name */
+            first_name?: string | null;
+            /** Last Name */
+            last_name?: string | null;
+            /** Email */
+            email?: string | null;
+        };
+        /** UserReadMinimal */
+        UserReadMinimal: {
             /**
              * Id
              * Format: uuid
@@ -13823,6 +14032,8 @@ export interface operations {
                 parent_id?: string | null;
                 /** @description Filter by exam paper ID (for main questions) */
                 exam_paper_id?: string | null;
+                /** @description Include sub-questions in response (for main questions) */
+                include_children?: boolean;
                 skip?: number;
                 limit?: number;
             };
@@ -13854,15 +14065,23 @@ export interface operations {
     };
     search_questions_api_v1_questions_search_get: {
         parameters: {
-            query: {
+            query?: {
                 /** @description Search query for questions */
-                q: string;
+                q?: string;
                 /** @description Filter by question type */
                 question_type?: "main" | "sub" | "all";
                 /** @description Filter by exam paper ID */
                 exam_paper_id?: string | null;
                 /** @description Filter by question set ID */
                 question_set_id?: string | null;
+                /** @description Filter by institution ID */
+                institution_id?: string | null;
+                /** @description Filter by course ID */
+                course_id?: string | null;
+                /** @description Filter by module ID */
+                module_id?: string | null;
+                /** @description Filter by programme ID */
+                programme_id?: string | null;
                 /** @description Minimum marks */
                 marks_min?: number | null;
                 /** @description Maximum marks */
@@ -13871,6 +14090,8 @@ export interface operations {
                 numbering_style?: string | null;
                 /** @description Filter questions with/without answers */
                 has_answers?: boolean | null;
+                /** @description Include sub-questions in response */
+                include_children?: boolean;
                 /** @description Sort by: relevance, marks, created_at */
                 sort_by?: string;
                 /** @description Sort order: asc, desc */
@@ -14166,6 +14387,69 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IPostResponseBase_list_SubQuestionRead__"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_sub_question_from_main_api_v1_questions__main_question_id__sub_questions__sub_question_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                main_question_id: string;
+                sub_question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IDeleteResponseBase_QuestionRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unlink_main_question_from_question_set_api_v1_questions__main_question_id__question_set_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                main_question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IPutResponseBase_QuestionRead_"];
                 };
             };
             /** @description Validation Error */

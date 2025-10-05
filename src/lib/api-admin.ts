@@ -1364,6 +1364,8 @@ const adminAPI = {
             parent_id?: string | null;
             /** Filter by exam paper ID (for main questions) */
             exam_paper_id?: string | null;
+            /** Include sub-questions in response (for main questions) */
+            include_children?: boolean;
             skip?: number;
             limit?: number;
         }) {
@@ -1377,13 +1379,21 @@ const adminAPI = {
 
         async search(params: {
             /** Search query for questions */
-            q: string;
+            q?: string;
             /** Filter by question type */
             question_type?: 'main' | 'sub' | 'all';
             /** Filter by exam paper ID */
             exam_paper_id?: string | null;
             /** Filter by question set ID */
             question_set_id?: string | null;
+            /** Filter by institution ID */
+            institution_id?: string | null;
+            /** Filter by course ID */
+            course_id?: string | null;
+            /** Filter by module ID */
+            module_id?: string | null;
+            /** Filter by programme ID */
+            programme_id?: string | null;
             /** Minimum marks */
             marks_min?: number | null;
             /** Maximum marks */
@@ -1392,6 +1402,8 @@ const adminAPI = {
             numbering_style?: string | null;
             /** Filter questions with/without answers */
             has_answers?: boolean | null;
+            /** Include sub-questions in response */
+            include_children?: boolean;
             /** Sort by: relevance, marks, created_at */
             sort_by?: string;
             /** Sort order: asc, desc */
@@ -1439,6 +1451,27 @@ const adminAPI = {
             const response = await api.DELETE('/questions/{question_id}', {
                 params: {
                     path: { question_id: questionId }
+                }
+            });
+            return response;
+        },
+
+        async removeSubQuestion(mainQuestionId: string, subQuestionId: string) {
+            const response = await api.DELETE('/questions/{main_question_id}/sub-questions/{sub_question_id}', {
+                params: {
+                    path: {
+                        main_question_id: mainQuestionId,
+                        sub_question_id: subQuestionId
+                    }
+                }
+            });
+            return response;
+        },
+
+        async unlinkFromQuestionSet(mainQuestionId: string) {
+            const response = await api.DELETE('/questions/{main_question_id}/question-set', {
+                params: {
+                    path: { main_question_id: mainQuestionId }
                 }
             });
             return response;

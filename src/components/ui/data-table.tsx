@@ -235,7 +235,7 @@ export function DataTable<T extends Record<string, any>>({
             )}
           </div>
 
-          {/* Page Size Selector - Show for both client and server pagination */}
+          {/* Page Size Selector - Always show when pagination is enabled */}
           {pagination && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-gray-200 bg-gray-50">
               <span className="text-sm font-medium text-gray-700">Items per page:</span>
@@ -253,7 +253,7 @@ export function DataTable<T extends Record<string, any>>({
                 }}
               >
                 <SelectTrigger className="w-[80px] h-8 border-gray-300 bg-white">
-                  <SelectValue placeholder="Size" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="10">10</SelectItem>

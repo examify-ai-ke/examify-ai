@@ -190,7 +190,7 @@ export default function QuestionsManagePage() {
 
             // Load questions and question sets in parallel
             const [questionsResponse, questionSetsResponse] = await Promise.all([
-                // Load questions
+                // Load questions with sub-questions included
                 filters.search
                     ? adminAPI.questions.search({
                         q: filters.search,
@@ -201,7 +201,10 @@ export default function QuestionsManagePage() {
                         has_answers: filters.has_answers === 'yes' ? true : filters.has_answers === 'no' ? false : undefined,
                         numbering_style: filters.numbering_style,
                     })
-                    : adminAPI.questions.list(apiParams),
+                    : adminAPI.questions.list({
+                        ...apiParams,
+                        include_children: true, // Include sub-questions
+                    }),
                 // Load question sets
                 adminAPI.questionSets.list({ limit: 20 }) // Load all question sets
             ]);

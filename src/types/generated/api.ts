@@ -1616,7 +1616,7 @@ export interface paths {
         };
         /**
          * Get Department By Id
-         * @description Gets a deaprtment by its id
+         * @description Gets a department by its id
          */
         get: operations["get_department_by_id_api_v1_department_get_by_id__department_id__get"];
         put?: never;
@@ -1932,6 +1932,26 @@ export interface paths {
          *     - manager
          */
         post: operations["create_programme_api_v1_programme_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/programme/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Programmes
+         * @description Search programmes with filtering and sorting
+         */
+        get: operations["search_programmes_api_v1_programme_search_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2264,6 +2284,26 @@ export interface paths {
          *     - manager
          */
         post: operations["create_module_api_v1_module_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/module/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Modules
+         * @description Search modules with filtering and sorting
+         */
+        get: operations["search_modules_api_v1_module_search_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4098,6 +4138,16 @@ export interface components {
             /** Exam Papers */
             exam_papers: components["schemas"]["ExamPapersReadForCourse"][] | null;
             image: components["schemas"]["IImageMediaRead"] | null;
+            /**
+             * Modules Count
+             * @default 0
+             */
+            modules_count: number | null;
+            /**
+             * Exam Papers Count
+             * @default 0
+             */
+            exam_papers_count: number | null;
         };
         /** CourseReadForExamPaper */
         CourseReadForExamPaper: {
@@ -4250,18 +4300,6 @@ export interface components {
             /** Exam Papers */
             exam_papers: components["schemas"]["ExamPaperReadForExamTitle"][] | null;
         };
-        /** ExamDescriptionReadForExamPaper */
-        ExamDescriptionReadForExamPaper: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Name */
-            name: string;
-            /** Slug */
-            slug: string;
-        };
         /** ExamDescriptionUpdate */
         ExamDescriptionUpdate: {
             /** Name */
@@ -4340,7 +4378,7 @@ export interface components {
              */
             instructions: components["schemas"]["InstructionRead"][] | null;
             title: components["schemas"]["ExamTitleReadForExamPaperRead"];
-            description: components["schemas"]["ExamDescriptionReadForExamPaper"];
+            description: components["schemas"]["app__schemas__exam_paper_schema__ExamDescriptionReadForExamPaper"];
             /**
              * Modules
              * @default []
@@ -4406,7 +4444,7 @@ export interface components {
              */
             instructions: components["schemas"]["InstructionRead"][] | null;
             title: components["schemas"]["ExamTitleReadForExamPaperRead"];
-            description: components["schemas"]["ExamDescriptionReadForExamPaper"];
+            description: components["schemas"]["app__schemas__exam_paper_schema__ExamDescriptionReadForExamPaper"];
             /**
              * Modules
              * @default []
@@ -4476,6 +4514,9 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Title */
+            title: components["schemas"]["app__schemas__course_schema__ExamTitleRead"][];
+            description: components["schemas"]["app__schemas__course_schema__ExamDescriptionReadForExamPaper"];
         };
         /** ExamTitleCreate */
         ExamTitleCreate: {
@@ -4486,20 +4527,6 @@ export interface components {
              * @default The title or name typically refers to the overarching categorization or identity of the exam. e.g "UNIVERSITY EXAMINATIONS:"
              */
             description: string | null;
-        };
-        /** ExamTitleRead */
-        ExamTitleRead: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Name */
-            name: string;
-            /** Slug */
-            slug: string;
-            /** Exam Papers */
-            exam_papers?: components["schemas"]["ExamPaperReadForExamTitle"][] | null;
         };
         /** ExamTitleReadForExamPaperRead */
         ExamTitleReadForExamPaperRead: {
@@ -4537,22 +4564,22 @@ export interface components {
              * Departments
              * @default []
              */
-            departments: components["schemas"]["DepartmentReadForFaculty"][] | null;
+            departments: components["schemas"]["DepartmentReadForFaculty"][];
             /**
              * Department Count
              * @default 0
              */
-            department_count: number | null;
+            department_count: number;
             /**
              * Institutions
              * @default []
              */
-            institutions: components["schemas"]["InstitutionForFaculty"][] | null;
+            institutions: components["schemas"]["InstitutionForFaculty"][];
             /**
              * Institution Count
              * @default 0
              */
-            institution_count: number | null;
+            institution_count: number;
         };
         /** FacultyReadForDepartment */
         FacultyReadForDepartment: {
@@ -5060,22 +5087,6 @@ export interface components {
             } | unknown | null;
             data?: components["schemas"]["CommentRead"] | null;
         };
-        /** IGetResponseBase[CourseRead] */
-        IGetResponseBase_CourseRead_: {
-            /**
-             * Message
-             * @default Data got correctly
-             */
-            message: string | null;
-            /**
-             * Meta
-             * @default {}
-             */
-            meta: {
-                [key: string]: unknown;
-            } | unknown | null;
-            data?: components["schemas"]["CourseRead"] | null;
-        };
         /** IGetResponseBase[DepartmentRead] */
         IGetResponseBase_DepartmentRead_: {
             /**
@@ -5138,7 +5149,7 @@ export interface components {
             meta: {
                 [key: string]: unknown;
             } | unknown | null;
-            data?: components["schemas"]["ExamTitleRead"] | null;
+            data?: components["schemas"]["app__schemas__exam_paper_schema__ExamTitleRead"] | null;
         };
         /** IGetResponseBase[FacultyRead] */
         IGetResponseBase_FacultyRead_: {
@@ -5236,22 +5247,6 @@ export interface components {
             } | unknown | null;
             data?: components["schemas"]["InstitutionDetailedStatistics"] | null;
         };
-        /** IGetResponseBase[InstitutionRead] */
-        IGetResponseBase_InstitutionRead_: {
-            /**
-             * Message
-             * @default Data got correctly
-             */
-            message: string | null;
-            /**
-             * Meta
-             * @default {}
-             */
-            meta: {
-                [key: string]: unknown;
-            } | unknown | null;
-            data?: components["schemas"]["InstitutionRead"] | null;
-        };
         /** IGetResponseBase[InstructionRead] */
         IGetResponseBase_InstructionRead_: {
             /**
@@ -5303,38 +5298,6 @@ export interface components {
             data?: {
                 [key: string]: string;
             }[] | null;
-        };
-        /** IGetResponseBase[ModuleRead] */
-        IGetResponseBase_ModuleRead_: {
-            /**
-             * Message
-             * @default Data got correctly
-             */
-            message: string | null;
-            /**
-             * Meta
-             * @default {}
-             */
-            meta: {
-                [key: string]: unknown;
-            } | unknown | null;
-            data?: components["schemas"]["ModuleRead"] | null;
-        };
-        /** IGetResponseBase[ProgrammeRead] */
-        IGetResponseBase_ProgrammeRead_: {
-            /**
-             * Message
-             * @default Data got correctly
-             */
-            message: string | null;
-            /**
-             * Meta
-             * @default {}
-             */
-            meta: {
-                [key: string]: unknown;
-            } | unknown | null;
-            data?: components["schemas"]["ProgrammeRead"] | null;
         };
         /** IGetResponseBase[QuestionRead] */
         IGetResponseBase_QuestionRead_: {
@@ -5436,108 +5399,6 @@ export interface components {
             } | unknown | null;
             /** Data */
             data?: components["schemas"]["CampusRead"][] | null;
-        };
-        /** IGetResponseBase[list[CourseRead]] */
-        IGetResponseBase_list_CourseRead__: {
-            /**
-             * Message
-             * @default Data got correctly
-             */
-            message: string | null;
-            /**
-             * Meta
-             * @default {}
-             */
-            meta: {
-                [key: string]: unknown;
-            } | unknown | null;
-            /** Data */
-            data?: components["schemas"]["CourseRead"][] | null;
-        };
-        /** IGetResponseBase[list[DepartmentRead]] */
-        IGetResponseBase_list_DepartmentRead__: {
-            /**
-             * Message
-             * @default Data got correctly
-             */
-            message: string | null;
-            /**
-             * Meta
-             * @default {}
-             */
-            meta: {
-                [key: string]: unknown;
-            } | unknown | null;
-            /** Data */
-            data?: components["schemas"]["DepartmentRead"][] | null;
-        };
-        /** IGetResponseBase[list[FacultyRead]] */
-        IGetResponseBase_list_FacultyRead__: {
-            /**
-             * Message
-             * @default Data got correctly
-             */
-            message: string | null;
-            /**
-             * Meta
-             * @default {}
-             */
-            meta: {
-                [key: string]: unknown;
-            } | unknown | null;
-            /** Data */
-            data?: components["schemas"]["FacultyRead"][] | null;
-        };
-        /** IGetResponseBase[list[InstitutionRead]] */
-        IGetResponseBase_list_InstitutionRead__: {
-            /**
-             * Message
-             * @default Data got correctly
-             */
-            message: string | null;
-            /**
-             * Meta
-             * @default {}
-             */
-            meta: {
-                [key: string]: unknown;
-            } | unknown | null;
-            /** Data */
-            data?: components["schemas"]["InstitutionRead"][] | null;
-        };
-        /** IGetResponseBase[list[ModuleRead]] */
-        IGetResponseBase_list_ModuleRead__: {
-            /**
-             * Message
-             * @default Data got correctly
-             */
-            message: string | null;
-            /**
-             * Meta
-             * @default {}
-             */
-            meta: {
-                [key: string]: unknown;
-            } | unknown | null;
-            /** Data */
-            data?: components["schemas"]["ModuleRead"][] | null;
-        };
-        /** IGetResponseBase[list[ProgrammeRead]] */
-        IGetResponseBase_list_ProgrammeRead__: {
-            /**
-             * Message
-             * @default Data got correctly
-             */
-            message: string | null;
-            /**
-             * Meta
-             * @default {}
-             */
-            meta: {
-                [key: string]: unknown;
-            } | unknown | null;
-            /** Data */
-            data?: components["schemas"]["ProgrammeRead"][] | null;
         };
         /** IGetResponsePaginated[AnswerRead] */
         IGetResponsePaginated_AnswerRead_: {
@@ -6132,7 +5993,7 @@ export interface components {
             meta: {
                 [key: string]: unknown;
             } | unknown | null;
-            data?: components["schemas"]["ExamTitleRead"] | null;
+            data?: components["schemas"]["app__schemas__exam_paper_schema__ExamTitleRead"] | null;
         };
         /** IPostResponseBase[FacultyRead] */
         IPostResponseBase_FacultyRead_: {
@@ -6534,7 +6395,7 @@ export interface components {
             meta: {
                 [key: string]: unknown;
             } | unknown | null;
-            data?: components["schemas"]["ExamTitleRead"] | null;
+            data?: components["schemas"]["app__schemas__exam_paper_schema__ExamTitleRead"] | null;
         };
         /** IPutResponseBase[FacultyRead] */
         IPutResponseBase_FacultyRead_: {
@@ -7399,6 +7260,11 @@ export interface components {
              */
             exam_papers: components["schemas"]["ExamPaperReadForModule"][] | null;
             /**
+             * Courses Count
+             * @default 0
+             */
+            courses_count: number | null;
+            /**
              * Exam Papers Count
              * @default 0
              */
@@ -7612,7 +7478,7 @@ export interface components {
         /** PageBase[ExamTitleRead] */
         PageBase_ExamTitleRead_: {
             /** Items */
-            items: components["schemas"]["ExamTitleRead"][];
+            items: components["schemas"]["app__schemas__exam_paper_schema__ExamTitleRead"][];
             /** Total */
             total?: number | null;
             /** Page */
@@ -8030,6 +7896,16 @@ export interface components {
              * @default []
              */
             courses: components["schemas"]["CourseRead"][] | null;
+            /**
+             * Departments Count
+             * @default 0
+             */
+            departments_count: number | null;
+            /**
+             * Courses Count
+             * @default 0
+             */
+            courses_count: number | null;
         };
         /** ProgrammeReadForCourse */
         ProgrammeReadForCourse: {
@@ -8400,6 +8276,52 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /** ExamDescriptionReadForExamPaper */
+        app__schemas__course_schema__ExamDescriptionReadForExamPaper: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /** ExamTitleRead */
+        app__schemas__course_schema__ExamTitleRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /** ExamDescriptionReadForExamPaper */
+        app__schemas__exam_paper_schema__ExamDescriptionReadForExamPaper: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+        };
+        /** ExamTitleRead */
+        app__schemas__exam_paper_schema__ExamTitleRead: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /** Exam Papers */
+            exam_papers?: components["schemas"]["ExamPaperReadForExamTitle"][] | null;
         };
     };
     responses: never;
@@ -10200,7 +10122,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponsePaginated_InstitutionRead_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -10285,7 +10207,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponsePaginated_InstitutionRead_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -10318,7 +10240,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponseBase_List_Dict_str__str___"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -10383,7 +10305,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponseBase_InstitutionRead_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -10414,7 +10336,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponseBase_list_InstitutionRead__"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -10881,7 +10803,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponseBase_list_FacultyRead__"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -11217,7 +11139,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponseBase_list_DepartmentRead__"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -11745,7 +11667,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponsePaginated_ProgrammeRead_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -11779,6 +11701,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IPostResponseBase_ProgrammeRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_programmes_api_v1_programme_search_get: {
+        parameters: {
+            query?: {
+                /** @description Search query for programmes */
+                q?: string;
+                /** @description Filter by department ID */
+                department_id?: string;
+                /** @description Sort by: name, created_at */
+                sort_by?: string;
+                /** @description Sort order: asc, desc */
+                sort_order?: string;
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -11843,7 +11805,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponseBase_ProgrammeRead_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -11874,7 +11836,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponseBase_list_ProgrammeRead__"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -12151,7 +12113,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponseBase_CourseRead_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -12182,7 +12144,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponseBase_list_CourseRead__"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -12334,8 +12296,6 @@ export interface operations {
             query?: {
                 skip?: number;
                 limit?: number;
-                /** @description Search term for module name, unit code, or description */
-                search?: string | null;
             };
             header?: never;
             path?: never;
@@ -12383,6 +12343,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IPostResponseBase_ModuleRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_modules_api_v1_module_search_get: {
+        parameters: {
+            query?: {
+                /** @description Search query for modules */
+                q?: string;
+                /** @description Filter by course ID */
+                course_id?: string;
+                /** @description Filter by unit code */
+                unit_code?: string;
+                /** @description Sort by: name, unit_code, created_at */
+                sort_by?: string;
+                /** @description Sort order: asc, desc */
+                sort_order?: string;
+                skip?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IGetResponsePaginated_ModuleRead_"];
                 };
             };
             /** @description Validation Error */
@@ -12447,7 +12449,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponseBase_ModuleRead_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -12478,7 +12480,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponseBase_list_ModuleRead__"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

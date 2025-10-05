@@ -277,15 +277,144 @@ const adminAPI = {
     },
 
     /**
-     * Modules
+     * Module Management
+     * 
+     * All GET endpoints now eagerly load related items:
+     * - courses (related courses)
+     * - exam_papers (related exam papers)
+     * - image (module image)
+     * - created_by (creator details)
      */
     modules: {
-        async list(params?: { skip?: number; limit?: number }) {
+        async list(params?: {
+            skip?: number;
+            limit?: number;
+            course_id?: string;
+        }) {
             return api.GET('/module', {
                 params: {
                     query: params
                 }
             });
+        },
+
+        async search(params: {
+            q?: string;
+            course_id?: string;
+            unit_code?: string;
+            sort_by?: 'name' | 'unit_code' | 'created_at';
+            sort_order?: 'asc' | 'desc';
+            skip?: number;
+            limit?: number;
+        }) {
+            return api.GET('/module/search', {
+                params: {
+                    query: params
+                }
+            });
+        },
+
+        async getById(moduleId: string) {
+            return api.GET('/module/get_by_id/{module_id}', {
+                params: {
+                    path: { module_id: moduleId }
+                }
+            });
+        },
+
+        async getBySlug(moduleSlug: string) {
+            return api.GET('/module/get_by_slug/{module_slug}', {
+                params: {
+                    path: { module_slug: moduleSlug }
+                }
+            });
+        },
+
+        async create(moduleData: components['schemas']['ModuleCreate']) {
+            return api.POST('/module', {
+                body: moduleData
+            });
+        },
+
+        async update(moduleId: string, moduleData: components['schemas']['ModuleUpdate']) {
+            return api.PUT('/module/{module_id}', {
+                params: {
+                    path: { module_id: moduleId }
+                },
+                body: moduleData
+            });
+        },
+
+        async delete(moduleId: string) {
+            return api.DELETE('/module/{module_id}', {
+                params: {
+                    path: { module_id: moduleId }
+                }
+            });
+        },
+
+        async uploadImage(moduleId: string, imageFile: File) {
+            const formData = new FormData();
+            formData.append('module_image', imageFile);
+
+            return api.POST('/module/{module_id}/image', {
+                params: {
+                    path: { module_id: moduleId }
+                },
+                body: formData as any
+            });
+        },
+
+        async getOrderedByCreatedAt(params?: { page?: number; size?: number; order?: 'ascendent' | 'descendent' }) {
+            return api.GET('/module/get_by_created_at', {
+                params: {
+                    query: params
+                }
+            });
+        },
+
+        async getStats() {
+            try {
+                // Use the working list method (max limit: 100)
+                const modulesResponse = await this.list({ skip: 0, limit: 100 });
+
+                let totalModules = 0;
+                let totalCourses = 0;
+                let totalExamPapers = 0;
+
+                if (modulesResponse.data?.data) {
+                    const data = modulesResponse.data.data;
+                    totalModules = data.total || 0;
+
+                    // Sum up courses_count and exam_papers_count from all modules
+                    if (data.items && Array.isArray(data.items)) {
+                        totalCourses = data.items.reduce((sum: number, mod: any) => sum + (mod.courses_count || 0), 0);
+                        totalExamPapers = data.items.reduce((sum: number, mod: any) => sum + (mod.exam_papers_count || 0), 0);
+                    }
+                }
+
+                const averageModulesPerCourse = totalCourses > 0 ?
+                    Number((totalModules / totalCourses).toFixed(1)) : 0;
+
+                return {
+                    data: {
+                        totalModules,
+                        totalCourses,
+                        totalExamPapers,
+                        averageModulesPerCourse,
+                    }
+                };
+            } catch (error) {
+                console.error('Error getting module statistics:', error);
+                return {
+                    data: {
+                        totalModules: 0,
+                        totalCourses: 0,
+                        totalExamPapers: 0,
+                        averageModulesPerCourse: 0,
+                    }
+                };
+            }
         },
     },
 
@@ -670,6 +799,147 @@ const adminAPI = {
     },
 
     /**
+     * Programme Management
+     * 
+     * All GET endpoints now eagerly load related items:
+     * - departments (related departments)
+     * - courses (related courses)
+     * - image (programme image)
+     * - created_by (creator details)
+     */
+    programmes: {
+        async list(params?: {
+            skip?: number;
+            limit?: number;
+            department_id?: string;
+        }) {
+            return api.GET('/programme', {
+                params: {
+                    query: params
+                }
+            });
+        },
+
+        async search(params: {
+            q?: string;
+            department_id?: string;
+            sort_by?: 'name' | 'created_at';
+            sort_order?: 'asc' | 'desc';
+            skip?: number;
+            limit?: number;
+        }) {
+            return api.GET('/programme/search', {
+                params: {
+                    query: params
+                }
+            });
+        },
+
+        async getById(programmeId: string) {
+            return api.GET('/programme/get_by_id/{programme_id}', {
+                params: {
+                    path: { programme_id: programmeId }
+                }
+            });
+        },
+
+        async getBySlug(programmeSlug: string) {
+            return api.GET('/programme/get_by_slug/{programme_slug}', {
+                params: {
+                    path: { programme_slug: programmeSlug }
+                }
+            });
+        },
+
+        async create(programmeData: components['schemas']['ProgrammeCreate']) {
+            return api.POST('/programme', {
+                body: programmeData
+            });
+        },
+
+        async update(programmeId: string, programmeData: components['schemas']['ProgrammeUpdate']) {
+            return api.PUT('/programme/{programme_id}', {
+                params: {
+                    path: { programme_id: programmeId }
+                },
+                body: programmeData
+            });
+        },
+
+        async delete(programmeId: string) {
+            return api.DELETE('/programme/{programme_id}', {
+                params: {
+                    path: { programme_id: programmeId }
+                }
+            });
+        },
+
+        async uploadImage(programmeId: string, imageFile: File) {
+            const formData = new FormData();
+            formData.append('programme_image', imageFile);
+
+            return api.POST('/programme/{programme_id}/image', {
+                params: {
+                    path: { programme_id: programmeId }
+                },
+                body: formData as any
+            });
+        },
+
+        async getOrderedByCreatedAt(params?: { page?: number; size?: number; order?: 'ascendent' | 'descendent' }) {
+            return api.GET('/programme/get_by_created_at', {
+                params: {
+                    query: params
+                }
+            });
+        },
+
+        async getStats() {
+            try {
+                // Use the working list method (max limit: 100)
+                const programmesResponse = await this.list({ skip: 0, limit: 100 });
+
+                let totalProgrammes = 0;
+                let totalCourses = 0;
+                let totalDepartments = 0;
+
+                if (programmesResponse.data?.data) {
+                    const data = programmesResponse.data.data;
+                    totalProgrammes = data.total || 0;
+
+                    // Sum up courses_count and departments_count from all programmes
+                    if (data.items && Array.isArray(data.items)) {
+                        totalCourses = data.items.reduce((sum: number, prog: any) => sum + (prog.courses_count || 0), 0);
+                        totalDepartments = data.items.reduce((sum: number, prog: any) => sum + (prog.departments_count || 0), 0);
+                    }
+                }
+
+                const averageCourses = totalProgrammes > 0 ?
+                    Number((totalCourses / totalProgrammes).toFixed(1)) : 0;
+
+                return {
+                    data: {
+                        totalProgrammes,
+                        totalCourses,
+                        totalDepartments,
+                        averageCourses,
+                    }
+                };
+            } catch (error) {
+                console.error('Error getting programme statistics:', error);
+                return {
+                    data: {
+                        totalProgrammes: 0,
+                        totalCourses: 0,
+                        totalDepartments: 0,
+                        averageCourses: 0,
+                    }
+                };
+            }
+        },
+    },
+
+    /**
      * Course Management
      */
     courses: {
@@ -772,6 +1042,57 @@ const adminAPI = {
                     }
                 }
             });
+        },
+
+        async getStats() {
+            try {
+                // Use the working list/search methods instead of direct api.GET calls
+                const [coursesResponse, programmesResponse] = await Promise.allSettled([
+                    this.list({ skip: 0, limit: 100 }),
+                    adminAPI.programmes.list({ skip: 0, limit: 1 })
+                ]);
+
+                let totalCourses = 0;
+                let totalModules = 0;
+                let totalExamPapers = 0;
+
+                if (coursesResponse.status === 'fulfilled' && coursesResponse.value.data?.data) {
+                    const data = coursesResponse.value.data.data;
+                    totalCourses = data.total || 0;
+
+                    // Sum up modules_count and exam_papers_count from all courses
+                    if (data.items && Array.isArray(data.items)) {
+                        totalModules = data.items.reduce((sum: number, course: any) => sum + (course.modules_count || 0), 0);
+                        totalExamPapers = data.items.reduce((sum: number, course: any) => sum + (course.exam_papers_count || 0), 0);
+                    }
+                }
+
+                const totalProgrammes = programmesResponse.status === 'fulfilled' ? (programmesResponse.value.data?.data?.total || 0) : 0;
+
+                const averageModules = totalCourses > 0 ?
+                    Number((totalModules / totalCourses).toFixed(1)) : 0;
+
+                return {
+                    data: {
+                        totalCourses,
+                        totalProgrammes,
+                        totalModules,
+                        totalExamPapers,
+                        averageModules,
+                    }
+                };
+            } catch (error) {
+                console.error('Error getting course statistics:', error);
+                return {
+                    data: {
+                        totalCourses: 0,
+                        totalProgrammes: 0,
+                        totalModules: 0,
+                        totalExamPapers: 0,
+                        averageModules: 0,
+                    }
+                };
+            }
         },
     },
 

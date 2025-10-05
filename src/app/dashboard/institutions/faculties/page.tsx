@@ -290,7 +290,7 @@ export default function FacultiesPage() {
                         {faculty.institutions.length > 2 && (
                             <Badge variant="secondary" className="text-xs">
                                 +{faculty.institutions.length - 2}
-                            </Badge>
+                        </Badge>
                         )}
                     </>
                 ) : (
@@ -315,7 +315,7 @@ export default function FacultiesPage() {
                         {faculty.departments.length > 2 && (
                             <div className="text-xs text-gray-500 italic">
                                 +{faculty.departments.length - 2} more
-                            </div>
+                        </div>
                         )}
                     </>
                 ) : (
@@ -592,22 +592,22 @@ export default function FacultiesPage() {
                             <label className="text-sm font-medium text-gray-700 mb-2 block">
                                 Filter by Institution
                             </label>
-                            <Select
-                                value={filters.institution_id || 'all'}
-                                onValueChange={(value) => handleFilterChange('institution_id', value)}
-                            >
+                        <Select
+                            value={filters.institution_id || 'all'}
+                            onValueChange={(value) => handleFilterChange('institution_id', value)}
+                        >
                                 <SelectTrigger className="w-full">
                                     <SelectValue placeholder="All Institutions" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Institutions</SelectItem>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Institutions</SelectItem>
                                     {institutions.map((institution) => (
                                         <SelectItem key={institution.id} value={institution.id}>
                                             {institution.name}
                                         </SelectItem>
                                     ))}
-                                </SelectContent>
-                            </Select>
+                            </SelectContent>
+                        </Select>
                         </div>
 
                         {/* Active Filters Info */}

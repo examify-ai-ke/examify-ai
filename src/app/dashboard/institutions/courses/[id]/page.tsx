@@ -29,6 +29,23 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AdminBreadcrumb } from '@/components/ui/breadcrumb';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { EmptyState } from '@/components/ui/empty-state';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // Mock data for development/offline use
 const mockCourse: CourseRead = {
@@ -95,7 +112,7 @@ interface CourseDetailsPageProps { }
 const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
     const params = useParams();
     const router = useRouter();
-    const { showNotification } = useUIStore();
+    const { addNotification } = useUIStore();
 
     const courseId = params.id as string;
 
@@ -103,6 +120,9 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
     const [course, setCourse] = useState<CourseRead | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('overview');
+    const [showAddModuleModal, setShowAddModuleModal] = useState(false);
+    const [showAddExamPaperModal, setShowAddExamPaperModal] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
     // Load course data
     const loadCourse = async () => {
@@ -113,14 +133,16 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
             if (response.data && response.data.data) {
                 setCourse(response.data.data);
             } else {
-                console.log('No API response, using mock data');
-                setCourse(mockCourse);
+                setCourse(null);
             }
         } catch (error) {
             console.error('Error loading course:', error);
-            showNotification('Error loading course details', 'error');
-            // Fallback to mock data
-            setCourse(mockCourse);
+            addNotification({
+                type: 'error',
+                title: 'Failed to load course',
+                message: 'Please try again later.',
+            });
+            setCourse(null);
         } finally {
             setLoading(false);
         }
@@ -139,16 +161,31 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
     };
 
     const handleDeleteCourse = async () => {
-        if (confirm('Are you sure you want to delete this course?')) {
-            try {
-                await adminAPI.courses.delete(courseId);
-                showNotification('Course deleted successfully', 'success');
-                router.push('/dashboard/institutions/courses');
-            } catch (error) {
-                console.error('Error deleting course:', error);
-                showNotification('Error deleting course', 'error');
-            }
+        try {
+            await adminAPI.courses.delete(courseId);
+            addNotification({
+                type: 'success',
+                title: 'Course deleted',
+                message: 'The course has been deleted successfully.',
+            });
+            router.push('/dashboard/institutions/courses');
+        } catch (error: any) {
+            console.error('Error deleting course:', error);
+            addNotification({
+                type: 'error',
+                title: 'Failed to delete course',
+                message: error.message || 'Please try again later.',
+            });
         }
+        setShowDeleteDialog(false);
+    };
+
+    const handleViewModule = (moduleId: string) => {
+        router.push(`/dashboard/institutions/modules/${moduleId}`);
+    };
+
+    const handleViewExamPaper = (examPaperId: string) => {
+        router.push(`/dashboard/exam-papers/${examPaperId}`);
     };
 
     if (loading) {
@@ -250,7 +287,7 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
                                 Edit Course
                             </Button>
                             <Button
-                                onClick={handleDeleteCourse}
+                                onClick={() => setShowDeleteDialog(true)}
                                 variant="destructive"
                                 className="bg-red-600/90 hover:bg-red-700 text-white border-0"
                             >
@@ -429,7 +466,7 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
                                         <Library className="h-5 w-5" />
                                         Course Modules ({course.modules?.length || 0})
                                     </CardTitle>
-                                    <Button size="sm">
+                                    <Button size="sm" onClick={() => setShowAddModuleModal(true)}>
                                         <Plus className="mr-2 h-4 w-4" />
                                         Add Module
                                     </Button>
@@ -439,14 +476,27 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
                                 {course.modules && course.modules.length > 0 ? (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                         {course.modules.map((module) => (
-                                            <Card key={module.id} className="hover:shadow-md transition-shadow">
+                                            <Card
+                                                key={module.id}
+                                                className="hover:shadow-md transition-shadow cursor-pointer"
+                                                onClick={() => handleViewModule(module.id)}
+                                            >
                                                 <CardContent className="p-4">
                                                     <div className="flex items-start justify-between">
                                                         <div className="flex-1">
                                                             <h4 className="font-semibold mb-1">{module.name}</h4>
-                                                            <p className="text-sm text-muted-foreground">{module.description}</p>
+                                                            <p className="text-sm text-muted-foreground line-clamp-2">
+                                                                {module.unit_code}
+                                                            </p>
                                                         </div>
-                                                        <Button variant="ghost" size="sm">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleViewModule(module.id);
+                                                            }}
+                                                        >
                                                             <Eye className="h-4 w-4" />
                                                         </Button>
                                                     </div>
@@ -460,7 +510,7 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
                                         title="No modules yet"
                                         description="This course doesn't have any modules assigned yet."
                                         action={
-                                            <Button>
+                                            <Button onClick={() => setShowAddModuleModal(true)}>
                                                 <Plus className="mr-2 h-4 w-4" />
                                                 Add First Module
                                             </Button>
@@ -480,7 +530,7 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
                                         <FileText className="h-5 w-5" />
                                         Exam Papers ({course.exam_papers?.length || 0})
                                     </CardTitle>
-                                    <Button size="sm">
+                                    <Button size="sm" onClick={() => setShowAddExamPaperModal(true)}>
                                         <Plus className="mr-2 h-4 w-4" />
                                         Add Exam Paper
                                     </Button>
@@ -490,31 +540,41 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
                                 {course.exam_papers && course.exam_papers.length > 0 ? (
                                     <div className="space-y-4">
                                         {course.exam_papers.map((examPaper) => (
-                                            <Card key={examPaper.id} className="hover:shadow-md transition-shadow">
+                                            <Card
+                                                key={examPaper.id}
+                                                className="hover:shadow-md transition-shadow cursor-pointer"
+                                                onClick={() => handleViewExamPaper(examPaper.id)}
+                                            >
                                                 <CardContent className="p-4">
                                                     <div className="flex items-center justify-between">
                                                         <div className="flex-1">
-                                                            <h4 className="font-semibold mb-1">{examPaper.title}</h4>
+                                                            <h4 className="font-semibold mb-1">{examPaper.title?.name || 'Untitled'}</h4>
                                                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                                                 <span className="flex items-center gap-1">
                                                                     <Calendar className="h-3 w-3" />
-                                                                    {examPaper.year}
-                                                                </span>
-                                                                <span className="flex items-center gap-1">
-                                                                    <Clock className="h-3 w-3" />
-                                                                    {examPaper.duration} min
-                                                                </span>
-                                                                <span className="flex items-center gap-1">
-                                                                    <Award className="h-3 w-3" />
-                                                                    {examPaper.total_marks} marks
+                                                                    {examPaper.description?.name || 'No description'}
                                                                 </span>
                                                             </div>
                                                         </div>
                                                         <div className="flex gap-2">
-                                                            <Button variant="ghost" size="sm">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleViewExamPaper(examPaper.id);
+                                                                }}
+                                                            >
                                                                 <Eye className="h-4 w-4" />
                                                             </Button>
-                                                            <Button variant="ghost" size="sm">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    router.push(`/dashboard/exam-papers/${examPaper.id}/edit`);
+                                                                }}
+                                                            >
                                                                 <Edit className="h-4 w-4" />
                                                             </Button>
                                                         </div>
@@ -529,7 +589,7 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
                                         title="No exam papers yet"
                                         description="This course doesn't have any exam papers yet."
                                         action={
-                                            <Button>
+                                            <Button onClick={() => setShowAddExamPaperModal(true)}>
                                                 <Plus className="mr-2 h-4 w-4" />
                                                 Add First Exam Paper
                                             </Button>
@@ -609,6 +669,72 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
                     </TabsContent>
                 </Tabs>
             </div>
+
+            {/* Add Module Modal (Placeholder) */}
+            <Dialog open={showAddModuleModal} onOpenChange={setShowAddModuleModal}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add Module to Course</DialogTitle>
+                        <DialogDescription>
+                            Module management functionality coming soon!
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-6 text-center text-muted-foreground">
+                        <p>Module assignment form will be implemented here.</p>
+                        <Button
+                            variant="outline"
+                            className="mt-4"
+                            onClick={() => setShowAddModuleModal(false)}
+                        >
+                            Close
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Add Exam Paper Modal (Placeholder) */}
+            <Dialog open={showAddExamPaperModal} onOpenChange={setShowAddExamPaperModal}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add Exam Paper</DialogTitle>
+                        <DialogDescription>
+                            Exam paper creation functionality coming soon!
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-6 text-center text-muted-foreground">
+                        <p>Exam paper form will be implemented here.</p>
+                        <Button
+                            variant="outline"
+                            className="mt-4"
+                            onClick={() => setShowAddExamPaperModal(false)}
+                        >
+                            Close
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Course Confirmation */}
+            <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will permanently delete the course "{course?.name}".
+                            This action cannot be undone. All associated modules and exam papers will be affected.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDeleteCourse}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            Delete Course
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };

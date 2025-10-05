@@ -13,7 +13,10 @@ import {
     BookOpen,
     Users,
     Calendar,
-    Building2
+    Building2,
+    FileText,
+    TrendingUp,
+    GraduationCap
 } from 'lucide-react';
 import { adminAPI } from '@/lib/api-admin';
 import { useUIStore } from '@/stores/ui';
@@ -145,7 +148,7 @@ interface CoursesPageProps { }
 
 const CoursesPage: React.FC<CoursesPageProps> = () => {
     const router = useRouter();
-    const { showNotification } = useUIStore();
+    const { addNotification } = useUIStore();
 
     // State management
     const [courses, setCourses] = useState<CourseRead[]>([]);
@@ -161,6 +164,14 @@ const CoursesPage: React.FC<CoursesPageProps> = () => {
     const [programmes, setProgrammes] = useState<Array<{ id: string; name: string }>>([]);
     const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([]);
     const [institutions, setInstitutions] = useState<Array<{ id: string; name: string }>>([]);
+    const [stats, setStats] = useState({
+        totalCourses: 0,
+        totalProgrammes: 0,
+        totalModules: 0,
+        totalExamPapers: 0,
+        averageModules: 0,
+    });
+    const [statsLoading, setStatsLoading] = useState(true);
 
     // Load courses from API
     const loadCourses = async () => {
@@ -202,7 +213,11 @@ const CoursesPage: React.FC<CoursesPageProps> = () => {
             }
         } catch (error) {
             console.error('Error loading courses:', error);
-            showNotification('Error loading courses', 'error');
+            addNotification({
+                type: 'error',
+                title: 'Failed to load courses',
+                message: 'Please try again later.',
+            });
             // Fallback to mock data
             setCourses(mockCourses);
             setTotalItems(mockCourses.length);
@@ -215,23 +230,81 @@ const CoursesPage: React.FC<CoursesPageProps> = () => {
     // Load programmes for filter
     const loadProgrammes = async () => {
         try {
-            // This would typically come from a programmes API endpoint
-            // For now, we'll use mock data
-            setProgrammes([
-                { id: '1', name: 'Bachelor of Computer Science' },
-                { id: '2', name: 'Bachelor of Mathematics' },
-                { id: '3', name: 'Bachelor of Business Administration' }
-            ]);
+            const response = await adminAPI.programmes.list({ limit: 100 });
+            if (response.data?.data) {
+                const programmesData = Array.isArray(response.data.data)
+                    ? response.data.data
+                    : response.data.data.items || [];
+                setProgrammes(programmesData.map((prog: any) => ({ id: prog.id, name: prog.name })));
+            }
         } catch (error) {
             console.error('Error loading programmes:', error);
         }
     };
 
-    // Load data on component mount
+    // Load departments for filter
+    const loadDepartments = async () => {
+        try {
+            const response = await adminAPI.departments.list({ limit: 100 });
+            if (response.data?.data) {
+                const departmentsData = Array.isArray(response.data.data)
+                    ? response.data.data
+                    : response.data.data.items || [];
+                setDepartments(departmentsData.map((dept: any) => ({ id: dept.id, name: dept.name })));
+            }
+        } catch (error) {
+            console.error('Error loading departments:', error);
+        }
+    };
+
+    // Load institutions for filter
+    const loadInstitutions = async () => {
+        try {
+            const response = await adminAPI.institutions.list({ limit: 100 });
+            if (response.data?.data) {
+                const institutionsData = Array.isArray(response.data.data)
+                    ? response.data.data
+                    : response.data.data.items || [];
+                setInstitutions(institutionsData.map((inst: any) => ({ id: inst.id, name: inst.name })));
+            }
+        } catch (error) {
+            console.error('Error loading institutions:', error);
+        }
+    };
+
+    // Load statistics
+    const loadStats = async () => {
+        try {
+            setStatsLoading(true);
+            console.log('Loading course statistics...');
+
+            const response = await adminAPI.courses.getStats();
+
+            if (response.data) {
+                console.log('Setting course stats:', response.data);
+                setStats(response.data);
+            } else {
+                console.warn('No course statistics data received');
+            }
+        } catch (error) {
+            console.error('Error loading course statistics:', error);
+        } finally {
+            setStatsLoading(false);
+        }
+    };
+
+    // Load data on component mount and when filters/pagination change
     useEffect(() => {
         loadCourses();
+    }, [currentPage, searchTerm, selectedProgramme, selectedDepartment, selectedInstitution, pageSize]);
+
+    // Load filter options and stats on mount
+    useEffect(() => {
         loadProgrammes();
-    }, [currentPage, searchTerm, selectedProgramme]);
+        loadDepartments();
+        loadInstitutions();
+        loadStats();
+    }, []);
 
     // Handle search
     const handleSearch = (value: string) => {
@@ -242,12 +315,30 @@ const CoursesPage: React.FC<CoursesPageProps> = () => {
     // Handle programme filter
     const handleProgrammeFilter = (value: string) => {
         setSelectedProgramme(value === 'all' ? '' : value);
-        setCurrentPage(1);
+        setCurrentPage(0);
+    };
+
+    // Handle department filter
+    const handleDepartmentFilter = (value: string) => {
+        setSelectedDepartment(value === 'all' ? '' : value);
+        setCurrentPage(0);
+    };
+
+    // Handle institution filter
+    const handleInstitutionFilter = (value: string) => {
+        setSelectedInstitution(value === 'all' ? '' : value);
+        setCurrentPage(0);
     };
 
     // Handle page change
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
+    };
+
+    // Handle page size change
+    const handlePageSizeChange = (newPageSize: number) => {
+        setPageSize(newPageSize);
+        setCurrentPage(0); // Reset to first page
     };
 
     // Transform course data for table display
@@ -278,11 +369,19 @@ const CoursesPage: React.FC<CoursesPageProps> = () => {
         if (confirm('Are you sure you want to delete this course?')) {
             try {
                 await adminAPI.courses.delete(courseId);
-                showNotification('Course deleted successfully', 'success');
+                addNotification({
+                    type: 'success',
+                    title: 'Course deleted',
+                    message: 'The course has been deleted successfully.',
+                });
                 loadCourses(); // Reload the list
             } catch (error) {
                 console.error('Error deleting course:', error);
-                showNotification('Error deleting course', 'error');
+                addNotification({
+                    type: 'error',
+                    title: 'Failed to delete course',
+                    message: 'Please try again later.',
+                });
             }
         }
     };
@@ -425,38 +524,217 @@ const CoursesPage: React.FC<CoursesPageProps> = () => {
                 </Button>
             </div>
 
+            {/* Statistics Cards */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 mb-6">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Courses</CardTitle>
+                        <BookOpen className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        {statsLoading ? (
+                            <div className="h-7 w-16 bg-gray-200 animate-pulse rounded"></div>
+                        ) : (
+                            <>
+                                <div className="text-2xl font-bold">{stats.totalCourses}</div>
+                                <p className="text-xs text-muted-foreground">Across all programmes</p>
+                            </>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Programmes</CardTitle>
+                        <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        {statsLoading ? (
+                            <div className="h-7 w-16 bg-gray-200 animate-pulse rounded"></div>
+                        ) : (
+                            <>
+                                <div className="text-2xl font-bold">{stats.totalProgrammes}</div>
+                                <p className="text-xs text-muted-foreground">Active programmes</p>
+                            </>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Modules</CardTitle>
+                        <BookOpen className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        {statsLoading ? (
+                            <div className="h-7 w-16 bg-gray-200 animate-pulse rounded"></div>
+                        ) : (
+                            <>
+                                <div className="text-2xl font-bold">{stats.totalModules}</div>
+                                <p className="text-xs text-muted-foreground">Course modules</p>
+                            </>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Exam Papers</CardTitle>
+                        <FileText className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        {statsLoading ? (
+                            <div className="h-7 w-16 bg-gray-200 animate-pulse rounded"></div>
+                        ) : (
+                            <>
+                                <div className="text-2xl font-bold">{stats.totalExamPapers}</div>
+                                <p className="text-xs text-muted-foreground">Available papers</p>
+                            </>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Avg. Modules</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        {statsLoading ? (
+                            <div className="h-7 w-16 bg-gray-200 animate-pulse rounded"></div>
+                        ) : (
+                            <>
+                                <div className="text-2xl font-bold">{stats.averageModules}</div>
+                                <p className="text-xs text-muted-foreground">Per course</p>
+                            </>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+
             {/* Filters */}
             <Card className="mb-6">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <Filter className="h-5 w-5" />
-                        Filters
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Search courses..."
-                                value={searchTerm}
-                                onChange={(e) => handleSearch(e.target.value)}
-                                className="pl-10"
-                            />
+                <CardContent className="pt-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {/* Search Input */}
+                        <div>
+                            <label className="text-sm font-medium text-gray-700 mb-2 block">
+                                Search Courses
+                            </label>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                <Input
+                                    placeholder="Search by name..."
+                                    className="pl-10"
+                                    value={searchTerm}
+                                    onChange={(e) => handleSearch(e.target.value)}
+                                />
+                            </div>
                         </div>
-                        <Select value={selectedProgramme || 'all'} onValueChange={handleProgrammeFilter}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Filter by programme" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Programmes</SelectItem>
-                                {programmes.map((programme) => (
-                                    <SelectItem key={programme.id} value={programme.id}>
-                                        {programme.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+
+                        {/* Filter by Programme */}
+                        <div>
+                            <label className="text-sm font-medium text-gray-700 mb-2 block">
+                                Filter by Programme
+                            </label>
+                            <Select
+                                value={selectedProgramme || 'all'}
+                                onValueChange={handleProgrammeFilter}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="All Programmes" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Programmes</SelectItem>
+                                    {programmes.map((programme) => (
+                                        <SelectItem key={programme.id} value={programme.id}>
+                                            {programme.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Filter by Department */}
+                        <div>
+                            <label className="text-sm font-medium text-gray-700 mb-2 block">
+                                Filter by Department
+                            </label>
+                            <Select
+                                value={selectedDepartment || 'all'}
+                                onValueChange={handleDepartmentFilter}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="All Departments" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Departments</SelectItem>
+                                    {departments.map((department) => (
+                                        <SelectItem key={department.id} value={department.id}>
+                                            {department.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Filter by Institution */}
+                        <div>
+                            <label className="text-sm font-medium text-gray-700 mb-2 block">
+                                Filter by Institution
+                            </label>
+                            <Select
+                                value={selectedInstitution || 'all'}
+                                onValueChange={handleInstitutionFilter}
+                            >
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="All Institutions" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Institutions</SelectItem>
+                                    {institutions.map((institution) => (
+                                        <SelectItem key={institution.id} value={institution.id}>
+                                            {institution.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    {/* Active Filters Info */}
+                    <div className="mt-4 text-sm text-muted-foreground">
+                        {searchTerm && (
+                            <div className="flex items-center gap-2 mb-1">
+                                <Badge variant="secondary">
+                                    Search: {searchTerm}
+                                </Badge>
+                            </div>
+                        )}
+                        {selectedProgramme && selectedProgramme !== 'all' && (
+                            <div className="flex items-center gap-2 mb-1">
+                                <Badge variant="secondary">
+                                    Programme: {programmes.find(p => p.id === selectedProgramme)?.name || 'Selected'}
+                                </Badge>
+                            </div>
+                        )}
+                        {selectedDepartment && selectedDepartment !== 'all' && (
+                            <div className="flex items-center gap-2 mb-1">
+                                <Badge variant="secondary">
+                                    Department: {departments.find(d => d.id === selectedDepartment)?.name || 'Selected'}
+                                </Badge>
+                            </div>
+                        )}
+                        {selectedInstitution && selectedInstitution !== 'all' && (
+                            <div className="flex items-center gap-2">
+                                <Badge variant="secondary">
+                                    Institution: {institutions.find(i => i.id === selectedInstitution)?.name || 'Selected'}
+                                </Badge>
+                            </div>
+                        )}
+                        {!searchTerm && !selectedProgramme && !selectedDepartment && !selectedInstitution && (
+                            <span className="text-gray-500">Showing all courses</span>
+                        )}
                     </div>
                 </CardContent>
             </Card>
@@ -464,17 +742,23 @@ const CoursesPage: React.FC<CoursesPageProps> = () => {
             {/* Courses Table */}
             {transformedCourses.length > 0 ? (
                 <Card>
-                    <CardHeader>
-                        <CardTitle>All Courses ({totalItems})</CardTitle>
-                    </CardHeader>
-                    <CardContent>
+                    <CardContent className="pt-6">
                         <DataTable
                             columns={columns}
                             data={transformedCourses}
-                            title="All Courses"
+                            title={`${totalItems} Courses`}
                             searchable={false}
                             filterable={false}
-                            pagination={true}
+                            pagination={{
+                                currentPage,
+                                totalPages,
+                                totalItems,
+                                pageSize,
+                                onPageChange: setCurrentPage,
+                                onPageSizeChange: handlePageSizeChange,
+                            }}
+                            emptyMessage="No courses found. Try adjusting your search criteria."
+                            loading={loading}
                         />
                     </CardContent>
                 </Card>

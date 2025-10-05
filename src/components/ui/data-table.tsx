@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -96,6 +96,13 @@ export function DataTable<T extends Record<string, any>>({
   const [sortColumn, setSortColumn] = useState<keyof T | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [selectedItems, setSelectedItems] = useState<T[]>([]);
+
+  // Sync internal page size with server pagination
+  useEffect(() => {
+    if (serverPagination?.pageSize !== undefined && serverPagination.pageSize !== selectedPageSize) {
+      setSelectedPageSize(serverPagination.pageSize);
+    }
+  }, [serverPagination?.pageSize]);
 
   // Filter and sort data
   const filteredData = useMemo(() => {

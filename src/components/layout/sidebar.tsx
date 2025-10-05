@@ -38,7 +38,9 @@ import {
   MapPin,
   HelpCircle,
   CheckCircle,
-  Upload
+  Upload,
+  Library,
+  Layers
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -138,9 +140,21 @@ const navItems: NavItem[] = [
         roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
       },
       {
+        title: 'Programmes',
+        href: '/dashboard/institutions/programmes',
+        icon: Layers,
+        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+      },
+      {
         title: 'Courses',
         href: '/dashboard/institutions/courses',
         icon: GraduationCap,
+        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+      },
+      {
+        title: 'Modules',
+        href: '/dashboard/institutions/modules',
+        icon: Library,
         roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
       },
     ],

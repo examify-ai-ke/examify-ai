@@ -1526,14 +1526,22 @@ export interface paths {
         put?: never;
         /**
          * Add Department To Faculty
-         * @description Uploads a faculty hero image by id
+         * @description Add a Department to a Faculty by IDs
          *
          *     Required roles:
          *     - admin
          *     - manager
          */
         post: operations["add_department_to_faculty_api_v1_faculty__faculty_id__departments__department_id__post"];
-        delete?: never;
+        /**
+         * Remove Department From Faculty
+         * @description Remove a Department from a Faculty (unlink only, does not delete the department)
+         *
+         *     Required roles:
+         *     - admin
+         *     - manager
+         */
+        delete: operations["remove_department_from_faculty_api_v1_faculty__faculty_id__departments__department_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1714,14 +1722,22 @@ export interface paths {
         put?: never;
         /**
          * Add Programme To Department
-         * @description Add a Programme to a Department by id
+         * @description Add a Programme to a Department by IDs
          *
          *     Required roles:
          *     - admin
          *     - manager
          */
         post: operations["add_programme_to_department_api_v1_department__department_id__programmes__programme_id__post"];
-        delete?: never;
+        /**
+         * Remove Programme From Department
+         * @description Remove a Programme from a Department (unlink only, does not delete the programme)
+         *
+         *     Required roles:
+         *     - admin
+         *     - manager
+         */
+        delete: operations["remove_programme_from_department_api_v1_department__department_id__programmes__programme_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2256,7 +2272,15 @@ export interface paths {
          *     - manager
          */
         post: operations["add_module_to_course_api_v1_course__course_id__modules__module_id__post"];
-        delete?: never;
+        /**
+         * Remove Module From Course
+         * @description Remove a Module from a Course (unlink only, does not delete the module)
+         *
+         *     Required roles:
+         *     - admin
+         *     - manager
+         */
+        delete: operations["remove_module_from_course_api_v1_course__course_id__modules__module_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -4443,8 +4467,8 @@ export interface components {
              * @default []
              */
             instructions: components["schemas"]["InstructionRead"][] | null;
-            title: components["schemas"]["ExamTitleReadForExamPaperRead"];
-            description: components["schemas"]["app__schemas__exam_paper_schema__ExamDescriptionReadForExamPaper"];
+            title?: components["schemas"]["ExamTitleReadForExamPaperRead"] | null;
+            description?: components["schemas"]["app__schemas__exam_paper_schema__ExamDescriptionReadForExamPaper"] | null;
             /**
              * Modules
              * @default []
@@ -4483,8 +4507,7 @@ export interface components {
             id: string;
             /** Tags */
             tags: unknown[] | null;
-            /** @default [] */
-            title: components["schemas"]["ExamTitleReadForExamPaperRead"];
+            title: components["schemas"]["ExamTitleReadForExamPaperRead"] | null;
         };
         /** ExamPaperUpdate */
         ExamPaperUpdate: {
@@ -4514,8 +4537,7 @@ export interface components {
              * Format: uuid
              */
             id: string;
-            /** Title */
-            title: components["schemas"]["app__schemas__course_schema__ExamTitleRead"][];
+            title: components["schemas"]["app__schemas__course_schema__ExamTitleRead"];
             description: components["schemas"]["app__schemas__course_schema__ExamDescriptionReadForExamPaper"];
         };
         /** ExamTitleCreate */
@@ -5087,6 +5109,22 @@ export interface components {
             } | unknown | null;
             data?: components["schemas"]["CommentRead"] | null;
         };
+        /** IGetResponseBase[CourseRead] */
+        IGetResponseBase_CourseRead_: {
+            /**
+             * Message
+             * @default Data got correctly
+             */
+            message: string | null;
+            /**
+             * Meta
+             * @default {}
+             */
+            meta: {
+                [key: string]: unknown;
+            } | unknown | null;
+            data?: components["schemas"]["CourseRead"] | null;
+        };
         /** IGetResponseBase[DepartmentRead] */
         IGetResponseBase_DepartmentRead_: {
             /**
@@ -5298,6 +5336,22 @@ export interface components {
             data?: {
                 [key: string]: string;
             }[] | null;
+        };
+        /** IGetResponseBase[ProgrammeRead] */
+        IGetResponseBase_ProgrammeRead_: {
+            /**
+             * Message
+             * @default Data got correctly
+             */
+            message: string | null;
+            /**
+             * Meta
+             * @default {}
+             */
+            meta: {
+                [key: string]: unknown;
+            } | unknown | null;
+            data?: components["schemas"]["ProgrammeRead"] | null;
         };
         /** IGetResponseBase[QuestionRead] */
         IGetResponseBase_QuestionRead_: {
@@ -7906,6 +7960,11 @@ export interface components {
              * @default 0
              */
             courses_count: number | null;
+            /**
+             * Exam Papers Count
+             * @default 0
+             */
+            exam_papers_count: number | null;
         };
         /** ProgrammeReadForCourse */
         ProgrammeReadForCourse: {
@@ -10950,6 +11009,38 @@ export interface operations {
             };
         };
     };
+    remove_department_from_faculty_api_v1_faculty__faculty_id__departments__department_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                faculty_id: string;
+                department_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IDeleteResponseBase_FacultyRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_department_list_api_v1_department_get: {
         parameters: {
             query?: {
@@ -11273,6 +11364,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IPostResponseBase_DepartmentRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_programme_from_department_api_v1_department__department_id__programmes__programme_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                department_id: string;
+                programme_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IDeleteResponseBase_DepartmentRead_"];
                 };
             };
             /** @description Validation Error */
@@ -11667,7 +11790,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["IGetResponsePaginated_ProgrammeRead_"];
                 };
             };
             /** @description Validation Error */
@@ -11740,7 +11863,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["IGetResponsePaginated_ProgrammeRead_"];
                 };
             };
             /** @description Validation Error */
@@ -11805,7 +11928,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["IGetResponseBase_ProgrammeRead_"];
                 };
             };
             /** @description Validation Error */
@@ -12113,7 +12236,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["IGetResponseBase_CourseRead_"];
                 };
             };
             /** @description Validation Error */
@@ -12278,6 +12401,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IPostResponseBase_CourseRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_module_from_course_api_v1_course__course_id__modules__module_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                course_id: string;
+                module_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IDeleteResponseBase_CourseRead_"];
                 };
             };
             /** @description Validation Error */

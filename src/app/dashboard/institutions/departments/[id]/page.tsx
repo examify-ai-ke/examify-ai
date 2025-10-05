@@ -24,6 +24,7 @@ import {
     TrendingUp,
     Activity,
     FileText,
+    Unlink,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -45,6 +46,7 @@ import { AdminBreadcrumb } from '@/components/ui/breadcrumb';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DepartmentForm } from '@/components/forms/department-form';
+import { AddProgrammesToDepartment } from '@/components/forms/add-programmes-to-department';
 import { useAuth } from '@/hooks/useAuth';
 import { useUIStore } from '@/stores/ui';
 import { adminAPI } from '@/lib/api-admin';
@@ -109,6 +111,7 @@ export default function DepartmentDetailsPage() {
     const [showEditModal, setShowEditModal] = useState(false);
     const [showAddProgrammeModal, setShowAddProgrammeModal] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [programmeToUnlink, setProgrammeToUnlink] = useState<string | null>(null);
 
     // Load department data
     const loadDepartment = async () => {
@@ -181,6 +184,29 @@ export default function DepartmentDetailsPage() {
             });
         }
         setShowDeleteDialog(false);
+    };
+
+    // Handle unlink programme
+    const handleUnlinkProgramme = async () => {
+        if (!programmeToUnlink) return;
+
+        try {
+            await adminAPI.departments.removeProgramme(departmentId, programmeToUnlink);
+            addNotification({
+                type: 'success',
+                title: 'Programme unlinked',
+                message: 'The programme has been removed from this department.',
+            });
+            setProgrammeToUnlink(null);
+            loadDepartment();
+        } catch (error: any) {
+            console.error('Error unlinking programme:', error);
+            addNotification({
+                type: 'error',
+                title: 'Failed to unlink programme',
+                message: error.message || 'Please try again later.',
+            });
+        }
     };
 
     // Load data on mount
@@ -487,8 +513,21 @@ export default function DepartmentDetailsPage() {
                                                         e.stopPropagation();
                                                         router.push(`/dashboard/institutions/courses/${programme.id}`);
                                                     }}
+                                                    title="View programme details"
                                                 >
                                                     <Eye className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setProgrammeToUnlink(programme.id);
+                                                    }}
+                                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                    title="Remove programme from department"
+                                                >
+                                                    <Unlink className="h-4 w-4" />
                                                 </Button>
                                             </div>
                                         </div>
@@ -606,25 +645,24 @@ export default function DepartmentDetailsPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Add Programme Modal (Placeholder) */}
+            {/* Add Programme Modal */}
             <Dialog open={showAddProgrammeModal} onOpenChange={setShowAddProgrammeModal}>
-                <DialogContent>
+                <DialogContent className="max-w-3xl">
                     <DialogHeader>
-                        <DialogTitle>Add Programme</DialogTitle>
+                        <DialogTitle>Add Existing Programmes to Department</DialogTitle>
                         <DialogDescription>
-                            Programme creation functionality coming soon!
+                            Search and select existing programmes to add to this department. You can select multiple programmes at once.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="py-6 text-center text-muted-foreground">
-                        <p>Programme form will be implemented here.</p>
-                        <Button
-                            variant="outline"
-                            className="mt-4"
-                            onClick={() => setShowAddProgrammeModal(false)}
-                        >
-                            Close
-                        </Button>
-                    </div>
+                    <AddProgrammesToDepartment
+                        departmentId={departmentId}
+                        existingProgrammeIds={department?.programmes?.map(p => p.id) || []}
+                        onSuccess={() => {
+                            setShowAddProgrammeModal(false);
+                            loadDepartment();
+                        }}
+                        onCancel={() => setShowAddProgrammeModal(false)}
+                    />
                 </DialogContent>
             </Dialog>
 
@@ -645,6 +683,28 @@ export default function DepartmentDetailsPage() {
                             className="bg-red-600 hover:bg-red-700"
                         >
                             Delete Department
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Unlink Programme Confirmation */}
+            <AlertDialog open={!!programmeToUnlink} onOpenChange={(open) => !open && setProgrammeToUnlink(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Remove Programme from Department?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will unlink the programme from this department. The programme itself will not be deleted
+                            and can be added back to this department later.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleUnlinkProgramme}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            Remove Programme
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

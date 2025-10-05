@@ -645,6 +645,17 @@ const adminAPI = {
                 };
             }
         },
+
+        async removeDepartment(facultyId: string, departmentId: string) {
+            return api.DELETE('/faculty/{faculty_id}/departments/{department_id}', {
+                params: {
+                    path: {
+                        faculty_id: facultyId,
+                        department_id: departmentId
+                    }
+                }
+            });
+        },
     },
 
     /**
@@ -788,6 +799,17 @@ const adminAPI = {
 
         async addProgramme(departmentId: string, programmeId: string) {
             return api.POST('/department/{department_id}/programmes/{programme_id}', {
+                params: {
+                    path: {
+                        department_id: departmentId,
+                        programme_id: programmeId
+                    }
+                }
+            });
+        },
+
+        async removeProgramme(departmentId: string, programmeId: string) {
+            return api.DELETE('/department/{department_id}/programmes/{programme_id}', {
                 params: {
                     path: {
                         department_id: departmentId,
@@ -1035,6 +1057,17 @@ const adminAPI = {
 
         async addModule(courseId: string, moduleId: string) {
             return api.POST('/course/{course_id}/modules/{module_id}', {
+                params: {
+                    path: {
+                        course_id: courseId,
+                        module_id: moduleId
+                    }
+                }
+            });
+        },
+
+        async removeModule(courseId: string, moduleId: string) {
+            return api.DELETE('/course/{course_id}/modules/{module_id}', {
                 params: {
                     path: {
                         course_id: courseId,

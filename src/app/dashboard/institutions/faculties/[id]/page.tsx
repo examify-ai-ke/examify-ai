@@ -22,6 +22,8 @@ import {
     Award,
     TrendingUp,
     Activity,
+    Unlink,
+    Eye,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -112,6 +114,7 @@ export default function FacultyDetailsPage() {
     const [showEditModal, setShowEditModal] = useState(false);
     const [showAddDepartmentModal, setShowAddDepartmentModal] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [departmentToUnlink, setDepartmentToUnlink] = useState<string | null>(null);
 
     // Load faculty data
     const loadFaculty = async () => {
@@ -197,6 +200,29 @@ export default function FacultyDetailsPage() {
             });
         }
         setShowDeleteDialog(false);
+    };
+
+    // Handle unlink department
+    const handleUnlinkDepartment = async () => {
+        if (!departmentToUnlink) return;
+
+        try {
+            await adminAPI.faculties.removeDepartment(facultyId, departmentToUnlink);
+            addNotification({
+                type: 'success',
+                title: 'Department unlinked',
+                message: 'The department has been removed from this faculty.',
+            });
+            setDepartmentToUnlink(null);
+            loadFaculty();
+        } catch (error: any) {
+            console.error('Error unlinking department:', error);
+            addNotification({
+                type: 'error',
+                title: 'Failed to unlink department',
+                message: error.message || 'Please try again later.',
+            });
+        }
     };
 
     if (loading) {
@@ -543,17 +569,44 @@ export default function FacultyDetailsPage() {
                                                     onClick={() => router.push(`/dashboard/institutions/departments/${department.id}`)}
                                                 >
                                                     <CardContent className="p-4">
-                                                        <div className="flex items-center space-x-3">
-                                                            <div className="flex-shrink-0">
-                                                                <BookOpen className="h-8 w-8 text-blue-600" />
+                                                        <div className="flex items-start justify-between">
+                                                            <div className="flex items-center space-x-3 flex-1">
+                                                                <div className="flex-shrink-0">
+                                                                    <BookOpen className="h-8 w-8 text-blue-600" />
+                                                                </div>
+                                                                <div className="flex-1 min-w-0">
+                                                                    <h3 className="font-medium text-gray-900 truncate">
+                                                                        {department.name}
+                                                                    </h3>
+                                                                    <p className="text-sm text-gray-500">
+                                                                        {department.programmes?.length || 0} programmes
+                                                                    </p>
+                                                                </div>
                                                             </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <h3 className="font-medium text-gray-900 truncate">
-                                                                    {department.name}
-                                                                </h3>
-                                                                <p className="text-sm text-gray-500">
-                                                                    {department.programmes?.length || 0} programmes
-                                                                </p>
+                                                            <div className="flex gap-1 ml-2">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        router.push(`/dashboard/institutions/departments/${department.id}`);
+                                                                    }}
+                                                                    title="View department details"
+                                                                >
+                                                                    <Eye className="h-4 w-4" />
+                                                                </Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        setDepartmentToUnlink(department.id);
+                                                                    }}
+                                                                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                                    title="Remove department from faculty"
+                                                                >
+                                                                    <Unlink className="h-4 w-4" />
+                                                                </Button>
                                                             </div>
                                                         </div>
                                                     </CardContent>
@@ -741,6 +794,28 @@ export default function FacultyDetailsPage() {
                             className="bg-red-600 hover:bg-red-700"
                         >
                             Delete Faculty
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Unlink Department Confirmation */}
+            <AlertDialog open={!!departmentToUnlink} onOpenChange={(open) => !open && setDepartmentToUnlink(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Remove Department from Faculty?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will unlink the department from this faculty. The department itself will not be deleted
+                            and can be added back to this faculty later.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleUnlinkDepartment}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            Remove Department
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

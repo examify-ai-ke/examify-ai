@@ -155,6 +155,69 @@ Complete implementation of Courses, Programmes, and Modules management with full
 
 ---
 
+### Task 8: Create Modules CRUD ✅ **COMPLETED**
+**Priority: HIGH** 🔴
+**Completed: October 5, 2025**
+
+#### 8.1. Create ModuleForm Component
+- [x] File: `/src/components/forms/module-form.tsx`
+- [x] Add Zod validation schema for name, unit_code, description, course_id
+- [x] Support create and edit modes
+- [x] Fetch courses list for dropdown
+- [x] Implement `onSubmit` with create/update logic
+- [x] Handle course linking via `adminAPI.courses.addModule()`
+- [x] Add `embedded` prop for modal usage
+- [x] Pre-select course when `courseId` prop is provided
+
+#### 8.2. Create Modules List Page
+- [x] File: `/src/app/dashboard/institutions/modules/page.tsx`
+- [x] Full pagination with page size selector
+- [x] Search by name and description
+- [x] Filter by unit code
+- [x] Filter by course
+- [x] Statistics cards (Total Modules, Courses, Exam Papers, Avg Modules/Course)
+- [x] DataTable with all CRUD actions
+- [x] Create/Edit/Delete modals integrated
+
+#### 8.3. Create Module Details Page
+- [x] File: `/src/app/dashboard/institutions/modules/[id]/page.tsx`
+- [x] Display module information with unit code badge
+- [x] Show associated courses in tab
+- [x] Show exam papers in tab
+- [x] Edit Module button with modal
+- [x] Delete Module button with confirmation
+- [x] Clickable course/exam paper cards
+
+#### 8.4. Create Module Create/Edit Pages
+- [x] File: `/src/app/dashboard/institutions/modules/create/page.tsx`
+- [x] File: `/src/app/dashboard/institutions/modules/[id]/edit/page.tsx`
+- [x] Standalone pages with breadcrumbs
+
+#### 8.5. Fix "Add Module" Button in Course Details
+- [x] Updated `/src/app/dashboard/institutions/courses/[id]/page.tsx`
+- [x] Integrated ModuleForm with `courseId` pre-selection
+- [x] Modal properly creates module and links to course
+- [x] Reloads course data after module creation
+
+**Files created:**
+- ✅ `/src/components/forms/module-form.tsx`
+- ✅ `/src/app/dashboard/institutions/modules/page.tsx`
+- ✅ `/src/app/dashboard/institutions/modules/[id]/page.tsx`
+- ✅ `/src/app/dashboard/institutions/modules/create/page.tsx`
+- ✅ `/src/app/dashboard/institutions/modules/[id]/edit/page.tsx`
+
+**Files modified:**
+- ✅ `/src/app/dashboard/institutions/courses/[id]/page.tsx` - Added ModuleForm integration
+
+**Key Features:**
+- 🎯 Complete CRUD operations for modules
+- 🔗 Course-module relationship management
+- 📊 Statistics dashboard with backend count properties
+- 🔍 Advanced search and filtering
+- 📱 Responsive design with modals and dialogs
+
+---
+
 ## 🚧 **PENDING TASKS - Phase 2: Programmes Management**
 
 ### Task 6: Create Programmes Page

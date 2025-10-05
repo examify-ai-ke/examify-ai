@@ -17,7 +17,8 @@ import {
     GraduationCap,
     Library,
     Clock,
-    Award
+    Award,
+    Unlink
 } from 'lucide-react';
 import { adminAPI } from '@/lib/api-admin';
 import { useUIStore } from '@/stores/ui';
@@ -46,6 +47,8 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { ModuleForm } from '@/components/forms/module-form';
+import { AddModulesToCourse } from '@/components/forms/add-modules-to-course';
 
 // Mock data for development/offline use
 const mockCourse: CourseRead = {
@@ -121,8 +124,10 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('overview');
     const [showAddModuleModal, setShowAddModuleModal] = useState(false);
+    const [showCreateModuleModal, setShowCreateModuleModal] = useState(false);
     const [showAddExamPaperModal, setShowAddExamPaperModal] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [moduleToUnlink, setModuleToUnlink] = useState<string | null>(null);
 
     // Load course data
     const loadCourse = async () => {
@@ -182,6 +187,28 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
 
     const handleViewModule = (moduleId: string) => {
         router.push(`/dashboard/institutions/modules/${moduleId}`);
+    };
+
+    const handleUnlinkModule = async () => {
+        if (!moduleToUnlink) return;
+
+        try {
+            await adminAPI.courses.removeModule(courseId, moduleToUnlink);
+            addNotification({
+                type: 'success',
+                title: 'Module unlinked',
+                message: 'The module has been removed from this course.',
+            });
+            setModuleToUnlink(null);
+            loadCourse();
+        } catch (error: any) {
+            console.error('Error unlinking module:', error);
+            addNotification({
+                type: 'error',
+                title: 'Failed to unlink module',
+                message: error.message || 'Please try again later.',
+            });
+        }
     };
 
     const handleViewExamPaper = (examPaperId: string) => {
@@ -466,10 +493,20 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
                                         <Library className="h-5 w-5" />
                                         Course Modules ({course.modules?.length || 0})
                                     </CardTitle>
-                                    <Button size="sm" onClick={() => setShowAddModuleModal(true)}>
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        Add Module
-                                    </Button>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => setShowCreateModuleModal(true)}
+                                        >
+                                            <Plus className="mr-2 h-4 w-4" />
+                                            Create New
+                                        </Button>
+                                        <Button size="sm" onClick={() => setShowAddModuleModal(true)}>
+                                            <Plus className="mr-2 h-4 w-4" />
+                                            Add Existing
+                                        </Button>
+                                    </div>
                                 </div>
                             </CardHeader>
                             <CardContent>
@@ -489,16 +526,31 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
                                                                 {module.unit_code}
                                                             </p>
                                                         </div>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleViewModule(module.id);
-                                                            }}
-                                                        >
-                                                            <Eye className="h-4 w-4" />
-                                                        </Button>
+                                                        <div className="flex gap-1">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleViewModule(module.id);
+                                                                }}
+                                                                title="View module details"
+                                                            >
+                                                                <Eye className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setModuleToUnlink(module.id);
+                                                                }}
+                                                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                                title="Remove module from course"
+                                                            >
+                                                                <Unlink className="h-4 w-4" />
+                                                            </Button>
+                                                        </div>
                                                     </div>
                                                 </CardContent>
                                             </Card>
@@ -510,10 +562,19 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
                                         title="No modules yet"
                                         description="This course doesn't have any modules assigned yet."
                                         action={
-                                            <Button onClick={() => setShowAddModuleModal(true)}>
-                                                <Plus className="mr-2 h-4 w-4" />
-                                                Add First Module
-                                            </Button>
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={() => setShowCreateModuleModal(true)}
+                                                >
+                                                    <Plus className="mr-2 h-4 w-4" />
+                                                    Create New Module
+                                                </Button>
+                                                <Button onClick={() => setShowAddModuleModal(true)}>
+                                                    <Plus className="mr-2 h-4 w-4" />
+                                                    Add Existing Module
+                                                </Button>
+                                            </div>
                                         }
                                     />
                                 )}
@@ -670,25 +731,46 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
                 </Tabs>
             </div>
 
-            {/* Add Module Modal (Placeholder) */}
+            {/* Add Existing Modules Modal */}
             <Dialog open={showAddModuleModal} onOpenChange={setShowAddModuleModal}>
-                <DialogContent>
+                <DialogContent className="max-w-3xl">
                     <DialogHeader>
-                        <DialogTitle>Add Module to Course</DialogTitle>
+                        <DialogTitle>Add Existing Modules to Course</DialogTitle>
                         <DialogDescription>
-                            Module management functionality coming soon!
+                            Search and select existing modules to add to this course. You can select multiple modules at once.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="py-6 text-center text-muted-foreground">
-                        <p>Module assignment form will be implemented here.</p>
-                        <Button
-                            variant="outline"
-                            className="mt-4"
-                            onClick={() => setShowAddModuleModal(false)}
-                        >
-                            Close
-                        </Button>
-                    </div>
+                    <AddModulesToCourse
+                        courseId={courseId}
+                        existingModuleIds={course?.modules?.map(m => m.id) || []}
+                        onSuccess={() => {
+                            setShowAddModuleModal(false);
+                            loadCourse();
+                        }}
+                        onCancel={() => setShowAddModuleModal(false)}
+                    />
+                </DialogContent>
+            </Dialog>
+
+            {/* Create New Module Modal */}
+            <Dialog open={showCreateModuleModal} onOpenChange={setShowCreateModuleModal}>
+                <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Create New Module</DialogTitle>
+                        <DialogDescription>
+                            Create a new module and link it to this course
+                        </DialogDescription>
+                    </DialogHeader>
+                    <ModuleForm
+                        courseId={courseId}
+                        mode="create"
+                        onSuccess={() => {
+                            setShowCreateModuleModal(false);
+                            loadCourse();
+                        }}
+                        onCancel={() => setShowCreateModuleModal(false)}
+                        embedded={true}
+                    />
                 </DialogContent>
             </Dialog>
 
@@ -731,6 +813,28 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
                             className="bg-red-600 hover:bg-red-700"
                         >
                             Delete Course
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            {/* Unlink Module Confirmation */}
+            <AlertDialog open={!!moduleToUnlink} onOpenChange={(open) => !open && setModuleToUnlink(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Remove Module from Course?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will unlink the module from this course. The module itself will not be deleted
+                            and can be added back to this course later.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleUnlinkModule}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            Remove Module
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

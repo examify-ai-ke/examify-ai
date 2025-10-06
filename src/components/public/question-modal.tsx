@@ -1,6 +1,9 @@
 'use client';
 
+import React from 'react';
 import { useRouter } from 'next/navigation';
+import { useSignUpPrompt } from '@/hooks/useSignUpPrompt';
+import { SignUpPrompt } from './sign-up-prompt';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { FileText, UserPlus } from 'lucide-react';
+import { FileText, UserPlus, Eye } from 'lucide-react';
 import type { QuestionRead } from './types';
 
 interface QuestionModalProps {
@@ -56,6 +59,15 @@ function extractQuestionText(questionText: unknown): string {
 
 export function QuestionModal({ question, isOpen, onClose }: QuestionModalProps) {
   const router = useRouter();
+  const { 
+    isPromptOpen, 
+    promptType, 
+    showPrompt, 
+    dismissPrompt, 
+    closePrompt,
+    incrementViewCount,
+  } = useSignUpPrompt();
+  
   const questionText = extractQuestionText(question.question_text);
   
   // Extract metadata
@@ -66,11 +78,28 @@ export function QuestionModal({ question, isOpen, onClose }: QuestionModalProps)
   const paperTitle = examPaper?.title?.title || 'Exam Paper';
   const paperId = examPaper?.id;
 
+  // Track question view
+  const handleModalOpen = () => {
+    if (isOpen) {
+      incrementViewCount();
+    }
+  };
+
+  // Use effect to track when modal opens
+  React.useEffect(() => {
+    handleModalOpen();
+  }, [isOpen]);
+
   const handleViewPaper = () => {
     if (paperId) {
       router.push(`/browse/${paperId}`);
       onClose();
     }
+  };
+
+  const handleViewAnswer = () => {
+    // Show sign-up prompt when trying to view answer
+    showPrompt('view-answer');
   };
 
   const handleSignUp = () => {
@@ -145,11 +174,21 @@ export function QuestionModal({ question, isOpen, onClose }: QuestionModalProps)
 
         {/* Action Buttons */}
         <div className="space-y-3">
+          {/* View Answer Button */}
+          <Button
+            onClick={handleViewAnswer}
+            className="w-full bg-teal-500 hover:bg-teal-600"
+            variant="default"
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            View Answer & Solution
+          </Button>
+
           {paperId && (
             <Button
               onClick={handleViewPaper}
               className="w-full"
-              variant="default"
+              variant="outline"
             >
               <FileText className="h-4 w-4 mr-2" />
               View Full Exam Paper
@@ -157,9 +196,9 @@ export function QuestionModal({ question, isOpen, onClose }: QuestionModalProps)
           )}
 
           {/* Sign up prompt */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="bg-teal-50 border border-teal-200 rounded-lg p-4">
             <div className="flex items-start gap-3">
-              <UserPlus className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+              <UserPlus className="h-5 w-5 text-teal-600 mt-0.5 shrink-0" />
               <div className="flex-1">
                 <h4 className="font-semibold text-sm text-gray-900 mb-1">
                   Want to save questions and track your progress?
@@ -179,6 +218,14 @@ export function QuestionModal({ question, isOpen, onClose }: QuestionModalProps)
           </div>
         </div>
       </DialogContent>
+
+      {/* Sign-up Prompt Modal */}
+      <SignUpPrompt
+        isOpen={isPromptOpen}
+        onClose={closePrompt}
+        onDismiss={dismissPrompt}
+        type={promptType}
+      />
     </Dialog>
   );
 }

@@ -192,8 +192,13 @@ export const publicAPI = {
                     }
                 });
 
+                // Extract data from nested response structure
+                const data = response.data && typeof response.data === 'object' && 'data' in response.data
+                    ? (response.data as any).data
+                    : response.data;
+
                 return {
-                    data: response.data,
+                    data: data || null,
                     error: response.error,
                 };
             } catch (error) {
@@ -216,8 +221,13 @@ export const publicAPI = {
                     }
                 });
 
+                // Extract data from nested response structure
+                const data = response.data && typeof response.data === 'object' && 'data' in response.data
+                    ? (response.data as any).data
+                    : response.data;
+
                 return {
-                    data: response.data,
+                    data: data || null,
                     error: response.error,
                 };
             } catch (error) {
@@ -342,8 +352,13 @@ export const publicAPI = {
                     }
                 });
 
+                // Extract data from nested response structure
+                const data = response.data && typeof response.data === 'object' && 'data' in response.data
+                    ? (response.data as any).data
+                    : response.data;
+
                 return {
-                    data: response.data,
+                    data: data || null,
                     error: response.error,
                 };
             } catch (error) {
@@ -439,8 +454,13 @@ export const publicAPI = {
                     }
                 });
 
+                // Extract data from nested response structure
+                const data = response.data && typeof response.data === 'object' && 'data' in response.data
+                    ? (response.data as any).data
+                    : response.data;
+
                 return {
-                    data: response.data,
+                    data: data || null,
                     error: response.error,
                 };
             } catch (error) {
@@ -463,8 +483,13 @@ export const publicAPI = {
                     }
                 });
 
+                // Extract data from nested response structure
+                const data = response.data && typeof response.data === 'object' && 'data' in response.data
+                    ? (response.data as any).data
+                    : response.data;
+
                 return {
-                    data: response.data,
+                    data: data || null,
                     error: response.error,
                 };
             } catch (error) {
@@ -561,8 +586,13 @@ export const publicAPI = {
                     }
                 });
 
+                // Extract data from nested response structure
+                const data = response.data && typeof response.data === 'object' && 'data' in response.data
+                    ? (response.data as any).data
+                    : response.data;
+
                 return {
-                    data: response.data,
+                    data: data || null,
                     error: response.error,
                 };
             } catch (error) {

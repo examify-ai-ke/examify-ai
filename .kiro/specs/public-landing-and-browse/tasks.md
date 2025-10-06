@@ -85,7 +85,7 @@ This implementation plan breaks down Phase 1 of the public pages into manageable
     - Add error handling and retry logic
     - _Requirements: 1.2, 2.2, 4.2_
 
-  - [-] 2.2 Add caching layer for public APIs
+  - [x] 2.2 Add caching layer for public APIs
     - Implement React Query setup for public pages
     - Configure cache times (5min for questions, 10min for papers)
     - Add stale-while-revalidate strategy
@@ -144,8 +144,8 @@ This implementation plan breaks down Phase 1 of the public pages into manageable
     - Test responsive design
     - _Requirements: 1.1, 1.2, 1.5_
 
-- [ ] 4. Implement sign-up prompt system
-  - [ ] 4.1 Create SignUpPrompt component
+- [x] 4. Implement sign-up prompt system
+  - [x] 4.1 Create SignUpPrompt component
     - Modal/banner design
     - Multiple prompt types (view-answer, save-paper, time-based)
     - "Maybe later" dismiss button
@@ -153,22 +153,22 @@ This implementation plan breaks down Phase 1 of the public pages into manageable
     - Social login options
     - _Requirements: 9.1, 9.2_
 
-  - [ ] 4.2 Create prompt tracking logic
+  - [x] 4.2 Create prompt tracking logic
     - Track question view count in localStorage
     - Track dismissed prompts
     - Implement trigger conditions (after 3-5 views)
     - Prevent repeated prompts
     - _Requirements: 1.4, 9.1_
 
-  - [ ] 4.3 Integrate prompts into question viewing
+  - [x] 4.3 Integrate prompts into question viewing
     - Show prompt after viewing threshold
     - Show prompt on "Show Answer" click
     - Show prompt on bookmark attempt
     - Track conversion events
     - _Requirements: 1.3, 1.4, 9.1_
 
-- [ ] 5. Build browse papers page
-  - [ ] 5.1 Create FilterSidebar component
+- [x] 5. Build browse papers page
+  - [x] 5.1 Create FilterSidebar component
     - Institution multi-select filter
     - Year range/multi-select filter
     - Course/subject multi-select filter
@@ -176,14 +176,14 @@ This implementation plan breaks down Phase 1 of the public pages into manageable
     - Active filter count badge
     - _Requirements: 2.1, 2.2_
 
-  - [ ] 5.2 Create SearchAndSort component
+  - [x] 5.2 Create SearchAndSort component
     - Search input with debounce
     - Sort dropdown (newest, oldest, popular, alphabetical)
     - View toggle (grid/list)
     - Results count display
     - _Requirements: 2.1, 2.3_
 
-  - [ ] 5.3 Create PaperCard component
+  - [x] 5.3 Create PaperCard component
     - Paper title and description
     - Institution logo and name
     - Course name and year
@@ -193,7 +193,7 @@ This implementation plan breaks down Phase 1 of the public pages into manageable
     - Bookmark icon (disabled for guests)
     - _Requirements: 2.4_
 
-  - [ ] 5.4 Implement browse page logic
+  - [x] 5.4 Implement browse page logic
     - Fetch papers with pagination
     - Apply filters and update URL params
     - Handle search queries
@@ -201,7 +201,7 @@ This implementation plan breaks down Phase 1 of the public pages into manageable
     - Manage loading states
     - _Requirements: 2.1, 2.2, 2.3_
 
-  - [ ] 5.5 Add pagination component
+  - [x] 5.5 Add pagination component
     - Page numbers with ellipsis
     - Previous/Next buttons
     - Page size selector
@@ -209,7 +209,7 @@ This implementation plan breaks down Phase 1 of the public pages into manageable
     - URL param sync
     - _Requirements: 2.1_
 
-  - [ ] 5.6 Implement mobile filter drawer
+  - [x] 5.6 Implement mobile filter drawer
     - Slide-out drawer for filters
     - "Filters" button with badge
     - Touch-friendly controls
@@ -217,21 +217,21 @@ This implementation plan breaks down Phase 1 of the public pages into manageable
     - _Requirements: 7.2_
 
 
-- [ ] 6. Build paper detail page
-  - [ ] 6.1 Create PaperHeader component
+- [-] 6. Build paper detail page
+  - [x] 6.1 Create PaperHeader component
     - Paper title and full metadata
     - Institution and course info
     - Exam date and duration
     - Action buttons (Download, Print, Share, Save)
     - _Requirements: 3.1_
 
-  - [ ] 6.2 Create InstructionsSection component
+  - [x] 6.2 Create InstructionsSection component
     - Display exam instructions if available
     - Proper formatting and styling
     - Collapsible section
     - _Requirements: 3.1_
 
-  - [ ] 6.3 Create QuestionItem component
+  - [x] 6.3 Create QuestionItem component
     - Question number and text
     - Marks allocated
     - Sub-questions display
@@ -239,7 +239,7 @@ This implementation plan breaks down Phase 1 of the public pages into manageable
     - "Show Answer" button
     - _Requirements: 3.2_
 
-  - [ ] 6.4 Create QuestionsSection component
+  - [x] 6.4 Create QuestionsSection component
     - Organize questions by question sets
     - Section headers
     - Question numbering
@@ -268,7 +268,7 @@ This implementation plan breaks down Phase 1 of the public pages into manageable
     - "View More" link to filtered browse
     - _Requirements: 3.6_
 
-  - [ ] 6.8 Integrate paper detail page
+  - [x] 6.8 Integrate paper detail page
     - Fetch paper data by ID
     - Compose all sections
     - Handle loading states

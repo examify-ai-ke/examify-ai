@@ -24,7 +24,7 @@ export function HeroSection({ stats }: HeroSectionProps) {
   };
 
   const handleBrowseClick = () => {
-    router.push('/browse');
+    router.push('/exampapers');
   };
 
   return (

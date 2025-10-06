@@ -4452,6 +4452,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Slug */
+            slug?: string | null;
             /**
              * Tags
              * @default []
@@ -7112,6 +7114,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Slug */
+            slug: string;
             /**
              * Faculties
              * @default []

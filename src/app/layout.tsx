@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Notifications } from "@/components/ui/notifications";
 import { APP_CONFIG } from "@/lib/constants";
+import { QueryProvider } from "@/lib/query-provider";
 
 const inter = Inter({ 
   subsets: ["latin"],
@@ -55,7 +56,6 @@ export const viewport: Viewport = {
   ],
 };
 
-// <body className={`${inter.variable} font-sans`}>
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -63,10 +63,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-     
       <body className={`${inter.variable} ${gtSuper.variable} font-sans`}> 
-        {children}
-        <Notifications />
+        <QueryProvider>
+          {children}
+          <Notifications />
+        </QueryProvider>
       </body>
     </html>
   );

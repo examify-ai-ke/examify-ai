@@ -136,7 +136,6 @@ interface CourseTableData {
     acronym: string;
     description: string;
     programme: string;
-    department: string;
     faculty: string;
     institution: string;
     modulesCount: number;
@@ -155,14 +154,14 @@ const CoursesPage: React.FC<CoursesPageProps> = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedProgramme, setSelectedProgramme] = useState<string>('');
-    const [selectedDepartment, setSelectedDepartment] = useState<string>('');
+    const [selectedFaculty, setSelectedFaculty] = useState<string>('');
     const [selectedInstitution, setSelectedInstitution] = useState<string>('');
     const [currentPage, setCurrentPage] = useState(0);
     const [pageSize, setPageSize] = useState(25);
     const [totalItems, setTotalItems] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
     const [programmes, setProgrammes] = useState<Array<{ id: string; name: string }>>([]);
-    const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([]);
+    const [faculties, setFaculties] = useState<Array<{ id: string; name: string }>>([]);
     const [institutions, setInstitutions] = useState<Array<{ id: string; name: string }>>([]);
     const [stats, setStats] = useState({
         totalCourses: 0,
@@ -181,7 +180,6 @@ const CoursesPage: React.FC<CoursesPageProps> = () => {
             const response = await adminAPI.courses.search({
                 q: searchTerm || undefined,
                 programme_id: selectedProgramme || undefined,
-                department_id: selectedDepartment || undefined,
                 institution_id: selectedInstitution || undefined,
                 sort_by: 'name',
                 sort_order: 'asc',
@@ -242,18 +240,18 @@ const CoursesPage: React.FC<CoursesPageProps> = () => {
         }
     };
 
-    // Load departments for filter
-    const loadDepartments = async () => {
+    // Load faculties for filter
+    const loadFaculties = async () => {
         try {
-            const response = await adminAPI.departments.list({ limit: 100 });
+            const response = await adminAPI.faculties.list({ limit: 100 });
             if (response.data?.data) {
-                const departmentsData = Array.isArray(response.data.data)
+                const facultiesData = Array.isArray(response.data.data)
                     ? response.data.data
                     : response.data.data.items || [];
-                setDepartments(departmentsData.map((dept: any) => ({ id: dept.id, name: dept.name })));
+                setFaculties(facultiesData.map((fac: any) => ({ id: fac.id, name: fac.name })));
             }
         } catch (error) {
-            console.error('Error loading departments:', error);
+            console.error('Error loading faculties:', error);
         }
     };
 
@@ -296,12 +294,12 @@ const CoursesPage: React.FC<CoursesPageProps> = () => {
     // Load data on component mount and when filters/pagination change
     useEffect(() => {
         loadCourses();
-    }, [currentPage, searchTerm, selectedProgramme, selectedDepartment, selectedInstitution, pageSize]);
+    }, [currentPage, searchTerm, selectedProgramme, selectedFaculty, selectedInstitution, pageSize]);
 
     // Load filter options and stats on mount
     useEffect(() => {
         loadProgrammes();
-        loadDepartments();
+        loadFaculties();
         loadInstitutions();
         loadStats();
     }, []);
@@ -318,9 +316,9 @@ const CoursesPage: React.FC<CoursesPageProps> = () => {
         setCurrentPage(0);
     };
 
-    // Handle department filter
-    const handleDepartmentFilter = (value: string) => {
-        setSelectedDepartment(value === 'all' ? '' : value);
+    // Handle faculty filter
+    const handleFacultyFilter = (value: string) => {
+        setSelectedFaculty(value === 'all' ? '' : value);
         setCurrentPage(0);
     };
 
@@ -348,8 +346,7 @@ const CoursesPage: React.FC<CoursesPageProps> = () => {
         acronym: course.course_acronym || 'N/A',
         description: course.description || 'No description available',
         programme: course.programme?.name || 'N/A',
-        department: course.programme?.department?.name || 'N/A',
-        faculty: course.programme?.department?.faculty?.name || 'N/A',
+        faculty: course.faculty?.name || course.programme?.department?.faculty?.name || 'N/A',
         institution: course.programme?.department?.faculty?.institution?.name || 'N/A',
         modulesCount: course.modules?.length || 0,
         examPapersCount: course.exam_papers?.length || 0,
@@ -413,12 +410,12 @@ const CoursesPage: React.FC<CoursesPageProps> = () => {
             width: '20%',
         },
         {
-            key: 'department' as keyof CourseTableData,
-            header: 'Department',
+            key: 'faculty' as keyof CourseTableData,
+            header: 'Faculty',
             cell: (item: CourseTableData) => (
                 <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
-                    <span className="truncate">{item.department}</span>
+                    <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                    <span className="truncate">{item.faculty}</span>
                 </div>
             ),
             sortable: true,
@@ -655,23 +652,23 @@ const CoursesPage: React.FC<CoursesPageProps> = () => {
                             </Select>
                         </div>
 
-                        {/* Filter by Department */}
+                        {/* Filter by Faculty */}
                         <div>
                             <label className="text-sm font-medium text-gray-700 mb-2 block">
-                                Filter by Department
+                                Filter by Faculty
                             </label>
                             <Select
-                                value={selectedDepartment || 'all'}
-                                onValueChange={handleDepartmentFilter}
+                                value={selectedFaculty || 'all'}
+                                onValueChange={handleFacultyFilter}
                             >
                                 <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="All Departments" />
+                                    <SelectValue placeholder="All Faculties" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Departments</SelectItem>
-                                    {departments.map((department) => (
-                                        <SelectItem key={department.id} value={department.id}>
-                                            {department.name}
+                                    <SelectItem value="all">All Faculties</SelectItem>
+                                    {faculties.map((faculty) => (
+                                        <SelectItem key={faculty.id} value={faculty.id}>
+                                            {faculty.name}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -718,10 +715,10 @@ const CoursesPage: React.FC<CoursesPageProps> = () => {
                                 </Badge>
                             </div>
                         )}
-                        {selectedDepartment && selectedDepartment !== 'all' && (
+                        {selectedFaculty && selectedFaculty !== 'all' && (
                             <div className="flex items-center gap-2 mb-1">
                                 <Badge variant="secondary">
-                                    Department: {departments.find(d => d.id === selectedDepartment)?.name || 'Selected'}
+                                    Faculty: {faculties.find(f => f.id === selectedFaculty)?.name || 'Selected'}
                                 </Badge>
                             </div>
                         )}
@@ -732,7 +729,7 @@ const CoursesPage: React.FC<CoursesPageProps> = () => {
                                 </Badge>
                             </div>
                         )}
-                        {!searchTerm && !selectedProgramme && !selectedDepartment && !selectedInstitution && (
+                        {!searchTerm && !selectedProgramme && !selectedFaculty && !selectedInstitution && (
                             <span className="text-gray-500">Showing all courses</span>
                         )}
                     </div>

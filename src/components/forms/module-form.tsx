@@ -156,7 +156,45 @@ export const ModuleForm: React.FC<ModuleFormProps> = ({
                     unit_code: data.unit_code,
                 };
 
+                // Update the module basic info
                 await adminAPI.modules.update(module.id, moduleData);
+
+                // Handle course relationship update if course selection changed
+                if (data.course_id && data.course_id !== 'none') {
+                    // Check if the course relationship changed
+                    const currentCourseId = module.courses?.[0]?.id;
+                    if (currentCourseId !== data.course_id) {
+                        try {
+                            // Remove from old course if exists
+                            if (currentCourseId) {
+                                await adminAPI.courses.removeModule(currentCourseId, module.id);
+                            }
+                            // Add to new course
+                            await adminAPI.courses.addModule(data.course_id, module.id);
+                        } catch (error) {
+                            console.error('Error updating module-course relationship:', error);
+                            addNotification({
+                                type: 'warning',
+                                title: 'Module updated',
+                                message: 'Module was updated but course relationship could not be changed. You can update it manually.',
+                            });
+                            if (onSuccess) {
+                                onSuccess();
+                            }
+                            return;
+                        }
+                    }
+                } else if (data.course_id === 'none') {
+                    // Remove from current course if "none" is selected
+                    const currentCourseId = module.courses?.[0]?.id;
+                    if (currentCourseId) {
+                        try {
+                            await adminAPI.courses.removeModule(currentCourseId, module.id);
+                        } catch (error) {
+                            console.error('Error removing module from course:', error);
+                        }
+                    }
+                }
 
                 addNotification({
                     type: 'success',
@@ -214,7 +252,7 @@ export const ModuleForm: React.FC<ModuleFormProps> = ({
                 )}
             </div>
 
-            {/* Course Selection (optional - only show if not pre-selected) */}
+            {/* Course Selection (optional - only show if not pre-selected from parent) */}
             {!courseId && (
                 <div className="space-y-2">
                     <Label htmlFor="course_id">

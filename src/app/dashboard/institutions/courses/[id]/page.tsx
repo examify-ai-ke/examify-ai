@@ -294,7 +294,8 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
                                     {course.course_acronym}
                                 </Badge>
                                 <Badge variant="outline" className="bg-white/10 text-white/90 border-white/30 backdrop-blur-sm px-3 py-1.5">
-                                    {course.programme?.department?.faculty?.institution?.name}
+                                    <BookOpen className="mr-1.5 h-3.5 w-3.5" />
+                                    {course.modules?.length || 0} {course.modules?.length === 1 ? 'Module' : 'Modules'}
                                 </Badge>
                             </div>
                             <h1 className="text-4xl lg:text-5xl font-bold text-white mb-3 leading-tight">
@@ -342,20 +343,6 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
                     <Card>
                         <CardContent className="p-6">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-100 rounded-lg">
-                                    <BookOpen className="h-5 w-5 text-blue-600" />
-                                </div>
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Modules</p>
-                                    <p className="text-2xl font-bold">{course.modules?.length || 0}</p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardContent className="p-6">
-                            <div className="flex items-center gap-3">
                                 <div className="p-2 bg-green-100 rounded-lg">
                                     <FileText className="h-5 w-5 text-green-600" />
                                 </div>
@@ -370,10 +357,24 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
                     <Card>
                         <CardContent className="p-6">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-purple-100 rounded-lg">
-                                    <GraduationCap className="h-5 w-5 text-purple-600" />
+                                <div className="p-2 bg-indigo-100 rounded-lg">
+                                    <Building2 className="h-5 w-5 text-indigo-600" />
                                 </div>
                                 <div>
+                                    <p className="text-sm text-muted-foreground">Institutions</p>
+                                    <p className="text-2xl font-bold">{course.faculty?.institutions?.length || 0}</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardContent className="p-6">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-purple-100 rounded-lg flex-shrink-0">
+                                    <GraduationCap className="h-5 w-5 text-purple-600" />
+                                </div>
+                                <div className="min-w-0 flex-1">
                                     <p className="text-sm text-muted-foreground">Programme</p>
                                     <p className="text-lg font-semibold truncate">{course.programme?.name}</p>
                                 </div>
@@ -384,12 +385,12 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
                     <Card>
                         <CardContent className="p-6">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-orange-100 rounded-lg">
-                                    <Building2 className="h-5 w-5 text-orange-600" />
+                                <div className="p-2 bg-orange-100 rounded-lg flex-shrink-0">
+                                    <GraduationCap className="h-5 w-5 text-orange-600" />
                                 </div>
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Department</p>
-                                    <p className="text-lg font-semibold truncate">{course.programme?.department?.name}</p>
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-sm text-muted-foreground">Faculty</p>
+                                    <p className="text-lg font-semibold truncate">{course.faculty?.name || course.programme?.department?.faculty?.name}</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -447,29 +448,32 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <div className="space-y-3">
-                                        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
-                                            <Building2 className="h-4 w-4 text-blue-600" />
-                                            <div>
-                                                <p className="text-sm font-medium">Institution</p>
-                                                <p className="text-sm text-muted-foreground">{course.programme?.department?.faculty?.institution?.name}</p>
+                                        {course.faculty?.institutions && course.faculty.institutions.length > 0 && (
+                                            <div className="p-3 bg-blue-50 rounded-lg border-2 border-blue-200">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <Building2 className="h-4 w-4 text-blue-600" />
+                                                    <p className="text-sm font-medium">Institutions ({course.faculty.institutions.length})</p>
+                                                </div>
+                                                <div className="space-y-1.5 ml-6">
+                                                    {course.faculty.institutions.map((institution) => (
+                                                        <div key={institution.id} className="flex items-center gap-2">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-600"></div>
+                                                            <p className="text-sm text-muted-foreground">{institution.name}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
 
-                                        <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
-                                            <GraduationCap className="h-4 w-4 text-green-600" />
-                                            <div>
-                                                <p className="text-sm font-medium">Faculty</p>
-                                                <p className="text-sm text-muted-foreground">{course.programme?.department?.faculty?.name}</p>
+                                        {course.faculty && (
+                                            <div className="flex items-center gap-2 p-3 bg-teal-50 rounded-lg border-2 border-teal-200">
+                                                <GraduationCap className="h-4 w-4 text-teal-600" />
+                                                <div>
+                                                    <p className="text-sm font-medium">Faculty</p>
+                                                    <p className="text-sm text-muted-foreground">{course.faculty.name}</p>
+                                                </div>
                                             </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-2 p-3 bg-purple-50 rounded-lg">
-                                            <Library className="h-4 w-4 text-purple-600" />
-                                            <div>
-                                                <p className="text-sm font-medium">Department</p>
-                                                <p className="text-sm text-muted-foreground">{course.programme?.department?.name}</p>
-                                            </div>
-                                        </div>
+                                        )}
 
                                         <div className="flex items-center gap-2 p-3 bg-orange-50 rounded-lg">
                                             <BookOpen className="h-4 w-4 text-orange-600" />
@@ -478,6 +482,16 @@ const CourseDetailsPage: React.FC<CourseDetailsPageProps> = () => {
                                                 <p className="text-sm text-muted-foreground">{course.programme?.name}</p>
                                             </div>
                                         </div>
+
+                                        {course.programme?.department && (
+                                            <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
+                                                <Library className="h-4 w-4 text-green-600" />
+                                                <div>
+                                                    <p className="text-sm font-medium">Department</p>
+                                                    <p className="text-sm text-muted-foreground">{course.programme.department.name}</p>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </CardContent>
                             </Card>

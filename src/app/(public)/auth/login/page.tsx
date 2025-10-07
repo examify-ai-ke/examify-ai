@@ -42,12 +42,12 @@ function LoginForm() {
 
     // Clear any expired tokens on component mount (only once)
     useEffect(() => {
-        // Check if there are any expired tokens to clear
+        // Check if there are any expired tokens to clear silently
         const token = localStorage.getItem('auth-token');
         if (token && !isAuthenticated) {
-            // Only call logout if we have a token but are not authenticated
-            // This suggests the token might be expired
-            logout();
+            // Clear tokens silently without showing notification
+            localStorage.removeItem('auth-token');
+            document.cookie = 'auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
         }
     }, []); // Empty dependency array - runs only once on mount
 

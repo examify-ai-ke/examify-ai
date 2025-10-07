@@ -17,6 +17,7 @@ import {
     ListChecks,
     Plus,
     Save,
+    Search,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -25,10 +26,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Badge } from '@/components/ui/badge'
 import { AdminBreadcrumb } from '@/components/ui/breadcrumb'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Separator } from '@/components/ui/separator'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ModuleSelector } from '@/components/features/module-selector'
 import {
     Form,
     FormControl,
@@ -109,6 +112,15 @@ export default function CreateExamPaperPage() {
     const academicYears = useMemo(() => generateAcademicYears(1990), [])
     const [institutionSearch, setInstitutionSearch] = useState('')
     const [institutionsLoading, setInstitutionsLoading] = useState(false)
+    const [showModuleSelector, setShowModuleSelector] = useState(false)
+    
+    // Dialog states for adding new entities
+    const [showAddTitleDialog, setShowAddTitleDialog] = useState(false)
+    const [showAddDescriptionDialog, setShowAddDescriptionDialog] = useState(false)
+    const [showAddInstructionDialog, setShowAddInstructionDialog] = useState(false)
+    const [newTitleName, setNewTitleName] = useState('')
+    const [newDescriptionText, setNewDescriptionText] = useState('')
+    const [newInstructionName, setNewInstructionName] = useState('')
 
     useEffect(() => {
         const fetchLookups = async () => {
@@ -215,6 +227,97 @@ export default function CreateExamPaperPage() {
             addNotification({ type: 'error', title: 'Failed to create', message: error?.message || 'Unexpected error' })
         } finally {
             setSubmitting(false)
+        }
+    }
+
+    const handleCreateTitle = async () => {
+        if (!newTitleName.trim()) return
+        
+        try {
+            const response = await adminAPI.examTitles.create({
+                name: newTitleName.trim(),
+                description: null,
+            })
+            
+            if (!response.error && response.data) {
+                const newTitle = response.data.data
+                setTitles(prev => [...prev, newTitle as ExamTitleRead])
+                form.setValue('title_id', newTitle.id)
+                setNewTitleName('')
+                setShowAddTitleDialog(false)
+                addNotification({
+                    type: 'success',
+                    title: 'Success',
+                    message: 'Title created successfully!',
+                })
+            }
+        } catch (error) {
+            addNotification({
+                type: 'error',
+                title: 'Error',
+                message: 'Failed to create title.',
+            })
+        }
+    }
+
+    const handleCreateDescription = async () => {
+        if (!newDescriptionText.trim()) return
+        
+        try {
+            const response = await adminAPI.examDescriptions.create({
+                name: newDescriptionText.trim(),
+                description: null,
+            })
+            
+            if (!response.error && response.data) {
+                const newDescription = response.data.data
+                setDescriptions(prev => [...prev, newDescription as ExamDescriptionRead])
+                form.setValue('description_id', newDescription.id)
+                setNewDescriptionText('')
+                setShowAddDescriptionDialog(false)
+                addNotification({
+                    type: 'success',
+                    title: 'Success',
+                    message: 'Description created successfully!',
+                })
+            }
+        } catch (error) {
+            addNotification({
+                type: 'error',
+                title: 'Error',
+                message: 'Failed to create description.',
+            })
+        }
+    }
+
+    const handleCreateInstruction = async () => {
+        if (!newInstructionName.trim()) return
+        
+        try {
+            const response = await adminAPI.instructions.create({
+                name: newInstructionName.trim(),
+                slug: null,
+            })
+            
+            if (!response.error && response.data) {
+                const newInstruction = response.data.data
+                setInstructions(prev => [...prev, newInstruction as InstructionRead])
+                const currentInstructionIds = form.getValues('instruction_ids') || []
+                form.setValue('instruction_ids', [...currentInstructionIds, newInstruction.id])
+                setNewInstructionName('')
+                setShowAddInstructionDialog(false)
+                addNotification({
+                    type: 'success',
+                    title: 'Success',
+                    message: 'Instruction created successfully!',
+                })
+            }
+        } catch (error) {
+            addNotification({
+                type: 'error',
+                title: 'Error',
+                message: 'Failed to create instruction.',
+            })
         }
     }
 
@@ -457,7 +560,7 @@ export default function CreateExamPaperPage() {
 
                                         <Separator />
 
-                                        {/* Modules multi-select (Dropdown) */}
+                                        {/* Modules multi-select */}
                                         <FormField
                                             control={form.control}
                                             name="module_ids"
@@ -466,37 +569,34 @@ export default function CreateExamPaperPage() {
                                                 return (
                                                     <FormItem>
                                                         <FormLabel className="flex items-center gap-2"><Layers className="h-4 w-4" /> Modules</FormLabel>
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="outline" className="justify-between min-w-[16rem] max-w-[20rem]">
-                                                                    <span>
-                                                                        {selected.length > 0
-                                                                            ? `${selected.length} module${selected.length > 1 ? 's' : ''} selected`
-                                                                            : 'Select modules'}
-                                                                    </span>
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent className="w-64 max-h-72 overflow-auto">
-                                                                {modules.map((m) => {
-                                                                    const checked = selected.includes(m.id)
-                                                                    return (
-                                                                        <DropdownMenuCheckboxItem
-                                                                            key={m.id}
-                                                                            checked={checked}
-                                                                            onCheckedChange={(v) => {
-                                                                                const current = new Set(form.getValues('module_ids'))
-                                                                                if (v) current.add(m.id)
-                                                                                else current.delete(m.id)
-                                                                                form.setValue('module_ids', Array.from(current), { shouldValidate: true })
-                                                                            }}
-                                                                        >
-                                                                            {m.name}
-                                                                        </DropdownMenuCheckboxItem>
-                                                                    )
-                                                                })}
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                        <FormDescription>Select one or more modules</FormDescription>
+                                                        <div className="space-y-2">
+                                                            <Button 
+                                                                type="button"
+                                                                variant="outline" 
+                                                                className="justify-between min-w-[16rem] max-w-[20rem]"
+                                                                onClick={() => setShowModuleSelector(true)}
+                                                            >
+                                                                <span>
+                                                                    {selected.length > 0
+                                                                        ? `${selected.length} module${selected.length > 1 ? 's' : ''} selected`
+                                                                        : 'Select modules'}
+                                                                </span>
+                                                                <Plus className="h-4 w-4 ml-2" />
+                                                            </Button>
+                                                            {selected.length > 0 && (
+                                                                <div className="flex flex-wrap gap-2">
+                                                                    {modules
+                                                                        .filter(m => selected.includes(m.id))
+                                                                        .map(m => (
+                                                                            <Badge key={m.id} variant="secondary">
+                                                                                {m.name}
+                                                                            </Badge>
+                                                                        ))
+                                                                    }
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <FormDescription>Search and select one or more modules</FormDescription>
                                                         <FormMessage />
                                                     </FormItem>
                                                 )
@@ -509,7 +609,18 @@ export default function CreateExamPaperPage() {
                                             name="instruction_ids"
                                             render={() => (
                                                 <FormItem>
-                                                    <FormLabel className="flex items-center gap-2"><ListChecks className="h-4 w-4" /> Instructions</FormLabel>
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <FormLabel className="flex items-center gap-2"><ListChecks className="h-4 w-4" /> Instructions</FormLabel>
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => setShowAddInstructionDialog(true)}
+                                                        >
+                                                            <Plus className="h-4 w-4 mr-1" />
+                                                            Add
+                                                        </Button>
+                                                    </div>
                                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                                         {instructions.map((ins) => {
                                                             const checked = (form.watch('instruction_ids') || []).includes(ins.id)
@@ -563,18 +674,28 @@ export default function CreateExamPaperPage() {
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Exam Title</FormLabel>
-                                                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
-                                                        <FormControl>
-                                                            <SelectTrigger>
-                                                                <SelectValue placeholder="Select title" />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            {titles.map((t) => (
-                                                                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
+                                                    <div className="flex gap-2">
+                                                        <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                                                            <FormControl>
+                                                                <SelectTrigger className="flex-1">
+                                                                    <SelectValue placeholder="Select title" />
+                                                                </SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent>
+                                                                {titles.map((t) => (
+                                                                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="icon"
+                                                            onClick={() => setShowAddTitleDialog(true)}
+                                                        >
+                                                            <Plus className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
@@ -586,18 +707,28 @@ export default function CreateExamPaperPage() {
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Exam Description</FormLabel>
-                                                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
-                                                        <FormControl>
-                                                            <SelectTrigger>
-                                                                <SelectValue placeholder="Select description" />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            {descriptions.map((d) => (
-                                                                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
+                                                    <div className="flex gap-2">
+                                                        <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                                                            <FormControl>
+                                                                <SelectTrigger className="flex-1">
+                                                                    <SelectValue placeholder="Select description" />
+                                                                </SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent>
+                                                                {descriptions.map((d) => (
+                                                                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="icon"
+                                                            onClick={() => setShowAddDescriptionDialog(true)}
+                                                        >
+                                                            <Plus className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
@@ -637,6 +768,128 @@ export default function CreateExamPaperPage() {
                     </div>
                 </form>
             </Form>
+
+            {/* Add Title Dialog */}
+            <Dialog open={showAddTitleDialog} onOpenChange={setShowAddTitleDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add New Title</DialogTitle>
+                        <DialogDescription>
+                            Create a new exam title that can be used for exam papers.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="new-title">Title Name</Label>
+                            <Input
+                                id="new-title"
+                                placeholder="e.g., UNIVERSITY EXAMINATIONS"
+                                value={newTitleName}
+                                onChange={(e) => setNewTitleName(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleCreateTitle()}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowAddTitleDialog(false)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleCreateTitle} disabled={!newTitleName.trim()}>
+                            Create Title
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Add Description Dialog */}
+            <Dialog open={showAddDescriptionDialog} onOpenChange={setShowAddDescriptionDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add New Description</DialogTitle>
+                        <DialogDescription>
+                            Create a new exam description that can be used for exam papers.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="new-description">Description Text</Label>
+                            <Input
+                                id="new-description"
+                                placeholder="e.g., End of Semester Examination"
+                                value={newDescriptionText}
+                                onChange={(e) => setNewDescriptionText(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleCreateDescription()}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowAddDescriptionDialog(false)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleCreateDescription} disabled={!newDescriptionText.trim()}>
+                            Create Description
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Add Instruction Dialog */}
+            <Dialog open={showAddInstructionDialog} onOpenChange={setShowAddInstructionDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Add New Instruction</DialogTitle>
+                        <DialogDescription>
+                            Create a new instruction that can be used for exam papers.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="new-instruction">Instruction Text</Label>
+                            <Input
+                                id="new-instruction"
+                                placeholder="e.g., Answer all questions"
+                                value={newInstructionName}
+                                onChange={(e) => setNewInstructionName(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleCreateInstruction()}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowAddInstructionDialog(false)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleCreateInstruction} disabled={!newInstructionName.trim()}>
+                            Create Instruction
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Module Selector Dialog */}
+            <Dialog open={showModuleSelector} onOpenChange={setShowModuleSelector}>
+                <DialogContent className="sm:max-w-[600px]">
+                    <DialogHeader>
+                        <DialogTitle>Select Modules</DialogTitle>
+                        <DialogDescription>
+                            Search and select one or more modules for this exam paper.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <ModuleSelector
+                            selectedModuleIds={form.watch('module_ids') || []}
+                            onSelectionChange={(ids) => form.setValue('module_ids', ids, { shouldValidate: true })}
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowModuleSelector(false)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={() => setShowModuleSelector(false)}>
+                            Done
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

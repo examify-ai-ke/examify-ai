@@ -2828,7 +2828,7 @@ export interface paths {
         };
         /**
          * Get Exam Paper By Slug
-         * @description Gets a ExamPaper by slug
+         * @description Gets a ExamPaper by slug with all related data
          */
         get: operations["get_exam_paper_by_slug_api_v1_exampaper_get_by_slug__exampaper_slug__get"];
         put?: never;
@@ -2903,6 +2903,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exampaper/{exampaper_id}/modules/{module_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Module To Exam Paper
+         * @description Add a Module to an ExamPaper by IDs.
+         *
+         *     Required roles:
+         *     - admin
+         *     - manager
+         */
+        post: operations["add_module_to_exam_paper_api_v1_exampaper__exampaper_id__modules__module_id__post"];
+        /**
+         * Remove Module From Exam Paper
+         * @description Remove a Module from an ExamPaper by IDs without deleting the module.
+         *
+         *     Required roles:
+         *     - admin
+         *     - manager
+         */
+        delete: operations["remove_module_from_exam_paper_api_v1_exampaper__exampaper_id__modules__module_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/question-set": {
         parameters: {
             query?: never;
@@ -2912,7 +2944,7 @@ export interface paths {
         };
         /**
          * Get Question Set List
-         * @description Gets a paginated list of question sets
+         * @description Gets a paginated list of question sets with stats only (no full questions)
          */
         get: operations["get_question_set_list_api_v1_question_set_get"];
         put?: never;
@@ -2940,7 +2972,7 @@ export interface paths {
         };
         /**
          * Get Question Set By Id
-         * @description Gets a QuestionSet by its id with all related entities.
+         * @description Gets a QuestionSet by its id with stats only.
          */
         get: operations["get_question_set_by_id_api_v1_question_set_get_by_id__question_set_id__get"];
         put?: never;
@@ -2998,6 +3030,26 @@ export interface paths {
          *     - manager
          */
         delete: operations["remove_question_set_api_v1_question_set__question_set_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/question-set/by-exam-paper/{exam_paper_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Question Sets By Exam Paper
+         * @description Gets all QuestionSets that belong to a specific exam paper with questions count
+         */
+        get: operations["get_question_sets_by_exam_paper_api_v1_question_set_by_exam_paper__exam_paper_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -4185,12 +4237,14 @@ export interface components {
             /** Description */
             description?: string | null;
             /** Course Acronym */
-            course_acronym: string | null;
+            course_acronym?: string | null;
             /**
              * Programme Id
              * Format: uuid
              */
             programme_id: string;
+            /** Faculty Id */
+            faculty_id?: string | null;
         };
         /** CourseRead */
         CourseRead: {
@@ -4206,6 +4260,7 @@ export interface components {
              */
             id: string;
             programme: components["schemas"]["ProgrammeReadForCourse"];
+            faculty?: components["schemas"]["FacultyReadForCourse"] | null;
             /** Modules */
             modules: components["schemas"]["ModuleReadForCourse"][] | null;
             /** Exam Papers */
@@ -4232,7 +4287,19 @@ export interface components {
             /** Name */
             name: string;
             /** Slug */
-            slug: string;
+            slug?: string | null;
+        };
+        /** CourseReadForFaculty */
+        CourseReadForFaculty: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Course Acronym */
+            course_acronym: string | null;
         };
         /** CourseReadForModule */
         CourseReadForModule: {
@@ -4264,6 +4331,8 @@ export interface components {
             description?: string | null;
             /** Course Acronym */
             course_acronym?: string | null;
+            /** Faculty Id */
+            faculty_id?: string | null;
         };
         /** DepartmentCreate */
         DepartmentCreate: {
@@ -4382,8 +4451,6 @@ export interface components {
             name: string;
             /** Slug */
             slug: string;
-            /** Exam Papers */
-            exam_papers: components["schemas"]["ExamPaperReadForExamTitle"][] | null;
         };
         /** ExamDescriptionUpdate */
         ExamDescriptionUpdate: {
@@ -4391,6 +4458,22 @@ export interface components {
             name?: string | null;
             /** Desciption */
             desciption?: string | null;
+        };
+        /** ExamDescriptionUpdateNested */
+        ExamDescriptionUpdateNested: {
+            /** Id */
+            id?: string | null;
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+        };
+        /** ExamInstructionUpdateNested */
+        ExamInstructionUpdateNested: {
+            /** Id */
+            id?: string | null;
+            /** Name */
+            name?: string | null;
         };
         /** ExamPaperCreate */
         ExamPaperCreate: {
@@ -4464,8 +4547,8 @@ export interface components {
              * @default []
              */
             instructions: components["schemas"]["InstructionRead"][] | null;
-            title: components["schemas"]["ExamTitleReadForExamPaperRead"];
-            description: components["schemas"]["app__schemas__exam_paper_schema__ExamDescriptionReadForExamPaper"];
+            title?: components["schemas"]["ExamTitleReadForExamPaperRead"] | null;
+            description?: components["schemas"]["app__schemas__exam_paper_schema__ExamDescriptionReadForExamPaper"] | null;
             /**
              * Modules
              * @default []
@@ -4485,21 +4568,6 @@ export interface components {
             question_sets: components["schemas"]["QuestionSetRead"][] | null;
             /** Identifying Name */
             identifying_name: string | null;
-        };
-        /** ExamPaperReadForExamTitle */
-        ExamPaperReadForExamTitle: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Year Of Exam */
-            year_of_exam: string;
-            /**
-             * Exam Date
-             * Format: date
-             */
-            exam_date: string;
         };
         /** ExamPaperReadForInstitution */
         ExamPaperReadForInstitution: {
@@ -4571,6 +4639,8 @@ export interface components {
             /** Tags */
             tags: unknown[] | null;
             title: components["schemas"]["ExamTitleReadForExamPaperRead"] | null;
+            /** Identifying Name */
+            identifying_name: string;
         };
         /** ExamPaperReadMinimal */
         ExamPaperReadMinimal: {
@@ -4602,6 +4672,10 @@ export interface components {
             instruction_ids?: string[] | null;
             /** Module Ids */
             module_ids?: string[] | null;
+            title?: components["schemas"]["ExamTitleUpdateNested"] | null;
+            description?: components["schemas"]["ExamDescriptionUpdateNested"] | null;
+            /** Instructions */
+            instructions?: components["schemas"]["ExamInstructionUpdateNested"][] | null;
         };
         /** ExamPapersReadForCourse */
         ExamPapersReadForCourse: {
@@ -4610,8 +4684,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
-            title: components["schemas"]["app__schemas__course_schema__ExamTitleRead"];
-            description: components["schemas"]["app__schemas__course_schema__ExamDescriptionReadForExamPaper"];
+            title?: components["schemas"]["app__schemas__course_schema__ExamTitleRead"] | null;
+            description?: components["schemas"]["app__schemas__course_schema__ExamDescriptionReadForExamPaper"] | null;
         };
         /** ExamTitleCreate */
         ExamTitleCreate: {
@@ -4632,6 +4706,15 @@ export interface components {
         };
         /** ExamTitleUpdate */
         ExamTitleUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Description */
+            description?: string | null;
+        };
+        /** ExamTitleUpdateNested */
+        ExamTitleUpdateNested: {
+            /** Id */
+            id?: string | null;
             /** Name */
             name?: string | null;
             /** Description */
@@ -4661,10 +4744,20 @@ export interface components {
              */
             departments: components["schemas"]["DepartmentReadForFaculty"][];
             /**
+             * Courses
+             * @default []
+             */
+            courses: components["schemas"]["CourseReadForFaculty"][];
+            /**
              * Department Count
              * @default 0
              */
             department_count: number;
+            /**
+             * Courses Count
+             * @default 0
+             */
+            courses_count: number;
             /**
              * Institutions
              * @default []
@@ -4675,6 +4768,18 @@ export interface components {
              * @default 0
              */
             institution_count: number;
+        };
+        /** FacultyReadForCourse */
+        FacultyReadForCourse: {
+            /** Id */
+            id: string | null;
+            /** Name */
+            name: string | null;
+            /**
+             * Institutions
+             * @default []
+             */
+            institutions: components["schemas"]["InstitutionReadForFaculty"][] | null;
         };
         /** FacultyReadForDepartment */
         FacultyReadForDepartment: {
@@ -5410,6 +5515,23 @@ export interface components {
                 [key: string]: string;
             }[] | null;
         };
+        /** IGetResponseBase[List[QuestionSetRead]] */
+        IGetResponseBase_List_QuestionSetRead__: {
+            /**
+             * Message
+             * @default Data got correctly
+             */
+            message: string | null;
+            /**
+             * Meta
+             * @default {}
+             */
+            meta: {
+                [key: string]: unknown;
+            } | unknown | null;
+            /** Data */
+            data?: components["schemas"]["QuestionSetRead"][] | null;
+        };
         /** IGetResponseBase[ProgrammeRead] */
         IGetResponseBase_ProgrammeRead_: {
             /**
@@ -5846,22 +5968,6 @@ export interface components {
                 [key: string]: unknown;
             };
             data: components["schemas"]["PageBase_QuestionSetRead_"];
-        };
-        /** IGetResponsePaginated[Question] */
-        IGetResponsePaginated_Question_: {
-            /**
-             * Message
-             * @default Item retreived successfully
-             */
-            message: string | null;
-            /**
-             * Meta
-             * @default {}
-             */
-            meta: {
-                [key: string]: unknown;
-            };
-            data: components["schemas"]["PageBase_Question_"];
         };
         /** IGetResponsePaginated[SubQuestionRead] */
         IGetResponsePaginated_SubQuestionRead_: {
@@ -7159,6 +7265,18 @@ export interface components {
             /** Name */
             name: string;
         };
+        /** InstitutionReadForFaculty */
+        InstitutionReadForFaculty: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+        };
         /** InstitutionReadMinimal */
         InstitutionReadMinimal: {
             /**
@@ -7451,17 +7569,14 @@ export interface components {
         };
         /** ModuleReadForExamPaper */
         ModuleReadForExamPaper: {
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
+            /** Id */
+            id?: string | null;
             /** Name */
-            name: string;
+            name?: string | null;
             /** Slug */
-            slug: string;
+            slug?: string | null;
             /** Unit Code */
-            unit_code: string;
+            unit_code?: string | null;
         };
         /** ModuleReadMinimal */
         ModuleReadMinimal: {
@@ -7953,29 +8068,6 @@ export interface components {
              */
             next_page?: number | null;
         };
-        /** PageBase[Question] */
-        PageBase_Question_: {
-            /** Items */
-            items: components["schemas"]["Question"][];
-            /** Total */
-            total?: number | null;
-            /** Page */
-            page: number | null;
-            /** Size */
-            size: number | null;
-            /** Pages */
-            pages?: number | null;
-            /**
-             * Previous Page
-             * @description Page number of the previous page
-             */
-            previous_page?: number | null;
-            /**
-             * Next Page
-             * @description Page number of the next page
-             */
-            next_page?: number | null;
-        };
         /** PageBase[SubQuestionRead] */
         PageBase_SubQuestionRead_: {
             /** Items */
@@ -8047,7 +8139,7 @@ export interface components {
             name: components["schemas"]["ProgrammeTypes"];
             /**
              * Description
-             * @default A specific type of undergraduate program, typically lasting 3–4 years (e.g., Bachelor of Arts, Bachelor of Science)
+             * @default A specific type of university/College program (e.g., Bachelors, Masters. etc)
              */
             description: string | null;
         };
@@ -8057,7 +8149,7 @@ export interface components {
             name: components["schemas"]["ProgrammeTypes"];
             /**
              * Description
-             * @default A specific type of undergraduate program, typically lasting 3–4 years (e.g., Bachelor of Arts, Bachelor of Science)
+             * @default A specific type of university/College program (e.g., Bachelors, Masters. etc)
              */
             description: string | null;
             /**
@@ -8093,13 +8185,10 @@ export interface components {
         };
         /** ProgrammeReadForCourse */
         ProgrammeReadForCourse: {
+            /** Id */
+            id: string | null;
             /** Name */
-            name: string;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
+            name?: string | null;
         };
         /** ProgrammeReadForDepartments */
         ProgrammeReadForDepartments: {
@@ -8131,42 +8220,6 @@ export interface components {
             name?: components["schemas"]["ProgrammeTypes"] | null;
             /** Description */
             description?: string | null;
-        };
-        /**
-         * Question
-         * @description Unified Question model that can represent both main questions and sub-questions.
-         *     Main questions have question_set_id and exam_paper_id.
-         *     Sub-questions have parent_id pointing to their main question.
-         */
-        Question: {
-            /** Text */
-            text: {
-                [key: string]: unknown;
-            } | null;
-            /** Marks */
-            marks?: number | null;
-            numbering_style: components["schemas"]["NumberingStyleEnum"];
-            /** Question Number */
-            question_number: string;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id?: string;
-            /** Updated At */
-            updated_at?: string | null;
-            /** Created At */
-            created_at?: string | null;
-            /** Slug */
-            slug?: string | null;
-            /** Question Set Id */
-            question_set_id?: string | null;
-            /** Exam Paper Id */
-            exam_paper_id?: string | null;
-            /** Parent Id */
-            parent_id?: string | null;
-            /** Created By Id */
-            created_by_id?: string | null;
         };
         /**
          * QuestionMinimal
@@ -8258,32 +8311,6 @@ export interface components {
              */
             is_sub_question: boolean | null;
         };
-        /** QuestionReadForQuestionSet */
-        QuestionReadForQuestionSet: {
-            text: components["schemas"]["QuestionTextSchema"] | null;
-            /** Marks */
-            marks: number | null;
-            numbering_style: components["schemas"]["NumberingStyleEnum"];
-            /** Question Number */
-            question_number: string;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Slug */
-            slug?: string | null;
-            /**
-             * Answers
-             * @default []
-             */
-            answers: components["schemas"]["AnswerReadForQuestion"][] | null;
-            /**
-             * Children
-             * @default []
-             */
-            children: components["schemas"]["QuestionRead"][] | null;
-        };
         /** QuestionSetCreate */
         QuestionSetCreate: {
             /** @default Question One */
@@ -8301,15 +8328,15 @@ export interface components {
             /** Slug */
             slug?: string | null;
             /**
-             * Questions
-             * @default []
-             */
-            questions: components["schemas"]["QuestionReadForQuestionSet"][] | null;
-            /**
              * Questions Count
              * @default 0
              */
             questions_count: number | null;
+            /**
+             * Exam Papers Count
+             * @default 0
+             */
+            exam_papers_count: number | null;
         };
         /** QuestionSetReadForExamPaperReadForInstitution */
         QuestionSetReadForExamPaperReadForInstitution: {
@@ -8592,8 +8619,6 @@ export interface components {
             name: string;
             /** Slug */
             slug: string;
-            /** Exam Papers */
-            exam_papers?: components["schemas"]["ExamPaperReadForExamTitle"][] | null;
         };
     };
     responses: never;
@@ -13829,6 +13854,70 @@ export interface operations {
             };
         };
     };
+    add_module_to_exam_paper_api_v1_exampaper__exampaper_id__modules__module_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exampaper_id: string;
+                module_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IPostResponseBase_ExamPaperRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_module_from_exam_paper_api_v1_exampaper__exampaper_id__modules__module_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exampaper_id: string;
+                module_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IDeleteResponseBase_ExamPaperRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_question_set_list_api_v1_question_set_get: {
         parameters: {
             query?: {
@@ -13945,7 +14034,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponsePaginated_Question_"];
+                    "application/json": components["schemas"]["IGetResponsePaginated_QuestionRead_"];
                 };
             };
             /** @description Validation Error */
@@ -14012,6 +14101,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IDeleteResponseBase_QuestionSetRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_question_sets_by_exam_paper_api_v1_question_set_by_exam_paper__exam_paper_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exam_paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IGetResponseBase_List_QuestionSetRead__"];
                 };
             };
             /** @description Validation Error */

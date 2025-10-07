@@ -53,6 +53,9 @@ import { adminAPI, type ExamPaperRead, type ExamPaperUpdate } from '@/lib/api-ad
 import { getAuthToken } from '@/lib/api'
 import type { components } from '@/types/generated/api'
 import { useUIStore } from '@/stores/ui'
+import { QuestionSetSelector } from '@/components/features/question-set-selector'
+import { parseQuestionSetsResponse, sanitizeQuestionSetData } from '@/lib/api-response-utils'
+import { executeAPICall, handleAPIError, apiPerformanceMonitor } from '@/lib/api-error-handler'
 
 type ExamTitleRead = components['schemas']['ExamTitleRead']
 type ExamDescriptionRead = components['schemas']['ExamDescriptionRead']
@@ -69,15 +72,15 @@ type QuestionSetRead = components['schemas']['QuestionSetRead']
 
 // Form validation schema
 const examPaperEditSchema = z.object({
-    title: z.string().min(1, 'Title is required').max(200, 'Title must be less than 200 characters'),
-    description: z.string().optional(),
+    title_id: z.string().min(1, 'Title is required'),
+    description_id: z.string().min(1, 'Description is required'),
     year_of_exam: z.string().min(1, 'Year is required'),
     exam_duration: z.coerce.number().min(30, 'Duration must be at least 30 minutes').max(480, 'Duration cannot exceed 8 hours'),
     exam_date: z.string().min(1, 'Exam date is required'),
     institution_id: z.string().min(1, 'Institution is required'),
     course_id: z.string().min(1, 'Course is required'),
     tags: z.array(z.string()).optional(),
-    instruction_ids: z.array(z.string()).optional(), // Changed from instructions to instruction_ids
+    instruction_ids: z.array(z.string()).optional(),
 })
 
 type ExamPaperEditFormData = z.infer<typeof examPaperEditSchema>
@@ -186,45 +189,27 @@ function QuestionItem({ question, index, onRemove, onMoveUp, onMoveDown, isFirst
 
 function QuestionSetItem({ questionSet, index, onRemove }: QuestionSetItemProps) {
     return (
-        <Card className="mb-4">
-            <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                    <div className="flex items-start space-x-3 flex-1">
-                        <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-2">
-                                <Badge variant="outline">Set {index + 1}</Badge>
-                                <Badge variant="default">{questionSet.title || 'Question Set'}</Badge>
-                                <Badge variant="secondary">
-                                    {questionSet.questions_count || questionSet.questions?.length || 0} questions
-                                </Badge>
-                            </div>
-                            <p className="text-sm text-gray-700 mb-2">
-                                Question Set ID: {questionSet.slug || questionSet.id}
-                            </p>
-                            {questionSet.questions && questionSet.questions.length > 0 && (
-                                <div className="text-xs text-gray-500">
-                                    Questions: {questionSet.questions.slice(0, 3).map((q, i) => {
-                                        const questionText = q.question_text ||
-                                            (q.text && typeof q.text === 'object' ?
-                                                q.text.blocks?.map((block: any) => block.data?.text || '').join(' ') || 'Question' :
-                                                q.text || 'Question')
-                                        return questionText.substring(0, 30) + (questionText.length > 30 ? '...' : '')
-                                    }).join(', ')}
-                                    {questionSet.questions.length > 3 && ` and ${questionSet.questions.length - 3} more`}
-                                </div>
-                            )}
-                        </div>
+        <Card className="mb-2">
+            <CardContent className="p-3">
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+                        <Badge variant="outline" className="text-xs">Set {index + 1}</Badge>
+                        <Badge variant="default" className="text-xs truncate max-w-[200px]">
+                            {questionSet.title || 'Question Set'}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                            {questionSet.questions_count || 0} questions
+                        </Badge>
                     </div>
-                    <div className="flex items-center space-x-2">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => onRemove(questionSet.id)}
-                            className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                        >
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
-                    </div>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onRemove(questionSet.id)}
+                        className="text-red-600 hover:text-red-800 hover:bg-red-50 shrink-0 h-8 w-8 p-0"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
                 </div>
             </CardContent>
         </Card>
@@ -236,11 +221,7 @@ interface AddQuestionDialogProps {
     onAddQuestion: (question: QuestionRead) => void
 }
 
-interface AddQuestionSetDialogProps {
-    availableQuestionSets: QuestionSetRead[]
-    currentQuestionSets: QuestionSetRead[]
-    onAddQuestionSet: (questionSet: QuestionSetRead) => void
-}
+
 
 function AddQuestionDialog({ availableQuestions, onAddQuestion }: AddQuestionDialogProps) {
     const [open, setOpen] = useState(false)
@@ -407,122 +388,7 @@ function AddQuestionDialog({ availableQuestions, onAddQuestion }: AddQuestionDia
     )
 }
 
-function AddQuestionSetDialog({ availableQuestionSets, currentQuestionSets, onAddQuestionSet }: AddQuestionSetDialogProps) {
-    const [open, setOpen] = useState(false)
-    const [selectedQuestionSet, setSelectedQuestionSet] = useState<string>('')
 
-    // Filter out question sets that are already added
-    const currentQuestionSetIds = currentQuestionSets.map(qs => qs.id)
-    const filteredQuestionSets = availableQuestionSets.filter(qs => !currentQuestionSetIds.includes(qs.id))
-
-    const handleAddQuestionSet = () => {
-        const questionSet = availableQuestionSets.find(qs => qs.id === selectedQuestionSet)
-        if (questionSet) {
-            onAddQuestionSet(questionSet)
-            setSelectedQuestionSet('')
-            setOpen(false)
-        }
-    }
-
-    return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button variant="outline" className="w-full">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Question Set
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
-                <DialogHeader className="flex-shrink-0">
-                    <DialogTitle>Add Question Set to Exam Paper</DialogTitle>
-                    <DialogDescription>
-                        Select a question set to add to this exam paper. All questions in the set will be included.
-                    </DialogDescription>
-                </DialogHeader>
-
-                <div className="flex-1 overflow-y-auto min-h-0 py-4">
-                    {filteredQuestionSets.length > 0 ? (
-                        <div className="space-y-3 pr-2">
-                            {filteredQuestionSets.map((questionSet) => (
-                                <Card
-                                    key={questionSet.id}
-                                    className={`cursor-pointer transition-colors hover:shadow-md ${selectedQuestionSet === questionSet.id ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'
-                                        }`}
-                                    onClick={() => setSelectedQuestionSet(questionSet.id)}
-                                >
-                                    <CardContent className="p-4">
-                                        <div className="flex items-start space-x-3">
-                                            <Checkbox
-                                                checked={selectedQuestionSet === questionSet.id}
-                                                onChange={() => { }} // Handled by card click
-                                                className="mt-1"
-                                            />
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center space-x-2 mb-2">
-                                                    <Badge variant="outline" className="text-xs">
-                                                        {questionSet.title || 'Question Set'}
-                                                    </Badge>
-                                                    <Badge variant="secondary" className="text-xs">
-                                                        {questionSet.questions_count || questionSet.questions?.length || 0} questions
-                                                    </Badge>
-                                                </div>
-                                                <h4 className="font-medium text-sm text-gray-900 mb-1 truncate">
-                                                    Question Set ID: {questionSet.slug || questionSet.id}
-                                                </h4>
-                                                <p className="text-xs text-gray-600 mb-2">
-                                                    Created: {questionSet.created_at ? new Date(questionSet.created_at).toLocaleDateString() : 'Unknown date'}
-                                                </p>
-                                                {questionSet.questions && questionSet.questions.length > 0 && (
-                                                    <div className="text-xs text-gray-500">
-                                                        <p className="mb-1 font-medium">Sample questions:</p>
-                                                        <ul className="list-disc list-inside space-y-1 ml-2">
-                                                            {questionSet.questions.slice(0, 2).map((question, idx) => (
-                                                                <li key={idx} className="truncate">
-                                                                    Q{question.question_number}: {
-                                                                        question.text?.blocks?.[0]?.data?.text?.substring?.(0, 60) ||
-                                                                        'Question content...'
-                                                                    }...
-                                                                </li>
-                                                            ))}
-                                                            {questionSet.questions.length > 2 && (
-                                                                <li className="text-gray-400">
-                                                                    +{questionSet.questions.length - 2} more questions
-                                                                </li>
-                                                            )}
-                                                        </ul>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-center py-12 text-gray-500">
-                            <ListChecks className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                            <h4 className="text-lg font-medium mb-2">No available question sets</h4>
-                            <p className="text-sm">All available question sets have been added to this exam paper.</p>
-                        </div>
-                    )}
-                </div>
-
-                <DialogFooter className="flex-shrink-0 border-t pt-4">
-                    <Button variant="outline" onClick={() => setOpen(false)}>
-                        Cancel
-                    </Button>
-                    <Button
-                        onClick={handleAddQuestionSet}
-                        disabled={!selectedQuestionSet}
-                        className="bg-blue-600 hover:bg-blue-700"
-                    >
-                        Add Question Set
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    )
-}
 
 function getDifficultyColor(difficulty: string) {
     switch (difficulty) {
@@ -541,6 +407,8 @@ export default function EditExamPaperPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [isSaving, setIsSaving] = useState(false)
     const [examPaper, setExamPaper] = useState<ExamPaperRead | null>(null)
+    const [titles, setTitles] = useState<ExamTitleRead[]>([])
+    const [descriptions, setDescriptions] = useState<ExamDescriptionRead[]>([])
     const [institutions, setInstitutions] = useState<InstitutionRead[]>([])
     const [courses, setCourses] = useState<CourseRead[]>([])
     const [instructions, setInstructions] = useState<InstructionRead[]>([])
@@ -549,18 +417,31 @@ export default function EditExamPaperPage() {
     const [questionSets, setQuestionSets] = useState<QuestionSetRead[]>([])
     const [availableQuestionSets, setAvailableQuestionSets] = useState<QuestionSetRead[]>([])
     const [newTag, setNewTag] = useState('')
-    const [newInstruction, setNewInstruction] = useState('')
     const [lastSaved, setLastSaved] = useState<Date | null>(null)
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedDifficulty, setSelectedDifficulty] = useState<string>('')
     const [selectedQuestionType, setSelectedQuestionType] = useState<string>('')
+    const [institutionSearch, setInstitutionSearch] = useState('')
+    const [institutionsLoading, setInstitutionsLoading] = useState(false)
+    const [questionSetsLoading, setQuestionSetsLoading] = useState(false)
+
+    // Dialog states for adding new entities
+    const [showAddTitleDialog, setShowAddTitleDialog] = useState(false)
+    const [showAddDescriptionDialog, setShowAddDescriptionDialog] = useState(false)
+    const [showAddInstructionDialog, setShowAddInstructionDialog] = useState(false)
+    const [newTitleName, setNewTitleName] = useState('')
+    const [newDescriptionText, setNewDescriptionText] = useState('')
+    const [newInstructionName, setNewInstructionName] = useState('')
+    const [showAddQuestionSetDialog, setShowAddQuestionSetDialog] = useState(false)
+    const [selectedQuestionSetIds, setSelectedQuestionSetIds] = useState<string[]>([])
+    const [addingQuestionSets, setAddingQuestionSets] = useState(false)
 
     const form = useForm<ExamPaperEditFormData>({
         resolver: zodResolver(examPaperEditSchema),
         defaultValues: {
-            title: '',
-            description: '',
+            title_id: '',
+            description_id: '',
             year_of_exam: '',
             exam_duration: 180,
             exam_date: '',
@@ -578,8 +459,8 @@ export default function EditExamPaperPage() {
 
         try {
             const updateData: ExamPaperUpdate = {
-                title_id: examPaper.title?.id || null,
-                description_id: examPaper.description?.id || null,
+                title_id: data.title_id || null,
+                description_id: data.description_id || null,
                 course_id: data.course_id || null,
                 institution_id: data.institution_id || null,
                 exam_date: data.exam_date || null,
@@ -591,11 +472,20 @@ export default function EditExamPaperPage() {
 
             const response = await adminAPI.examPapers.update(params.id as string, updateData)
             if (!response.error) {
-                setLastSaved(new Date())
+                const saveTime = new Date()
+                setLastSaved(saveTime)
                 setHasUnsavedChanges(false)
+                
+                // Show subtle auto-save notification
+                addNotification({
+                    type: 'info',
+                    title: 'Auto-saved',
+                    message: `Changes automatically saved at ${saveTime.toLocaleTimeString()}`,
+                })
             }
         } catch (error) {
             console.error('Auto-save failed:', error)
+            // Don't show error notification for auto-save failures to avoid spam
         }
     }, [hasUnsavedChanges, params.id, examPaper])
 
@@ -636,33 +526,130 @@ export default function EditExamPaperPage() {
                     return
                 }
 
-                // Load exam paper, institutions, courses, instructions, and questions from real API
-                const [paperResponse, institutionsResponse, coursesResponse, instructionsResponse, questionsResponse] = await Promise.all([
+                // Load exam paper, titles, descriptions, courses, instructions, and questions from real API
+                // Note: institutions are loaded via the search useEffect
+                const [paperResponse, titlesResponse, descriptionsResponse, coursesResponse, instructionsResponse, questionsResponse] = await Promise.all([
                     adminAPI.examPapers.getById(params.id as string),
-                    adminAPI.institutions.list(),
-                    adminAPI.courses.list(),
-                    adminAPI.instructions.list(),
-                    adminAPI.questionSets.list()
+                    adminAPI.examTitles.list({ limit: 100, skip: 0 }),
+                    adminAPI.examDescriptions.list({ limit: 100, skip: 0 }),
+                    adminAPI.courses.list({ limit: 100, skip: 0 }),
+                    adminAPI.instructions.list({ limit: 100, skip: 0 }),
+                    adminAPI.questionSets.list({ limit: 100, skip: 0 })
                 ])
+
+                let paperData: any = null
 
                 if (!paperResponse.error && paperResponse.data) {
                     console.log('Exam paper response:', paperResponse.data)
-                    const paperData = paperResponse.data.data || paperResponse.data
-                    setExamPaper(paperData)
+                    paperData = (paperResponse.data as any).data || paperResponse.data
+                    console.log('📋 [EDIT PAGE] Exam paper data:', {
+                        id: paperData.id,
+                        hasQuestionSets: !!paperData.question_sets,
+                        questionSetsCount: paperData.question_sets?.length || 0,
+                        questionSets: paperData.question_sets
+                    })
+                    setExamPaper(paperData as ExamPaperRead)
 
-                    // Handle question sets
-                    const questionSetsData = (paperData as any).question_sets || []
-                    setQuestionSets(questionSetsData)
+                    // Load question sets - prioritize exam paper data since it's already loaded
+                    console.log('📋 [EDIT PAGE] Loading question sets for exam paper:', params.id)
+                    
+                    // Use question sets from exam paper data directly (they're already loaded with the exam paper)
+                    if (paperData?.question_sets && paperData.question_sets.length > 0) {
+                        console.log('📋 [EDIT PAGE] Using question sets from exam paper data:', paperData.question_sets.length)
+                        console.log('📋 [EDIT PAGE] Question sets:', paperData.question_sets)
+                        
+                        // The question sets are already in the correct format from the API
+                        setQuestionSets(paperData.question_sets as QuestionSetRead[])
+                        console.log('📋 [EDIT PAGE] Successfully set question sets:', paperData.question_sets.length)
+                    } else {
+                        console.log('📋 [EDIT PAGE] No question sets in exam paper data')
+                        setQuestionSets([])
+                    }
 
-                    // Handle questions - they might be in question_sets
-                    const questions = (paperData as any).questions ||
-                        questionSetsData.flatMap((qs: any) => qs.questions || []) || []
-                    setQuestions(questions)
+                    // If there's a selected institution, add it to the institutions list
+                    // so it displays properly before the search loads
+                    if (paperData.institution) {
+                        setInstitutions([paperData.institution])
+                    }
+                } else {
+                    const errorMessage = paperResponse.error?.message ||
+                        (typeof paperResponse.error === 'string' ? paperResponse.error : 'Failed to load exam paper')
+                    throw new Error(errorMessage)
+                }
 
-                    // Set form values based on API response structure
+                // Load titles and match current title
+                if (!titlesResponse.error && titlesResponse.data) {
+                    const titlesData = (titlesResponse.data as any).data?.items || []
+                    setTitles(Array.isArray(titlesData) ? titlesData : [])
+
+                    console.log('Loaded titles:', titlesData)
+                    console.log('Current exam paper title:', paperData?.title)
+
+                    // Try to find matching title
+                    let matchedTitleId = ''
+                    if (paperData?.title) {
+                        // Try matching by slug first
+                        if (paperData.title.slug) {
+                            const match = titlesData.find((t: any) => t.slug === paperData.title.slug)
+                            if (match) matchedTitleId = match.id
+                        }
+                        // Try matching by name if slug didn't work
+                        if (!matchedTitleId && paperData.title.name) {
+                            const match = titlesData.find((t: any) => t.name === paperData.title.name)
+                            if (match) matchedTitleId = match.id
+                        }
+                    }
+                    console.log('Matched title ID:', matchedTitleId)
+
+                    // Set the form value
+                    if (matchedTitleId) {
+                        form.setValue('title_id', matchedTitleId)
+                    }
+                } else {
+                    console.warn('Failed to load titles:', titlesResponse.error)
+                    setTitles([])
+                }
+
+                // Load descriptions and match current description
+                if (!descriptionsResponse.error && descriptionsResponse.data) {
+                    const descriptionsData = (descriptionsResponse.data as any).data?.items || []
+                    setDescriptions(Array.isArray(descriptionsData) ? descriptionsData : [])
+
+                    console.log('Loaded descriptions:', descriptionsData)
+                    console.log('Current exam paper description:', paperData?.description)
+
+                    // Try to find matching description
+                    let matchedDescId = ''
+                    if (paperData?.description) {
+                        // Try matching by name
+                        if (paperData.description.name) {
+                            const match = descriptionsData.find((d: any) => d.name === paperData.description.name)
+                            if (match) matchedDescId = match.id
+                        }
+                        // Try matching by description text (the actual description content)
+                        if (!matchedDescId && paperData.description.description) {
+                            const match = descriptionsData.find((d: any) =>
+                                d.name === paperData.description.description
+                            )
+                            if (match) matchedDescId = match.id
+                        }
+                    }
+                    console.log('Matched description ID:', matchedDescId)
+
+                    // Set the form value
+                    if (matchedDescId) {
+                        form.setValue('description_id', matchedDescId)
+                    }
+                } else {
+                    console.warn('Failed to load descriptions:', descriptionsResponse.error)
+                    setDescriptions([])
+                }
+
+                // Now set all form values including the matched IDs
+                if (paperData) {
                     form.reset({
-                        title: paperData.title?.name || '',
-                        description: paperData.description?.description || '',
+                        title_id: form.getValues('title_id') || '',
+                        description_id: form.getValues('description_id') || '',
                         year_of_exam: paperData.year_of_exam || '',
                         exam_duration: paperData.exam_duration || 180,
                         exam_date: paperData.exam_date || '',
@@ -675,25 +662,11 @@ export default function EditExamPaperPage() {
                     // Mark as initially saved
                     setLastSaved(new Date())
                     setHasUnsavedChanges(false)
-                } else {
-                    const errorMessage = paperResponse.error?.message ||
-                        (typeof paperResponse.error === 'string' ? paperResponse.error : 'Failed to load exam paper')
-                    throw new Error(errorMessage)
-                }
-
-                if (!institutionsResponse.error && institutionsResponse.data) {
-                    console.log('Institutions response:', institutionsResponse.data)
-                    const institutionsData = institutionsResponse.data.data?.items || []
-                    console.log('Institutions data to set:', institutionsData)
-                    setInstitutions(Array.isArray(institutionsData) ? institutionsData : [])
-                } else {
-                    console.warn('Failed to load institutions:', institutionsResponse.error)
-                    setInstitutions([])
                 }
 
                 if (!coursesResponse.error && coursesResponse.data) {
                     console.log('Courses response:', coursesResponse.data)
-                    const coursesData = coursesResponse.data.data?.items || []
+                    const coursesData = (coursesResponse.data as any).data?.items || []
                     console.log('Courses data to set:', coursesData)
                     setCourses(Array.isArray(coursesData) ? coursesData : [])
                 } else {
@@ -703,7 +676,7 @@ export default function EditExamPaperPage() {
 
                 if (!instructionsResponse.error && instructionsResponse.data) {
                     console.log('Instructions response:', instructionsResponse.data)
-                    const instructionsData = instructionsResponse.data.data?.items || []
+                    const instructionsData = (instructionsResponse.data as any).data?.items || []
                     console.log('Instructions data to set:', instructionsData)
                     setInstructions(Array.isArray(instructionsData) ? instructionsData : [])
                 } else {
@@ -711,15 +684,18 @@ export default function EditExamPaperPage() {
                     setInstructions([])
                 }
 
+                // Load available question sets using the helper function
                 if (!questionsResponse.error && questionsResponse.data) {
                     console.log('Question sets response:', questionsResponse.data)
-                    const questionSetsData = questionsResponse.data.data?.items || []
-                    console.log('Available question sets:', questionSetsData)
-                    setAvailableQuestionSets(Array.isArray(questionSetsData) ? questionSetsData : [])
+                    // Use the utility function to parse the response consistently
+                    const rawQuestionSets = parseQuestionSetsResponse(questionsResponse as any)
+                    
+                    console.log('Available question sets:', rawQuestionSets)
+                    setAvailableQuestionSets(rawQuestionSets as QuestionSetRead[])
 
-                    // Extract individual questions from available question sets for the question dialog
-                    const allQuestions = questionSetsData.flatMap((qs: any) => qs.questions || [])
-                    setAvailableQuestions(allQuestions)
+                    // Note: QuestionSetRead doesn't include questions array, so we can't extract individual questions
+                    // The AddQuestionDialog should use the questions API directly if needed
+                    setAvailableQuestions([])
                 } else {
                     console.warn('Failed to load question sets:', questionsResponse.error)
                     setAvailableQuestionSets([])
@@ -740,36 +716,69 @@ export default function EditExamPaperPage() {
         loadExamPaper()
     }, [params.id, form, addNotification, router])
 
+    // Debug: Log when questionSets state changes
+    useEffect(() => {
+        console.log('📋 [EDIT PAGE] questionSets state changed:', {
+            length: questionSets.length,
+            items: questionSets.map(qs => ({ id: qs.id, title: qs.title }))
+        })
+    }, [questionSets])
+
+    // Server-side institution search with debounce
+    useEffect(() => {
+        let cancelled = false
+        setInstitutionsLoading(true)
+        const h = setTimeout(async () => {
+            try {
+                const q = institutionSearch.trim() || '*'
+                const res = await adminAPI.institutions.search({ q, limit: 50, skip: 0, highlight: false })
+                if (!cancelled) {
+                    let items = (res.data?.data?.items ?? []) as InstitutionRead[]
+
+                    // If there's a currently selected institution that's not in the results, add it
+                    const selectedInstitutionId = form.getValues('institution_id')
+                    if (selectedInstitutionId && examPaper?.institution) {
+                        const isInResults = items.some(i => i.id === selectedInstitutionId)
+                        if (!isInResults) {
+                            items = [examPaper.institution, ...items]
+                        }
+                    }
+
+                    setInstitutions(items)
+                }
+            } catch (e) {
+                if (!cancelled) {
+                    // If search fails, at least keep the selected institution if available
+                    if (examPaper?.institution) {
+                        setInstitutions([examPaper.institution])
+                    } else {
+                        setInstitutions([])
+                    }
+                }
+            } finally {
+                if (!cancelled) setInstitutionsLoading(false)
+            }
+        }, 300)
+        return () => {
+            cancelled = true
+            clearTimeout(h)
+        }
+    }, [institutionSearch, examPaper, form])
+
     const onSubmit = async (data: ExamPaperEditFormData) => {
         try {
             setIsSaving(true)
 
-            // Create/update title if needed
-            let titleId = examPaper?.title?.id || null
-            if (data.title && data.title !== examPaper?.title?.name) {
-                // For now, we'll use the existing title_id or null
-                // In a full implementation, you'd create a new title record
-                titleId = examPaper?.title?.id || null
-            }
-
-            // Create/update description if needed  
-            let descriptionId = examPaper?.description?.id || null
-            if (data.description && data.description !== examPaper?.description?.description) {
-                // For now, we'll use the existing description_id or null
-                // In a full implementation, you'd create a new description record
-                descriptionId = examPaper?.description?.id || null
-            }
-
             const updateData: ExamPaperUpdate = {
-                title_id: titleId,
-                description_id: descriptionId,
+                title_id: data.title_id || null,
+                description_id: data.description_id || null,
                 course_id: data.course_id || null,
                 institution_id: data.institution_id || null,
                 exam_date: data.exam_date || null,
                 exam_duration: data.exam_duration || null,
                 tags: data.tags || null,
-                instruction_ids: data.instruction_ids || [], // Updated to use instruction_ids
-                module_ids: [], // Modules would need separate handling
+                instruction_ids: data.instruction_ids || [],
+                module_ids: [],
             }
 
             console.log('Updating exam paper with data:', updateData)
@@ -777,18 +786,19 @@ export default function EditExamPaperPage() {
             const response = await adminAPI.examPapers.update(params.id as string, updateData)
 
             if (!response.error && response.data) {
-                setLastSaved(new Date())
+                const saveTime = new Date()
+                setLastSaved(saveTime)
                 setHasUnsavedChanges(false)
                 addNotification({
                     type: 'success',
-                    title: 'Success',
-                    message: 'Exam paper updated successfully!',
+                    title: 'Exam Paper Saved Successfully',
+                    message: `All changes have been saved at ${saveTime.toLocaleTimeString()}. Your exam paper is up to date.`,
                 })
                 // Refresh the data
                 const updatedResponse = await adminAPI.examPapers.getById(params.id as string)
                 if (!updatedResponse.error && updatedResponse.data) {
-                    const paperData = updatedResponse.data.data || updatedResponse.data
-                    setExamPaper(paperData)
+                    const paperData = (updatedResponse.data as any).data || updatedResponse.data
+                    setExamPaper(paperData as ExamPaperRead)
                 }
             } else {
                 const errorMessage = response.error?.message ||
@@ -799,8 +809,10 @@ export default function EditExamPaperPage() {
             console.error('Error updating exam paper:', error)
             addNotification({
                 type: 'error',
-                title: 'Error',
-                message: error instanceof Error ? error.message : 'Failed to update exam paper.',
+                title: 'Save Failed',
+                message: error instanceof Error ? 
+                    `Failed to save exam paper: ${error.message}. Please check your connection and try again.` : 
+                    'Failed to update exam paper. Please check your connection and try again.',
             })
         } finally {
             setIsSaving(false)
@@ -841,6 +853,103 @@ export default function EditExamPaperPage() {
         }
     }
 
+    const handleCreateTitle = async () => {
+        if (!newTitleName.trim()) return
+
+        try {
+            const response = await adminAPI.examTitles.create({
+                name: newTitleName.trim(),
+                description: null,
+            })
+
+            if (!response.error && response.data) {
+                const newTitle = (response.data as any).data
+                if (newTitle) {
+                    setTitles(prev => [...prev, newTitle as ExamTitleRead])
+                    form.setValue('title_id', newTitle.id)
+                    setNewTitleName('')
+                    setShowAddTitleDialog(false)
+                    addNotification({
+                        type: 'success',
+                        title: 'Success',
+                        message: 'Title created successfully!',
+                    })
+                }
+            }
+        } catch (error) {
+            addNotification({
+                type: 'error',
+                title: 'Error',
+                message: 'Failed to create title.',
+            })
+        }
+    }
+
+    const handleCreateDescription = async () => {
+        if (!newDescriptionText.trim()) return
+
+        try {
+            const response = await adminAPI.examDescriptions.create({
+                name: newDescriptionText.trim(),
+                description: null,
+            })
+
+            if (!response.error && response.data) {
+                const newDescription = (response.data as any).data
+                if (newDescription) {
+                    setDescriptions(prev => [...prev, newDescription as ExamDescriptionRead])
+                    form.setValue('description_id', newDescription.id)
+                    setNewDescriptionText('')
+                    setShowAddDescriptionDialog(false)
+                    addNotification({
+                        type: 'success',
+                        title: 'Success',
+                        message: 'Description created successfully!',
+                    })
+                }
+            }
+        } catch (error) {
+            addNotification({
+                type: 'error',
+                title: 'Error',
+                message: 'Failed to create description.',
+            })
+        }
+    }
+
+    const handleCreateInstruction = async () => {
+        if (!newInstructionName.trim()) return
+
+        try {
+            const response = await adminAPI.instructions.create({
+                name: newInstructionName.trim(),
+                slug: null,
+            })
+
+            if (!response.error && response.data) {
+                const newInstruction = (response.data as any).data
+                if (newInstruction) {
+                    setInstructions(prev => [...prev, newInstruction as InstructionRead])
+                    const currentInstructionIds = form.getValues('instruction_ids') || []
+                    form.setValue('instruction_ids', [...currentInstructionIds, newInstruction.id])
+                    setNewInstructionName('')
+                    setShowAddInstructionDialog(false)
+                    addNotification({
+                        type: 'success',
+                        title: 'Success',
+                        message: 'Instruction created successfully!',
+                    })
+                }
+            }
+        } catch (error) {
+            addNotification({
+                type: 'error',
+                title: 'Error',
+                message: 'Failed to create instruction.',
+            })
+        }
+    }
+
     const handleAddQuestion = (question: QuestionRead) => {
         // Check if question is already added
         if (!questions.find(q => q.id === question.id)) {
@@ -872,75 +981,269 @@ export default function EditExamPaperPage() {
         }
     }
 
-    const handleAddQuestionSet = async (questionSet: QuestionSetRead) => {
+    const handleOpenAddQuestionSetDialog = () => {
+        // Check if there are available question sets to add
+        const availableToAdd = availableQuestionSets.filter(qs => !questionSets.find(existing => existing.id === qs.id))
+        
+        if (availableToAdd.length === 0) {
+            addNotification({
+                type: 'info',
+                title: 'No Question Sets Available',
+                message: 'All available question sets have already been added to this exam paper, or no question sets exist in the system yet.',
+            })
+            return
+        }
+        
+        setSelectedQuestionSetIds([])
+        setShowAddQuestionSetDialog(true)
+    }
+
+    const handleAddQuestionSets = async () => {
+        if (selectedQuestionSetIds.length === 0 || !examPaper || addingQuestionSets) return
+
+        setAddingQuestionSets(true)
+        
         try {
-            console.log('Adding question set to exam paper:', {
+            console.log('🔄 Adding question sets to exam paper:', {
                 examPaperId: params.id,
-                questionSetId: questionSet.id
-            });
+                questionSetIds: selectedQuestionSetIds,
+                count: selectedQuestionSetIds.length
+            })
+            
+            // Add all selected question sets using standardized error handling
+            const promises = selectedQuestionSetIds.map(async (questionSetId) => {
+                const { result, errorResult } = await executeAPICall(
+                    () => adminAPI.examPapers.addQuestionSet(params.id as string, questionSetId),
+                    {
+                        operation: `Add Question Set ${questionSetId}`,
+                        logParams: { examPaperId: params.id, questionSetId }
+                    }
+                )
+                return { result, errorResult, questionSetId }
+            })
 
-            const response = await adminAPI.examPapers.addQuestionSet(params.id as string, questionSet.id)
+            const results = await Promise.all(promises)
+            const failedResults = results.filter(r => r.result.error)
+            const failedCount = failedResults.length
 
-            console.log('API Response:', response);
-
-            if (response.error) {
-                throw new Error(response.error?.message || 'Failed to add question set')
+            if (failedCount === 0) {
+                // All question sets added successfully
+                const questionSetNames = selectedQuestionSetIds
+                    .map(id => availableQuestionSets.find(qs => qs.id === id)?.title || `Question Set ${id}`)
+                    .join(', ')
+                
+                addNotification({
+                    type: 'success',
+                    title: 'Question Sets Added Successfully',
+                    message: `Successfully added ${selectedQuestionSetIds.length} question set${selectedQuestionSetIds.length > 1 ? 's' : ''}: ${questionSetNames}`
+                })
+                setShowAddQuestionSetDialog(false)
+                setSelectedQuestionSetIds([])
+                
+                // Reload question sets to show the newly added ones
+                await reloadQuestionSets()
+            } else if (failedCount < selectedQuestionSetIds.length) {
+                // Partial success
+                const successCount = selectedQuestionSetIds.length - failedCount
+                const successfulIds = results
+                    .filter(r => !r.result.error)
+                    .map(r => r.questionSetId)
+                const successfulNames = successfulIds
+                    .map(id => availableQuestionSets.find(qs => qs.id === id)?.title || `Question Set ${id}`)
+                    .join(', ')
+                
+                console.warn('⚠️ Partial success adding question sets:', {
+                    successCount,
+                    failedCount,
+                    failedResults: failedResults.map(r => ({ id: r.questionSetId, error: r.errorResult }))
+                })
+                
+                addNotification({
+                    type: 'warning',
+                    title: 'Partially Successful',
+                    message: `Successfully added ${successCount} question set${successCount !== 1 ? 's' : ''} (${successfulNames}), but ${failedCount} failed to add. Please try again for the failed items.`
+                })
+                setShowAddQuestionSetDialog(false)
+                setSelectedQuestionSetIds([])
+                
+                // Reload question sets to show what was actually added
+                await reloadQuestionSets()
+            } else {
+                // All failed - handle specific error cases like the details page
+                const firstError = failedResults[0]?.errorResult
+                const firstResult = failedResults[0]?.result
+                
+                // Check if it's a 409 conflict (already associated)
+                if (firstResult?.error && typeof firstResult.error === 'object' && 
+                    (firstResult.error as any).detail?.includes('already associated')) {
+                    
+                    addNotification({
+                        type: 'warning',
+                        title: 'Already Associated',
+                        message: 'The selected question set is already associated with this exam paper.'
+                    })
+                    
+                    // Still reload question sets to show current state
+                    await reloadQuestionSets()
+                } else if (firstError) {
+                    addNotification({
+                        type: firstError.type,
+                        title: firstError.title,
+                        message: firstError.message
+                    })
+                } else {
+                    addNotification({
+                        type: 'error',
+                        title: 'Addition Failed',
+                        message: 'Failed to add question sets to exam paper'
+                    })
+                }
+                
+                setShowAddQuestionSetDialog(false)
+                setSelectedQuestionSetIds([])
             }
-
-            // Only add the question set to the list - do NOT add individual questions
-            setQuestionSets(prev => [...prev, questionSet])
-
-            addNotification({
-                type: 'success',
-                title: 'Success',
-                message: `Question set "${questionSet.title || 'Question Set'}" added successfully!`,
-            })
-
-            // Mark as having unsaved changes since we modified the exam paper
-            setHasUnsavedChanges(true)
         } catch (error) {
-            console.error('Error adding question set:', error)
+            console.error('❌ Exception adding question sets:', error)
+            const errorResult = handleAPIError(error, { operation: 'Add Question Sets' })
             addNotification({
-                type: 'error',
-                title: 'Error',
-                message: error instanceof Error ? error.message : 'Failed to add question set.',
+                type: errorResult.type,
+                title: errorResult.title,
+                message: errorResult.message
             })
+        } finally {
+            setAddingQuestionSets(false)
+        }
+    }
+
+    // Helper function to reload exam paper data (like details page)
+    const loadExamPaperData = async () => {
+        try {
+            console.log('🔄 Reloading exam paper data for edit page')
+            const response = await adminAPI.examPapers.getById(params.id as string)
+            if (!response.error && response.data) {
+                const paperData = (response.data as any).data || response.data
+                console.log('✅ Reloaded exam paper data:', {
+                    id: paperData.id,
+                    questionSetsCount: paperData.question_sets?.length || 0
+                })
+                setExamPaper(paperData as ExamPaperRead)
+                
+                // If the exam paper has question sets, use them to update the display
+                if (paperData?.question_sets && paperData.question_sets.length > 0) {
+                    console.log('📋 [EDIT PAGE] Found question sets in exam paper data:', paperData.question_sets.length)
+                    setQuestionSets(paperData.question_sets as QuestionSetRead[])
+                }
+            }
+        } catch (error) {
+            console.error('Error reloading exam paper data:', error)
+        }
+    }
+
+    // Helper function to reload question sets by reloading the exam paper
+    const reloadQuestionSets = async () => {
+        setQuestionSetsLoading(true)
+        
+        try {
+            console.log('🔄 Reloading exam paper to get updated question sets')
+            
+            // Reload the exam paper data to get the latest question sets
+            const response = await adminAPI.examPapers.getById(params.id as string)
+            
+            if (!response.error && response.data) {
+                const paperData = (response.data as any).data || response.data
+                console.log('✅ Reloaded exam paper data:', {
+                    id: paperData.id,
+                    questionSetsCount: paperData.question_sets?.length || 0
+                })
+                
+                // Update the exam paper state
+                setExamPaper(paperData as ExamPaperRead)
+                
+                // Use question sets from the reloaded exam paper data
+                if (paperData?.question_sets && paperData.question_sets.length > 0) {
+                    console.log('📋 [EDIT PAGE] Found question sets in reloaded exam paper:', paperData.question_sets.length)
+                    setQuestionSets(paperData.question_sets as QuestionSetRead[])
+                    console.log('📋 [EDIT PAGE] Successfully updated question sets:', paperData.question_sets.length)
+                } else {
+                    console.log('📋 [EDIT PAGE] No question sets in reloaded exam paper')
+                    setQuestionSets([])
+                }
+            } else {
+                console.error('❌ Failed to reload exam paper:', response.error)
+                
+                // Keep existing question sets if reload fails
+                console.log('📋 [EDIT PAGE] Keeping existing question sets due to reload failure')
+            }
+            
+            // Also reload available question sets to ensure the QuestionSetSelector has updated data
+            await reloadAvailableQuestionSets()
+        } catch (error) {
+            console.error('❌ Exception reloading question sets:', error)
+            // Keep existing question sets on error
+        } finally {
+            setQuestionSetsLoading(false)
+        }
+    }
+
+    // Helper function to reload available question sets for the selector
+    const reloadAvailableQuestionSets = async () => {
+        const { result, errorResult } = await executeAPICall(
+            () => adminAPI.questionSets.list({ limit: 100, skip: 0 }),
+            {
+                operation: 'Reload Available Question Sets',
+                logParams: { limit: 100, skip: 0 }
+            }
+        )
+        
+        if (!result.error && result.data) {
+            // The list endpoint returns IGetResponsePaginated_QuestionSetRead_
+            const questionSetsData = parseQuestionSetsResponse(result as any)
+            
+            console.log('✅ Successfully reloaded available question sets:', {
+                count: questionSetsData.length
+            })
+            
+            setAvailableQuestionSets(questionSetsData as QuestionSetRead[])
+            
+            // Note: QuestionSetRead doesn't include questions array, so we can't extract individual questions
+            // The AddQuestionDialog should use the question sets API or questions API directly
+            setAvailableQuestions([])
+        } else {
+            // Don't show error notification here as this is a background reload
+            console.warn('⚠️ Failed to reload available question sets:', errorResult?.message || 'Unknown error')
         }
     }
 
     const handleRemoveQuestionSet = async (questionSetId: string) => {
-        try {
-            console.log('Removing question set from exam paper:', {
-                examPaperId: params.id,
-                questionSetId: questionSetId
-            });
-
-            const response = await adminAPI.examPapers.removeQuestionSet(params.id as string, questionSetId)
-
-            console.log('API Response:', response);
-
-            if (response.error) {
-                throw new Error(response.error?.message || 'Failed to remove question set')
+        const removedQuestionSet = questionSets.find(qs => qs.id === questionSetId)
+        
+        const { result, errorResult } = await executeAPICall(
+            () => adminAPI.examPapers.removeQuestionSet(params.id as string, questionSetId),
+            {
+                operation: 'Remove Question Set',
+                logParams: { 
+                    examPaperId: params.id, 
+                    questionSetId, 
+                    questionSetTitle: removedQuestionSet?.title 
+                }
             }
+        )
 
-            // Only remove the question set from the list - do NOT remove individual questions
-            const removedQuestionSet = questionSets.find(qs => qs.id === questionSetId)
-            setQuestionSets(prev => prev.filter(qs => qs.id !== questionSetId))
-
+        if (!result.error) {
+            const questionSetName = removedQuestionSet?.title || `Question Set ${questionSetId}`
             addNotification({
                 type: 'success',
-                title: 'Success',
-                message: `Question set "${removedQuestionSet?.title || 'Question Set'}" removed successfully!`,
+                title: 'Question Set Removed Successfully',
+                message: `Successfully removed "${questionSetName}" from the exam paper. All associated questions have been removed.`,
             })
 
-            // Mark as having unsaved changes since we modified the exam paper
-            setHasUnsavedChanges(true)
-        } catch (error) {
-            console.error('Error removing question set:', error)
+            // Reload question sets to show the updated list
+            await reloadQuestionSets()
+        } else if (errorResult) {
             addNotification({
-                type: 'error',
-                title: 'Error',
-                message: error instanceof Error ? error.message : 'Failed to remove question set.',
+                type: errorResult.type,
+                title: errorResult.title,
+                message: `${errorResult.message} Please try again or contact support if the problem persists.`
             })
         }
     }
@@ -1053,33 +1356,81 @@ export default function EditExamPaperPage() {
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
-                                    <FormField
-                                        control={form.control}
-                                        name="title"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Title</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="Enter exam paper title" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <FormField
+                                            control={form.control}
+                                            name="title_id"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Title</FormLabel>
+                                                    <div className="flex gap-2">
+                                                        <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                                                            <FormControl>
+                                                                <SelectTrigger>
+                                                                    <SelectValue placeholder="Select title" />
+                                                                </SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent>
+                                                                {titles.map((title) => (
+                                                                    <SelectItem key={title.id} value={title.id}>
+                                                                        {title.name}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <Button
+                                                            type="button"
+                                                            variant="default"
+                                                            size="sm"
+                                                            onClick={() => setShowAddTitleDialog(true)}
+                                                            className="shrink-0"
+                                                        >
+                                                            <Plus className="h-4 w-4 mr-1" />
+                                                            Add
+                                                        </Button>
+                                                    </div>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
 
-                                    <FormField
-                                        control={form.control}
-                                        name="description"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Description</FormLabel>
-                                                <FormControl>
-                                                    <Input placeholder="Enter exam description" {...field} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
+                                        <FormField
+                                            control={form.control}
+                                            name="description_id"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Description</FormLabel>
+                                                    <div className="flex gap-2">
+                                                        <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                                                            <FormControl>
+                                                                <SelectTrigger>
+                                                                    <SelectValue placeholder="Select description" />
+                                                                </SelectTrigger>
+                                                            </FormControl>
+                                                            <SelectContent>
+                                                                {descriptions.map((desc) => (
+                                                                    <SelectItem key={desc.id} value={desc.id}>
+                                                                        {desc.name}
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                        <Button
+                                                            type="button"
+                                                            variant="default"
+                                                            size="sm"
+                                                            onClick={() => setShowAddDescriptionDialog(true)}
+                                                            className="shrink-0"
+                                                        >
+                                                            <Plus className="h-4 w-4 mr-1" />
+                                                            Add
+                                                        </Button>
+                                                    </div>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <FormField
@@ -1151,36 +1502,35 @@ export default function EditExamPaperPage() {
                                         <FormField
                                             control={form.control}
                                             name="institution_id"
-                                            render={({ field }) => {
-                                                const selectedInstitution = institutions?.find(inst => inst.id === field.value)
-                                                return (
-                                                    <FormItem>
-                                                        <FormLabel>Institution</FormLabel>
-                                                        <Select onValueChange={field.onChange} value={field.value}>
-                                                            <FormControl>
-                                                                <SelectTrigger>
-                                                                    <SelectValue placeholder="Select institution">
-                                                                        {selectedInstitution && (
-                                                                            <div className="flex items-center justify-between w-full">
-                                                                                <span className="font-medium">{selectedInstitution.name}</span>
-                                                                                {selectedInstitution.key && (
-                                                                                    <Badge variant="secondary" className="ml-2 text-xs">
-                                                                                        {selectedInstitution.key}
-                                                                                    </Badge>
-                                                                                )}
-                                                                            </div>
-                                                                        )}
-                                                                    </SelectValue>
-                                                                </SelectTrigger>
-                                                            </FormControl>
-                                                            <SelectContent className="max-h-[300px]">
-                                                                {(institutions || []).map((institution) => (
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Institution</FormLabel>
+                                                    <Select value={field.value ?? ''} onValueChange={field.onChange}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select institution" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent className="w-[24rem] max-h-72 overflow-auto">
+                                                            <div className="p-2 sticky top-0 bg-background">
+                                                                <Input
+                                                                    placeholder="Search institutions..."
+                                                                    value={institutionSearch}
+                                                                    onChange={(e) => setInstitutionSearch(e.target.value)}
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                    onKeyDown={(e) => e.stopPropagation()}
+                                                                />
+                                                            </div>
+                                                            {institutionsLoading ? (
+                                                                <div className="px-3 py-2 text-sm text-muted-foreground">Searching...</div>
+                                                            ) : institutions.length > 0 ? (
+                                                                institutions.map((institution) => (
                                                                     <SelectItem key={institution.id} value={institution.id}>
                                                                         <div className="flex flex-col w-full">
-                                                                            <div className="flex items-center justify-between w-full">
+                                                                            <div className="flex items-center gap-2">
                                                                                 <span className="font-medium">{institution.name}</span>
                                                                                 {institution.key && (
-                                                                                    <Badge variant="secondary" className="ml-2 text-xs">
+                                                                                    <Badge variant="secondary" className="text-xs">
                                                                                         {institution.key}
                                                                                     </Badge>
                                                                                 )}
@@ -1205,13 +1555,15 @@ export default function EditExamPaperPage() {
                                                                             </div>
                                                                         </div>
                                                                     </SelectItem>
-                                                                ))}
-                                                            </SelectContent>
-                                                        </Select>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )
-                                            }}
+                                                                ))
+                                                            ) : (
+                                                                <div className="px-3 py-2 text-sm text-muted-foreground">No results</div>
+                                                            )}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
                                         />
 
                                         <FormField
@@ -1280,11 +1632,19 @@ export default function EditExamPaperPage() {
                                         </div>
                                     </CardTitle>
                                     <CardDescription>
-                                        Manage question sets for this exam paper. Each set contains multiple questions.
+                                        Manage question sets for this exam paper. Each set contains multiple questions organized by topic or difficulty. Question sets can be reused across different exam papers for consistency.
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
-                                    {questionSets.length > 0 ? (
+
+                                    
+                                    {questionSetsLoading ? (
+                                        <div className="text-center py-8">
+                                            <LoadingSpinner className="mx-auto mb-4" />
+                                            <h4 className="text-lg font-medium mb-2">Loading question sets...</h4>
+                                            <p className="text-sm text-gray-500">Please wait while we load the question sets for this exam paper.</p>
+                                        </div>
+                                    ) : questionSets.length > 0 ? (
                                         <div className="space-y-2">
                                             {questionSets.map((questionSet, index) => (
                                                 <QuestionSetItem
@@ -1298,16 +1658,24 @@ export default function EditExamPaperPage() {
                                     ) : (
                                         <div className="text-center py-8 text-gray-500">
                                             <Layers className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                                            <h4 className="text-lg font-medium mb-2">No question sets added</h4>
-                                            <p className="text-sm">Add question sets to organize questions for this exam paper.</p>
+                                            <h4 className="text-lg font-medium mb-2">No question sets added yet</h4>
+                                            <p className="text-sm mb-4">Question sets help organize your exam questions into logical groups. Each set can contain multiple questions with different difficulty levels.</p>
+                                            <div className="text-xs text-gray-400 space-y-1">
+                                                <p>💡 <strong>Tip:</strong> Start by adding a question set, then questions will be automatically included</p>
+                                                <p>📚 Question sets can be reused across multiple exam papers</p>
+                                                <p>🎯 Each set can have its own theme or topic focus</p>
+                                            </div>
                                         </div>
                                     )}
 
-                                    <AddQuestionSetDialog
-                                        availableQuestionSets={availableQuestionSets}
-                                        currentQuestionSets={questionSets}
-                                        onAddQuestionSet={handleAddQuestionSet}
-                                    />
+                                    <div className="space-y-2">
+                                        <Button type="button" variant="outline" className="w-full" onClick={handleOpenAddQuestionSetDialog}>
+                                            <Plus className="mr-2 h-4 w-4" />
+                                            Add Question Set
+                                        </Button>
+                                        
+
+                                    </div>
                                 </CardContent>
                             </Card>
 
@@ -1324,7 +1692,7 @@ export default function EditExamPaperPage() {
                                         </Badge>
                                     </CardTitle>
                                     <CardDescription>
-                                        Individual questions from question sets. Questions are automatically added when you add question sets.
+                                        Individual questions from question sets and question bank. Questions from sets are automatically included here. You can also add individual questions or reorder them as needed.
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
@@ -1346,8 +1714,13 @@ export default function EditExamPaperPage() {
                                     ) : (
                                         <div className="text-center py-8 text-gray-500">
                                             <ListChecks className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                                            <h4 className="text-lg font-medium mb-2">No questions added</h4>
-                                            <p className="text-sm">Add questions from the question bank to get started.</p>
+                                            <h4 className="text-lg font-medium mb-2">No individual questions added</h4>
+                                            <p className="text-sm mb-4">Questions are automatically included when you add question sets above. You can also add individual questions from the question bank.</p>
+                                            <div className="text-xs text-gray-400 space-y-1">
+                                                <p>🔄 <strong>Recommended:</strong> Add question sets first for better organization</p>
+                                                <p>➕ Individual questions can be added for specific needs</p>
+                                                <p>📊 Questions from sets will appear here automatically</p>
+                                            </div>
                                         </div>
                                     )}
 
@@ -1401,10 +1774,23 @@ export default function EditExamPaperPage() {
                             {/* Instructions */}
                             <Card>
                                 <CardHeader>
-                                    <CardTitle className="text-sm font-medium">Instructions</CardTitle>
-                                    <CardDescription>
-                                        Select exam instructions from available options
-                                    </CardDescription>
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <CardTitle className="text-sm font-medium">Instructions</CardTitle>
+                                            <CardDescription>
+                                                Select exam instructions from available options
+                                            </CardDescription>
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setShowAddInstructionDialog(true)}
+                                        >
+                                            <Plus className="h-4 w-4 mr-1" />
+                                            Add
+                                        </Button>
+                                    </div>
                                 </CardHeader>
                                 <CardContent className="space-y-3">
                                     {/* Selected Instructions Display */}
@@ -1493,6 +1879,143 @@ export default function EditExamPaperPage() {
                     </div>
                 </form>
             </Form>
+
+            {/* Add Title Dialog */}
+            <Dialog open={showAddTitleDialog} onOpenChange={setShowAddTitleDialog}>
+                <DialogContent className="max-w-[95vw] sm:max-w-[400px] lg:max-w-[450px]">
+                    <DialogHeader>
+                        <DialogTitle>Add New Title</DialogTitle>
+                        <DialogDescription>
+                            Create a new exam title.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="new-title">Title Name</Label>
+                            <Input
+                                id="new-title"
+                                placeholder="e.g., UNIVERSITY EXAMINATIONS"
+                                value={newTitleName}
+                                onChange={(e) => setNewTitleName(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleCreateTitle()}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setShowAddTitleDialog(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="button" onClick={handleCreateTitle} disabled={!newTitleName.trim()}>
+                            Create
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Add Description Dialog */}
+            <Dialog open={showAddDescriptionDialog} onOpenChange={setShowAddDescriptionDialog}>
+                <DialogContent className="max-w-[95vw] sm:max-w-[400px] lg:max-w-[450px]">
+                    <DialogHeader>
+                        <DialogTitle>Add New Description</DialogTitle>
+                        <DialogDescription>
+                            Create a new exam description.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="new-description">Description Text</Label>
+                            <Input
+                                id="new-description"
+                                placeholder="e.g., End of Semester Examination"
+                                value={newDescriptionText}
+                                onChange={(e) => setNewDescriptionText(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleCreateDescription()}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setShowAddDescriptionDialog(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="button" onClick={handleCreateDescription} disabled={!newDescriptionText.trim()}>
+                            Create
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Add Instruction Dialog */}
+            <Dialog open={showAddInstructionDialog} onOpenChange={setShowAddInstructionDialog}>
+                <DialogContent className="max-w-[95vw] sm:max-w-[400px] lg:max-w-[450px]">
+                    <DialogHeader>
+                        <DialogTitle>Add New Instruction</DialogTitle>
+                        <DialogDescription>
+                            Create a new instruction.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="new-instruction">Instruction Text</Label>
+                            <Input
+                                id="new-instruction"
+                                placeholder="e.g., Answer all questions"
+                                value={newInstructionName}
+                                onChange={(e) => setNewInstructionName(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleCreateInstruction()}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setShowAddInstructionDialog(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="button" onClick={handleCreateInstruction} disabled={!newInstructionName.trim()}>
+                            Create
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Add Question Set Dialog */}
+            <Dialog open={showAddQuestionSetDialog} onOpenChange={setShowAddQuestionSetDialog}>
+                <DialogContent className="max-w-[95vw] sm:max-w-[450px] lg:max-w-[500px] max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Add Question Sets</DialogTitle>
+                        <DialogDescription>
+                            Select question sets to add to this exam paper.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <QuestionSetSelector
+                            selectedQuestionSetIds={selectedQuestionSetIds}
+                            onSelectionChange={setSelectedQuestionSetIds}
+                            excludeQuestionSetIds={questionSets.map(qs => qs.id)}
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setShowAddQuestionSetDialog(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            onClick={handleAddQuestionSets}
+                            disabled={selectedQuestionSetIds.length === 0 || addingQuestionSets}
+                        >
+                            {addingQuestionSets ? (
+                                <>
+                                    <LoadingSpinner className="mr-2 h-4 w-4" />
+                                    Adding...
+                                </>
+                            ) : (
+                                <>
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Add {selectedQuestionSetIds.length > 0 ? `${selectedQuestionSetIds.length} ` : ''}Question Set{selectedQuestionSetIds.length !== 1 ? 's' : ''}
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

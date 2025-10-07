@@ -20,7 +20,7 @@ interface AuthActions {
   login: (user: User, token: string) => void;
   logout: () => void;
   clearError: () => void;
-  invalidateSession: () => void;
+  invalidateSession: (showError?: boolean) => void;
 }
 
 export type AuthStore = AuthState & AuthActions;
@@ -60,7 +60,7 @@ export const useAuthStore = create<AuthStore>()(
       
       clearError: () => set({ error: null }),
 
-      invalidateSession: () => {
+      invalidateSession: (showError = true) => {
         // Clear tokens from both localStorage and cookies
         if (typeof window !== 'undefined') {
           localStorage.removeItem('auth-token');
@@ -71,7 +71,7 @@ export const useAuthStore = create<AuthStore>()(
           user: null,
           token: null,
           isAuthenticated: false,
-          error: 'Your session has expired. Please login again.',
+          error: showError ? 'Your session has expired. Please login again.' : null,
         });
       },
     }),

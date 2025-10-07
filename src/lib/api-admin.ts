@@ -261,6 +261,12 @@ const adminAPI = {
                 }
             });
         },
+
+        async create(titleData: components['schemas']['ExamTitleCreate']) {
+            return api.POST('/api/v1/exam-title', {
+                body: titleData
+            });
+        },
     },
 
     /**
@@ -272,6 +278,12 @@ const adminAPI = {
                 params: {
                     query: params
                 }
+            });
+        },
+
+        async create(descriptionData: components['schemas']['ExamDescriptionCreate']) {
+            return api.POST('/api/v1/exam-description', {
+                body: descriptionData
             });
         },
     },
@@ -441,6 +453,12 @@ const adminAPI = {
                 params: {
                     query: params
                 }
+            });
+        },
+
+        async create(instructionData: components['schemas']['InstructionCreate']) {
+            return api.POST('/api/v1/instruction', {
+                body: instructionData
             });
         },
     },
@@ -1375,6 +1393,31 @@ const adminAPI = {
             });
             return response;
         },
+
+        // Module management for exam papers
+        async addModule(examPaperId: string, moduleId: string) {
+            const response = await api.POST('/api/v1/exampaper/{exampaper_id}/modules/{module_id}', {
+                params: {
+                    path: {
+                        exampaper_id: examPaperId,
+                        module_id: moduleId
+                    }
+                }
+            });
+            return response;
+        },
+
+        async removeModule(examPaperId: string, moduleId: string) {
+            const response = await api.DELETE('/api/v1/exampaper/{exampaper_id}/modules/{module_id}', {
+                params: {
+                    path: {
+                        exampaper_id: examPaperId,
+                        module_id: moduleId
+                    }
+                }
+            });
+            return response;
+        },
     },
 
     /**
@@ -1586,6 +1629,15 @@ const adminAPI = {
             const response = await api.DELETE('/api/v1/question-set/{question_set_id}', {
                 params: {
                     path: { question_set_id: questionSetId }
+                }
+            });
+            return response;
+        },
+
+        async getByExamPaper(examPaperId: string) {
+            const response = await api.GET('/api/v1/question-set/by-exam-paper/{exam_paper_id}', {
+                params: {
+                    path: { exam_paper_id: examPaperId }
                 }
             });
             return response;

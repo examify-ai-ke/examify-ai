@@ -31,6 +31,7 @@ const courseSchema = z.object({
     description: z.string().optional().nullable(),
     course_acronym: z.string().min(2, 'Course acronym must be at least 2 characters').max(20, 'Course acronym is too long'),
     programme_id: z.string().uuid('Please select a programme'),
+    faculty_id: z.string().uuid('Please select a faculty').optional().nullable(),
 });
 
 type CourseFormData = z.infer<typeof courseSchema>;
@@ -54,6 +55,8 @@ export const CourseForm: React.FC<CourseFormProps> = ({
     const [loading, setLoading] = useState(false);
     const [programmes, setProgrammes] = useState<Array<{ id: string; name: string }>>([]);
     const [loadingProgrammes, setLoadingProgrammes] = useState(true);
+    const [faculties, setFaculties] = useState<Array<{ id: string; name: string }>>([]);
+    const [loadingFaculties, setLoadingFaculties] = useState(true);
 
     const {
         register,
@@ -68,10 +71,12 @@ export const CourseForm: React.FC<CourseFormProps> = ({
             description: course?.description || '',
             course_acronym: course?.course_acronym || '',
             programme_id: course?.programme?.id || '',
+            faculty_id: course?.faculty?.id || '',
         }
     });
 
     const selectedProgrammeId = watch('programme_id');
+    const selectedFacultyId = watch('faculty_id');
 
     // Load programmes for dropdown
     useEffect(() => {
@@ -100,6 +105,33 @@ export const CourseForm: React.FC<CourseFormProps> = ({
         loadProgrammes();
     }, []);
 
+    // Load faculties for dropdown
+    useEffect(() => {
+        const loadFaculties = async () => {
+            try {
+                setLoadingFaculties(true);
+                const response = await adminAPI.faculties.list({ limit: 100 });
+                if (response.data?.data) {
+                    const facultiesData = Array.isArray(response.data.data)
+                        ? response.data.data
+                        : response.data.data.items || [];
+                    setFaculties(facultiesData.map((fac: any) => ({ id: fac.id, name: fac.name })));
+                }
+            } catch (error) {
+                console.error('Error loading faculties:', error);
+                addNotification({
+                    type: 'error',
+                    title: 'Failed to load faculties',
+                    message: 'Please refresh the page to try again.',
+                });
+            } finally {
+                setLoadingFaculties(false);
+            }
+        };
+
+        loadFaculties();
+    }, []);
+
     const onSubmit = async (data: CourseFormData) => {
         try {
             setLoading(true);
@@ -111,6 +143,7 @@ export const CourseForm: React.FC<CourseFormProps> = ({
                     description: data.description || null,
                     course_acronym: data.course_acronym,
                     programme_id: data.programme_id,
+                    faculty_id: data.faculty_id || null,
                 };
 
                 await adminAPI.courses.create(courseData);
@@ -130,7 +163,7 @@ export const CourseForm: React.FC<CourseFormProps> = ({
                     name: data.name,
                     description: data.description || null,
                     course_acronym: data.course_acronym,
-                    programme_id: data.programme_id,
+                    faculty_id: data.faculty_id || null,
                 };
 
                 await adminAPI.courses.update(course.id, courseData);
@@ -225,6 +258,48 @@ export const CourseForm: React.FC<CourseFormProps> = ({
                 {errors.programme_id && (
                     <p className="text-sm text-red-600">{errors.programme_id.message}</p>
                 )}
+            </div>
+
+            {/* Faculty Selection (Optional) */}
+            <div className="space-y-2">
+                <Label htmlFor="faculty_id">
+                    Faculty (Optional)
+                </Label>
+                <Select
+                    value={selectedFacultyId || ''}
+                    onValueChange={(value) => setValue('faculty_id', value || null, { shouldDirty: true })}
+                    disabled={loading || loadingFaculties}
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder={loadingFaculties ? "Loading faculties..." : "Select a faculty (optional)"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {loadingFaculties ? (
+                            <SelectItem value="loading" disabled>
+                                Loading faculties...
+                            </SelectItem>
+                        ) : faculties.length === 0 ? (
+                            <SelectItem value="no-faculties" disabled>
+                                No faculties available
+                            </SelectItem>
+                        ) : (
+                            <>
+                                <SelectItem value="">None</SelectItem>
+                                {faculties.map((faculty) => (
+                                    <SelectItem key={faculty.id} value={faculty.id}>
+                                        {faculty.name}
+                                    </SelectItem>
+                                ))}
+                            </>
+                        )}
+                    </SelectContent>
+                </Select>
+                {errors.faculty_id && (
+                    <p className="text-sm text-red-600">{errors.faculty_id.message}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                    Optionally associate this course directly with a faculty
+                </p>
             </div>
 
             {/* Description */}

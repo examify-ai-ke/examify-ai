@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Edit, Trash2, Download, Calendar, Clock, Building2, BookOpen, FileText, Users, Tag, Eye, Plus, ChevronDown, ChevronUp, MessageSquare, MapPin, GraduationCap, Hash, ListChecks } from 'lucide-react'
+import { ArrowLeft, Edit, Trash2, Download, Calendar, Clock, Building2, BookOpen, FileText, Users, Tag, Eye, Plus, ChevronDown, ChevronUp, MessageSquare, MapPin, GraduationCap, Hash, ListChecks, Unlink, AlertCircle, Search } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,9 +11,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { AdminBreadcrumb } from '@/components/ui/breadcrumb'
 import { Separator } from '@/components/ui/separator'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 
 import { adminAPI, type ExamPaperRead } from '@/lib/api-admin'
 import { useUIStore } from '@/stores/ui'
+import { ModuleSelector } from '@/components/features/module-selector'
+import { QuestionSetSelector } from '@/components/features/question-set-selector'
+import { parseQuestionSetsResponse, logResponseStructure, sanitizeQuestionSetData } from '@/lib/api-response-utils'
+import { executeAPICall, handleAPIError, apiPerformanceMonitor } from '@/lib/api-error-handler'
 
 // Mock data for development
 const mockExamPaper: ExamPaperRead = {
@@ -83,6 +92,18 @@ export default function ExamPaperDetailsPage() {
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState('overview')
     const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set())
+    const [showAddModuleDialog, setShowAddModuleDialog] = useState(false)
+    const [selectedModuleIds, setSelectedModuleIds] = useState<string[]>([])
+    const [showUnlinkConfirmDialog, setShowUnlinkConfirmDialog] = useState(false)
+    const [moduleToUnlink, setModuleToUnlink] = useState<{ id: string; name: string } | null>(null)
+    const [addingModules, setAddingModules] = useState(false)
+    const [showAddQuestionSetDialog, setShowAddQuestionSetDialog] = useState(false)
+    const [selectedQuestionSetIds, setSelectedQuestionSetIds] = useState<string[]>([])
+    const [showUnlinkQuestionSetDialog, setShowUnlinkQuestionSetDialog] = useState(false)
+    const [questionSetToUnlink, setQuestionSetToUnlink] = useState<{ id: string; name: string } | null>(null)
+    const [addingQuestionSets, setAddingQuestionSets] = useState(false)
+    const [questionSetsWithCounts, setQuestionSetsWithCounts] = useState<any[]>([])
+    const [loadingQuestionSets, setLoadingQuestionSets] = useState(false)
 
     const examPaperId = params.id as string
 
@@ -123,7 +144,7 @@ export default function ExamPaperDetailsPage() {
     const loadExamPaper = async () => {
         try {
             setLoading(true)
-           
+
             const response = await adminAPI.examPapers.getById(examPaperId)
 
             console.log('📄 API response received:', {
@@ -184,11 +205,93 @@ export default function ExamPaperDetailsPage() {
         }
     }
 
+    const loadQuestionSetsWithCounts = async () => {
+        setLoadingQuestionSets(true)
+        
+        const { result, errorResult } = await executeAPICall(
+            () => adminAPI.questionSets.getByExamPaper(examPaperId),
+            {
+                operation: 'Load Question Sets',
+                enableRetry: true,
+                maxRetries: 2,
+                logParams: { examPaperId }
+            }
+        )
+
+        try {
+            if (!result.error && result.data) {
+                // Use the utility function to parse the response consistently
+                const rawQuestionSets = parseQuestionSetsResponse(result as any)
+                
+                // Sanitize and validate the data
+                const questionSets = rawQuestionSets
+                    .map(sanitizeQuestionSetData)
+                    .filter(Boolean) // Remove any null/invalid items
+                
+                console.log('✅ Successfully loaded and sanitized question sets:', {
+                    count: questionSets.length,
+                    items: questionSets.map(qs => ({ id: qs.id, title: qs.title, questions_count: qs.questions_count }))
+                })
+                
+                setQuestionSetsWithCounts(questionSets)
+            } else {
+                // Handle API errors using standardized error handling
+                if (errorResult) {
+                    // Special handling for 404 - not an error, just no question sets
+                    if (result.error && typeof result.error === 'object' && (result.error as any).status === 404) {
+                        console.log('📝 No question sets found for this exam paper - this is normal')
+                        setQuestionSetsWithCounts([])
+                        return // Don't show error notification for 404
+                    }
+                    
+                    // Show error notification for other errors
+                    addNotification({
+                        type: errorResult.type,
+                        title: errorResult.title,
+                        message: errorResult.message
+                    })
+                }
+                
+                // Attempt fallback to examPaper.question_sets
+                if (examPaper?.question_sets && examPaper.question_sets.length > 0) {
+                    console.log('🔄 Using fallback: examPaper.question_sets', examPaper.question_sets.length, 'items')
+                    const fallbackQuestionSets = examPaper.question_sets
+                        .map(sanitizeQuestionSetData)
+                        .filter(Boolean)
+                    setQuestionSetsWithCounts(fallbackQuestionSets)
+                    
+                    addNotification({
+                        type: 'warning',
+                        title: 'Using Cached Data',
+                        message: 'Showing question sets from cached exam paper data.'
+                    })
+                } else {
+                    console.log('📭 No fallback data available, setting empty array')
+                    setQuestionSetsWithCounts([])
+                }
+            }
+        } finally {
+            setLoadingQuestionSets(false)
+        }
+    }
+
     useEffect(() => {
         if (examPaperId) {
             loadExamPaper()
+            loadQuestionSetsWithCounts()
         }
     }, [examPaperId])
+
+    // Debug function to show API performance metrics (development only)
+    useEffect(() => {
+        if (process.env.NODE_ENV === 'development') {
+            const timer = setTimeout(() => {
+                apiPerformanceMonitor.logSummary()
+            }, 5000) // Log summary after 5 seconds
+            
+            return () => clearTimeout(timer)
+        }
+    }, [])
 
     // Event handlers
     const handleEditExamPaper = () => {
@@ -231,6 +334,228 @@ export default function ExamPaperDetailsPage() {
                 message: 'Exam paper downloaded successfully'
             })
         }, 2000)
+    }
+
+    const handleOpenAddModuleDialog = () => {
+        setSelectedModuleIds([])
+        setShowAddModuleDialog(true)
+    }
+
+    const handleAddModules = async () => {
+        if (selectedModuleIds.length === 0 || !examPaper || addingModules) return
+
+        try {
+            setAddingModules(true)
+            // Add all selected modules
+            const promises = selectedModuleIds.map(moduleId =>
+                adminAPI.examPapers.addModule(examPaperId, moduleId)
+            )
+
+            const results = await Promise.all(promises)
+            const failedCount = results.filter(r => r.error).length
+
+            if (failedCount === 0) {
+                addNotification({
+                    type: 'success',
+                    title: 'Success',
+                    message: `${selectedModuleIds.length} module${selectedModuleIds.length > 1 ? 's' : ''} added successfully`
+                })
+                setShowAddModuleDialog(false)
+                setSelectedModuleIds([])
+                loadExamPaper() // Reload to get updated data
+            } else if (failedCount < selectedModuleIds.length) {
+                addNotification({
+                    type: 'warning',
+                    title: 'Partially Successful',
+                    message: `${selectedModuleIds.length - failedCount} module(s) added, ${failedCount} failed`
+                })
+                setShowAddModuleDialog(false)
+                setSelectedModuleIds([])
+                loadExamPaper()
+            } else {
+                throw new Error('Failed to add modules')
+            }
+        } catch (error) {
+            console.error('Error adding module:', error)
+            addNotification({
+                type: 'error',
+                title: 'Error',
+                message: 'Failed to add module'
+            })
+        } finally {
+            setAddingModules(false)
+        }
+    }
+
+    const handleOpenUnlinkDialog = (moduleId: string, moduleName: string) => {
+        setModuleToUnlink({ id: moduleId, name: moduleName })
+        setShowUnlinkConfirmDialog(true)
+    }
+
+    const handleConfirmUnlink = async () => {
+        if (!moduleToUnlink || !examPaper) return
+
+        try {
+            const response = await adminAPI.examPapers.removeModule(examPaperId, moduleToUnlink.id)
+
+            if (!response.error) {
+                addNotification({
+                    type: 'success',
+                    title: 'Module Unlinked',
+                    message: `${moduleToUnlink.name} has been unlinked from this exam paper`
+                })
+                setShowUnlinkConfirmDialog(false)
+                setModuleToUnlink(null)
+                loadExamPaper() // Reload to get updated data
+            } else {
+                throw new Error('Failed to unlink module')
+            }
+        } catch (error) {
+            console.error('Error unlinking module:', error)
+            addNotification({
+                type: 'error',
+                title: 'Error',
+                message: 'Failed to unlink module from exam paper'
+            })
+        }
+    }
+
+    const handleCancelUnlink = () => {
+        setShowUnlinkConfirmDialog(false)
+        setModuleToUnlink(null)
+    }
+
+    // Question Set Management Handlers
+    const handleOpenAddQuestionSetDialog = () => {
+        setSelectedQuestionSetIds([])
+        setShowAddQuestionSetDialog(true)
+    }
+
+    const handleAddQuestionSets = async () => {
+        if (selectedQuestionSetIds.length === 0 || !examPaper || addingQuestionSets) return
+
+        setAddingQuestionSets(true)
+        
+        try {
+            console.log('🔄 Adding question sets to exam paper:', {
+                examPaperId,
+                questionSetIds: selectedQuestionSetIds,
+                count: selectedQuestionSetIds.length
+            })
+            
+            // Add all selected question sets using standardized error handling
+            const promises = selectedQuestionSetIds.map(async (questionSetId) => {
+                const { result, errorResult } = await executeAPICall(
+                    () => adminAPI.examPapers.addQuestionSet(examPaperId, questionSetId),
+                    {
+                        operation: `Add Question Set ${questionSetId}`,
+                        logParams: { examPaperId, questionSetId }
+                    }
+                )
+                return { result, errorResult, questionSetId }
+            })
+
+            const results = await Promise.all(promises)
+            const failedResults = results.filter(r => r.result.error)
+            const failedCount = failedResults.length
+
+            if (failedCount === 0) {
+                // All question sets added successfully
+                addNotification({
+                    type: 'success',
+                    title: 'Question Sets Added',
+                    message: `Successfully added ${selectedQuestionSetIds.length} question set${selectedQuestionSetIds.length > 1 ? 's' : ''} to the exam paper`
+                })
+                setShowAddQuestionSetDialog(false)
+                setSelectedQuestionSetIds([])
+                loadExamPaper() // Reload to get updated data
+                loadQuestionSetsWithCounts() // Reload question sets with counts
+            } else if (failedCount < selectedQuestionSetIds.length) {
+                // Partial success
+                const successCount = selectedQuestionSetIds.length - failedCount
+                console.warn('⚠️ Partial success adding question sets:', {
+                    successCount,
+                    failedCount,
+                    failedResults: failedResults.map(r => ({ id: r.questionSetId, error: r.errorResult }))
+                })
+                
+                addNotification({
+                    type: 'warning',
+                    title: 'Partially Successful',
+                    message: `Added ${successCount} question set${successCount !== 1 ? 's' : ''}, but ${failedCount} failed to add`
+                })
+                setShowAddQuestionSetDialog(false)
+                setSelectedQuestionSetIds([])
+                loadExamPaper()
+                loadQuestionSetsWithCounts()
+            } else {
+                // All failed - show the first error
+                const firstError = failedResults[0]?.errorResult
+                if (firstError) {
+                    addNotification({
+                        type: firstError.type,
+                        title: firstError.title,
+                        message: firstError.message
+                    })
+                } else {
+                    addNotification({
+                        type: 'error',
+                        title: 'Addition Failed',
+                        message: 'Failed to add question sets to exam paper'
+                    })
+                }
+            }
+        } catch (error) {
+            console.error('❌ Exception adding question sets:', error)
+            const errorResult = handleAPIError(error, { operation: 'Add Question Sets' })
+            addNotification({
+                type: errorResult.type,
+                title: errorResult.title,
+                message: errorResult.message
+            })
+        } finally {
+            setAddingQuestionSets(false)
+        }
+    }
+
+    const handleOpenUnlinkQuestionSetDialog = (questionSetId: string, questionSetName: string) => {
+        setQuestionSetToUnlink({ id: questionSetId, name: questionSetName })
+        setShowUnlinkQuestionSetDialog(true)
+    }
+
+    const handleConfirmUnlinkQuestionSet = async () => {
+        if (!questionSetToUnlink || !examPaper) return
+
+        const { result, errorResult } = await executeAPICall(
+            () => adminAPI.examPapers.removeQuestionSet(examPaperId, questionSetToUnlink.id),
+            {
+                operation: 'Remove Question Set',
+                logParams: { examPaperId, questionSetId: questionSetToUnlink.id, questionSetName: questionSetToUnlink.name }
+            }
+        )
+
+        if (!result.error) {
+            addNotification({
+                type: 'success',
+                title: 'Question Set Removed',
+                message: `Successfully removed "${questionSetToUnlink.name}" from the exam paper`
+            })
+            setShowUnlinkQuestionSetDialog(false)
+            setQuestionSetToUnlink(null)
+            loadExamPaper() // Reload to get updated data
+            loadQuestionSetsWithCounts() // Reload question sets with counts
+        } else if (errorResult) {
+            addNotification({
+                type: errorResult.type,
+                title: errorResult.title,
+                message: errorResult.message
+            })
+        }
+    }
+
+    const handleCancelUnlinkQuestionSet = () => {
+        setShowUnlinkQuestionSetDialog(false)
+        setQuestionSetToUnlink(null)
     }
 
     if (loading) {
@@ -281,7 +606,7 @@ export default function ExamPaperDetailsPage() {
 
                 {/* Content */}
                 <div className="relative container mx-auto px-6 py-10 min-h-full flex flex-col justify-between">
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 mb-8">
                         <Button
                             variant="ghost"
                             size="sm"
@@ -298,7 +623,7 @@ export default function ExamPaperDetailsPage() {
                         <div className="text-center lg:text-left">
                             <div className="flex flex-wrap justify-center lg:justify-start items-center gap-3 mb-4">
                                 <Badge className="bg-blue-500/90 text-white border-0 px-3 py-1.5 text-sm font-medium backdrop-blur-sm">
-                                    {examPaper.identifying_name}
+                                    {(examPaper.title as any)?.name || (examPaper.title as any)?.title || 'Untitled Exam'}
                                 </Badge>
                                 <Badge variant="outline" className="bg-white/10 text-white/90 border-white/30 backdrop-blur-sm px-3 py-1.5">
                                     {examPaper.year_of_exam}
@@ -309,10 +634,10 @@ export default function ExamPaperDetailsPage() {
                                 </Badge>
                             </div>
                             <h1 className="text-3xl lg:text-4xl xl:text-5xl font-bold text-white mb-3 leading-tight">
-                                {(examPaper.title as any)?.name || (examPaper.title as any)?.title || 'Untitled Exam'}
+                                {examPaper.identifying_name}
                             </h1>
                             <p className="text-white/80 text-base lg:text-lg max-w-4xl mx-auto lg:mx-0 leading-relaxed mb-6">
-                                {(examPaper.description as any)?.name || (examPaper.description as any)?.description || 'No description available'}
+                                {(examPaper.description as any)?.name || (examPaper.description as any)?.description || 'No description available'} | {examPaper.year_of_exam}
                             </p>
                         </div>
 
@@ -485,189 +810,6 @@ export default function ExamPaperDetailsPage() {
                         </Card>
                     )}
 
-                    {/* Questions Display */}
-                    {examPaper.question_sets && examPaper.question_sets.length > 0 && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <MessageSquare className="h-5 w-5" />
-                                    Questions
-                                </CardTitle>
-                                <CardDescription>
-                                    All questions organized by sections
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-8">
-                                    {examPaper.question_sets.map((questionSet, setIndex) => (
-                                        <div key={questionSet.id} className="space-y-4">
-                                            {/* Question Set Header */}
-                                            <div className="flex items-center gap-3 pb-3 border-b">
-                                                <div className="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center text-sm font-bold">
-                                                    {setIndex + 1}
-                                                </div>
-                                                <div>
-                                                    <h3 className="text-lg font-semibold">
-                                                        {(questionSet as any)?.title || `Question Set ${setIndex + 1}`}
-                                                    </h3>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        {(questionSet as any)?.questions_count || (questionSet as any)?.questions?.length || 0} questions
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            {/* Questions */}
-                                            {(questionSet as any)?.questions && (questionSet as any).questions.length > 0 && (
-                                                <div className="space-y-6 ml-4">
-                                                    {(questionSet as any).questions.map((question: any, questionIndex: number) => {
-                                                        const questionText = renderQuestionText(question.text)
-                                                        const questionTextString = question.text?.blocks?.map((b: any) => b.data.text).join(' ') || ''
-                                                        const isLongQuestion = questionTextString.length > 150
-                                                        const isExpanded = isQuestionExpanded(question.id)
-
-                                                        return (
-                                                            <div key={question.id} className="space-y-4 p-4 border rounded-lg bg-slate-50/50">
-                                                                {/* Question Header */}
-                                                                <div className="flex items-start justify-between">
-                                                                    <div className="flex items-start gap-3 flex-1">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <Badge variant="outline" className="text-xs">
-                                                                                {question.question_number || `Q${questionIndex + 1}`}
-                                                                            </Badge>
-                                                                            <Badge variant="secondary" className="text-xs">
-                                                                                {question.marks} marks
-                                                                            </Badge>
-                                                                        </div>
-                                                                    </div>
-                                                                    {isLongQuestion && (
-                                                                        <Button
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            onClick={() => toggleQuestionExpansion(question.id)}
-                                                                            className="ml-2"
-                                                                        >
-                                                                            {isExpanded ? (
-                                                                                <>
-                                                                                    <ChevronUp className="h-4 w-4 mr-1" />
-                                                                                    Collapse
-                                                                                </>
-                                                                            ) : (
-                                                                                <>
-                                                                                    <ChevronDown className="h-4 w-4 mr-1" />
-                                                                                    Expand
-                                                                                </>
-                                                                            )}
-                                                                        </Button>
-                                                                    )}
-                                                                </div>
-
-                                                                {/* Question Text */}
-                                                                <div className="prose prose-sm max-w-none">
-                                                                    {isLongQuestion && !isExpanded ? (
-                                                                        <div>
-                                                                            <p>{truncateText(questionTextString)}</p>
-                                                                        </div>
-                                                                    ) : (
-                                                                        questionText
-                                                                    )}
-                                                                </div>
-
-                                                                {/* Sub-questions */}
-                                                                {question.children && question.children.length > 0 && (
-                                                                    <div className="ml-6 space-y-3 border-l-2 border-muted pl-4">
-                                                                        {question.children.map((subQuestion: any, subIndex: number) => {
-                                                                            const subQuestionText = renderQuestionText(subQuestion.text)
-                                                                            const subQuestionTextString = subQuestion.text?.blocks?.map((b: any) => b.data.text).join(' ') || ''
-                                                                            const isSubLongQuestion = subQuestionTextString.length > 150
-                                                                            const isSubExpanded = isQuestionExpanded(subQuestion.id)
-
-                                                                            return (
-                                                                                <div key={subQuestion.id} className="space-y-2 p-3 bg-white rounded border">
-                                                                                    <div className="flex items-start justify-between">
-                                                                                        <div className="flex items-center gap-2">
-                                                                                            <Badge variant="outline" className="text-xs">
-                                                                                                {subQuestion.question_number || `${question.question_number || questionIndex + 1}.${subIndex + 1}`}
-                                                                                            </Badge>
-                                                                                            <Badge variant="secondary" className="text-xs">
-                                                                                                {subQuestion.marks} marks
-                                                                                            </Badge>
-                                                                                        </div>
-                                                                                        {isSubLongQuestion && (
-                                                                                            <Button
-                                                                                                variant="ghost"
-                                                                                                size="sm"
-                                                                                                onClick={() => toggleQuestionExpansion(subQuestion.id)}
-                                                                                                className="ml-2"
-                                                                                            >
-                                                                                                {isSubExpanded ? (
-                                                                                                    <>
-                                                                                                        <ChevronUp className="h-4 w-4 mr-1" />
-                                                                                                        Collapse
-                                                                                                    </>
-                                                                                                ) : (
-                                                                                                    <>
-                                                                                                        <ChevronDown className="h-4 w-4 mr-1" />
-                                                                                                        Expand
-                                                                                                    </>
-                                                                                                )}
-                                                                                            </Button>
-                                                                                        )}
-                                                                                    </div>
-                                                                                    <div className="prose prose-sm max-w-none">
-                                                                                        {isSubLongQuestion && !isSubExpanded ? (
-                                                                                            <div>
-                                                                                                <p>{truncateText(subQuestionTextString)}</p>
-                                                                                            </div>
-                                                                                        ) : (
-                                                                                            subQuestionText
-                                                                                        )}
-                                                                                    </div>
-
-                                                                                    {/* Sub-question Answers */}
-                                                                                    {subQuestion.answers && subQuestion.answers.length > 0 && (
-                                                                                        <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded">
-                                                                                            <div className="flex items-center gap-2 mb-2">
-                                                                                                <MessageSquare className="h-4 w-4 text-green-600" />
-                                                                                                <span className="text-sm font-medium text-green-800">Answer:</span>
-                                                                                            </div>
-                                                                                            {subQuestion.answers.map((answer: any, answerIndex: number) => (
-                                                                                                <div key={answerIndex} className="text-sm text-green-700">
-                                                                                                    {renderQuestionText(answer.text)}
-                                                                                                </div>
-                                                                                            ))}
-                                                                                        </div>
-                                                                                    )}
-                                                                                </div>
-                                                                            )
-                                                                        })}
-                                                                    </div>
-                                                                )}
-
-                                                                {/* Main Question Answers */}
-                                                                {question.answers && question.answers.length > 0 && (
-                                                                    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded">
-                                                                        <div className="flex items-center gap-2 mb-3">
-                                                                            <MessageSquare className="h-4 w-4 text-green-600" />
-                                                                            <span className="text-sm font-medium text-green-800">Answer:</span>
-                                                                        </div>
-                                                                        {question.answers.map((answer: any, answerIndex: number) => (
-                                                                            <div key={answerIndex} className="text-sm text-green-700">
-                                                                                {renderQuestionText(answer.text)}
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        )
-                                                    })}
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
                 </TabsContent>
 
                 {/* Modules Tab */}
@@ -679,7 +821,7 @@ export default function ExamPaperDetailsPage() {
                                 Modules covered in this examination
                             </p>
                         </div>
-                        <Button>
+                        <Button onClick={handleOpenAddModuleDialog}>
                             <Plus className="mr-2 h-4 w-4" />
                             Add Module
                         </Button>
@@ -688,9 +830,29 @@ export default function ExamPaperDetailsPage() {
                     {examPaper.modules && examPaper.modules.length > 0 ? (
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                             {examPaper.modules.map((module) => (
-                                <Card key={module.id}>
+                                <Card key={module.id} className="relative">
+                                    <div className="absolute top-2 right-2 flex gap-1">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => router.push(`/dashboard/modules/${module.id}`)}
+                                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                            title="View module details"
+                                        >
+                                            <Eye className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleOpenUnlinkDialog(module.id, module.name)}
+                                            className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                                            title="Unlink module from exam paper"
+                                        >
+                                            <Unlink className="h-4 w-4" />
+                                        </Button>
+                                    </div>
                                     <CardHeader>
-                                        <CardTitle className="flex items-center gap-2">
+                                        <CardTitle className="flex items-center gap-2 pr-16">
                                             <BookOpen className="h-5 w-5" />
                                             {module.name}
                                         </CardTitle>
@@ -730,63 +892,158 @@ export default function ExamPaperDetailsPage() {
                                 Organized collections of questions for this exam
                             </p>
                         </div>
-                        <Button>
+                        <Button onClick={handleOpenAddQuestionSetDialog}>
                             <Plus className="mr-2 h-4 w-4" />
                             Add Question Set
                         </Button>
                     </div>
 
-                    {examPaper.question_sets && examPaper.question_sets.length > 0 ? (
-                        <div className="space-y-4">
-                            {examPaper.question_sets.map((questionSet, index) => (
-                                <Card key={questionSet.id}>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center gap-2">
-                                            <div className="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center text-sm font-medium">
-                                                {index + 1}
+                    {loadingQuestionSets ? (
+                        <div className="flex items-center justify-center py-12">
+                            <LoadingSpinner className="mr-2" />
+                            <span className="text-muted-foreground">Loading question sets...</span>
+                        </div>
+                    ) : (() => {
+                        // Enhanced display logic: prioritize questionSetsWithCounts over examPaper.question_sets
+                        const displayQuestionSets = questionSetsWithCounts.length > 0 
+                            ? questionSetsWithCounts 
+                            : (examPaper?.question_sets || [])
+                        
+                        const hasQuestionSets = displayQuestionSets.length > 0
+                        const isUsingFallback = questionSetsWithCounts.length === 0 && (examPaper?.question_sets?.length || 0) > 0
+                        
+                        console.log('🎯 Question sets display logic:', {
+                            questionSetsWithCountsLength: questionSetsWithCounts.length,
+                            examPaperQuestionSetsLength: examPaper?.question_sets?.length || 0,
+                            displayQuestionSetsLength: displayQuestionSets.length,
+                            hasQuestionSets,
+                            isUsingFallback
+                        })
+
+                        if (!hasQuestionSets) {
+                            // Enhanced empty state
+                            return (
+                                <Card>
+                                    <CardContent className="py-12 text-center">
+                                        <div className="flex flex-col items-center space-y-4">
+                                            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+                                                <ListChecks className="h-8 w-8 text-muted-foreground" />
                                             </div>
-                                            {(questionSet as any)?.title || (questionSet as any)?.name || `Question Set ${index + 1}`}
-                                        </CardTitle>
-                                        <CardDescription>{(questionSet as any)?.description || 'No description available'}</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                                <span className="flex items-center gap-1">
-                                                    <FileText className="h-4 w-4" />
-                                                    {(questionSet as any)?.questions_count || (questionSet as any)?.questions?.length || 0} questions
-                                                </span>
+                                            <div className="space-y-2">
+                                                <h3 className="text-lg font-semibold">No Question Sets Found</h3>
+                                                <p className="text-muted-foreground max-w-md">
+                                                    This exam paper doesn't have any question sets associated with it yet. 
+                                                    Question sets help organize questions into logical groups.
+                                                </p>
                                             </div>
-                                            <div className="flex gap-2">
-                                                <Button size="sm" variant="outline">
-                                                    <Eye className="mr-2 h-4 w-4" />
-                                                    View Questions
+                                            <div className="flex flex-col sm:flex-row gap-2">
+                                                <Button onClick={handleOpenAddQuestionSetDialog}>
+                                                    <Plus className="mr-2 h-4 w-4" />
+                                                    Add Question Set
                                                 </Button>
-                                                <Button size="sm" variant="outline">
-                                                    <Edit className="mr-2 h-4 w-4" />
-                                                    Edit
+                                                <Button variant="outline" onClick={() => loadQuestionSetsWithCounts()}>
+                                                    <Search className="mr-2 h-4 w-4" />
+                                                    Refresh
                                                 </Button>
                                             </div>
                                         </div>
                                     </CardContent>
                                 </Card>
-                            ))}
-                        </div>
-                    ) : (
-                        <Card>
-                            <CardContent className="py-8 text-center">
-                                <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                                <h3 className="text-lg font-semibold mb-2">No Question Sets</h3>
-                                <p className="text-muted-foreground mb-4">
-                                    No question sets have been created for this exam paper yet.
-                                </p>
-                                <Button>
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Create First Question Set
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    )}
+                            )
+                        }
+
+                        return (
+                            <div className="space-y-4">
+                                {/* Show data source indicator if using fallback */}
+                                {isUsingFallback && (
+                                    <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                                        <AlertCircle className="h-4 w-4" />
+                                        <span>Showing cached question sets data. Some information may be outdated.</span>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            onClick={() => loadQuestionSetsWithCounts()}
+                                            className="ml-auto text-amber-700 hover:text-amber-900"
+                                        >
+                                            Refresh
+                                        </Button>
+                                    </div>
+                                )}
+                                
+                                {/* Question sets grid */}
+                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                    {displayQuestionSets.map((questionSet, index) => {
+                                        // Ensure consistent data structure for rendering
+                                        const safeQuestionSet = {
+                                            id: questionSet.id,
+                                            title: questionSet.title || null,
+                                            slug: questionSet.slug || null,
+                                            questions_count: questionSet.questions_count || 0,
+                                            exam_papers_count: questionSet.exam_papers_count || 0,
+                                            // Handle legacy name field as fallback for title
+                                            displayTitle: questionSet.title || (questionSet as any).name || `Question Set ${index + 1}`,
+                                            // Handle legacy description field
+                                            displayDescription: questionSet.slug || (questionSet as any).description || 'No description available'
+                                        }
+
+                                        return (
+                                            <Card key={safeQuestionSet.id} className="relative">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleOpenUnlinkQuestionSetDialog(
+                                                        safeQuestionSet.id,
+                                                        safeQuestionSet.displayTitle
+                                                    )}
+                                                    className="absolute top-2 right-2 text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                                                    title="Unlink question set from exam paper"
+                                                >
+                                                    <Unlink className="h-4 w-4" />
+                                                </Button>
+                                                <CardHeader>
+                                                    <CardTitle className="flex items-center gap-2 pr-12">
+                                                        <div className="w-8 h-8 bg-primary/10 text-primary rounded-full flex items-center justify-center text-sm font-medium">
+                                                            {index + 1}
+                                                        </div>
+                                                        <span className="truncate">{safeQuestionSet.displayTitle}</span>
+                                                    </CardTitle>
+                                                    <CardDescription className="truncate">
+                                                        {safeQuestionSet.displayDescription}
+                                                    </CardDescription>
+                                                </CardHeader>
+                                                <CardContent>
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-center justify-between text-sm">
+                                                            <div className="flex items-center gap-2 text-muted-foreground">
+                                                                <FileText className="h-4 w-4" />
+                                                                <span>
+                                                                    {safeQuestionSet.questions_count} question{safeQuestionSet.questions_count !== 1 ? 's' : ''}
+                                                                </span>
+                                                            </div>
+                                                            {safeQuestionSet.exam_papers_count > 0 && (
+                                                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                                    <Users className="h-3 w-3" />
+                                                                    <span>{safeQuestionSet.exam_papers_count} exam{safeQuestionSet.exam_papers_count !== 1 ? 's' : ''}</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <Button size="sm" variant="outline" className="flex-1" title="View question set">
+                                                                <Eye className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button size="sm" variant="outline" className="flex-1" title="Edit question set">
+                                                                <Edit className="h-4 w-4" />
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        )
+                    })()}
                 </TabsContent>
 
                 {/* Analytics Tab */}
@@ -848,6 +1105,170 @@ export default function ExamPaperDetailsPage() {
                     </Card>
                 </TabsContent>
             </Tabs>
+
+            {/* Add Module Dialog */}
+            <Dialog open={showAddModuleDialog} onOpenChange={setShowAddModuleDialog}>
+                <DialogContent className="sm:max-w-[600px]">
+                    <DialogHeader>
+                        <DialogTitle>Add Modules to Exam Paper</DialogTitle>
+                        <DialogDescription>
+                            Search and select one or more modules to add to this exam paper.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <ModuleSelector
+                            selectedModuleIds={selectedModuleIds}
+                            onSelectionChange={setSelectedModuleIds}
+                            excludeModuleIds={examPaper?.modules?.map(m => m.id) || []}
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowAddModuleDialog(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleAddModules}
+                            disabled={selectedModuleIds.length === 0 || addingModules}
+                            className="cursor-pointer"
+                        >
+                            {addingModules ? (
+                                <>
+                                    <LoadingSpinner className="mr-2 h-4 w-4" />
+                                    Adding...
+                                </>
+                            ) : (
+                                <>
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Add {selectedModuleIds.length > 0 ? `${selectedModuleIds.length} ` : ''}Module{selectedModuleIds.length !== 1 ? 's' : ''}
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Unlink Module Confirmation Dialog */}
+            <Dialog open={showUnlinkConfirmDialog} onOpenChange={setShowUnlinkConfirmDialog}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-100">
+                                <AlertCircle className="h-5 w-5 text-orange-600" />
+                            </div>
+                            <div>
+                                <DialogTitle>Unlink Module</DialogTitle>
+                                <DialogDescription>
+                                    This action will remove the module from this exam paper
+                                </DialogDescription>
+                            </div>
+                        </div>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <div className="rounded-lg bg-orange-50 border border-orange-200 p-4">
+                            <p className="text-sm text-gray-700">
+                                Are you sure you want to unlink <span className="font-semibold text-orange-900">{moduleToUnlink?.name}</span> from this exam paper?
+                            </p>
+                            <p className="text-xs text-gray-600 mt-2">
+                                The module itself will not be deleted, only the association with this exam paper will be removed.
+                            </p>
+                        </div>
+                    </div>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button variant="outline" onClick={handleCancelUnlink}>
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleConfirmUnlink}
+                            className="bg-orange-600 hover:bg-orange-700 text-white"
+                        >
+                            <Unlink className="mr-2 h-4 w-4" />
+                            Unlink Module
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Add Question Set Dialog */}
+            <Dialog open={showAddQuestionSetDialog} onOpenChange={setShowAddQuestionSetDialog}>
+                <DialogContent className="sm:max-w-[600px]">
+                    <DialogHeader>
+                        <DialogTitle>Add Question Sets to Exam Paper</DialogTitle>
+                        <DialogDescription>
+                            Search and select one or more question sets to add to this exam paper.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <QuestionSetSelector
+                            selectedQuestionSetIds={selectedQuestionSetIds}
+                            onSelectionChange={setSelectedQuestionSetIds}
+                            excludeQuestionSetIds={examPaper?.question_sets?.map(qs => qs.id) || []}
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowAddQuestionSetDialog(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleAddQuestionSets}
+                            disabled={selectedQuestionSetIds.length === 0 || addingQuestionSets}
+                            className="cursor-pointer"
+                        >
+                            {addingQuestionSets ? (
+                                <>
+                                    <LoadingSpinner className="mr-2 h-4 w-4" />
+                                    Adding...
+                                </>
+                            ) : (
+                                <>
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Add {selectedQuestionSetIds.length > 0 ? `${selectedQuestionSetIds.length} ` : ''}Question Set{selectedQuestionSetIds.length !== 1 ? 's' : ''}
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Unlink Question Set Confirmation Dialog */}
+            <Dialog open={showUnlinkQuestionSetDialog} onOpenChange={setShowUnlinkQuestionSetDialog}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-100">
+                                <AlertCircle className="h-5 w-5 text-orange-600" />
+                            </div>
+                            <div>
+                                <DialogTitle>Unlink Question Set</DialogTitle>
+                                <DialogDescription>
+                                    This action will remove the question set from this exam paper
+                                </DialogDescription>
+                            </div>
+                        </div>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <div className="rounded-lg bg-orange-50 border border-orange-200 p-4">
+                            <p className="text-sm text-gray-700">
+                                Are you sure you want to unlink <span className="font-semibold text-orange-900">{questionSetToUnlink?.name}</span> from this exam paper?
+                            </p>
+                            <p className="text-xs text-gray-600 mt-2">
+                                The question set itself will not be deleted, only the association with this exam paper will be removed.
+                            </p>
+                        </div>
+                    </div>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button variant="outline" onClick={handleCancelUnlinkQuestionSet}>
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleConfirmUnlinkQuestionSet}
+                            className="bg-orange-600 hover:bg-orange-700 text-white"
+                        >
+                            <Unlink className="mr-2 h-4 w-4" />
+                            Unlink Question Set
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

@@ -56,13 +56,13 @@ export default function HomePage() {
   const totalPages = Math.ceil(totalQuestions / pageSize);
   const safeInstitutions = institutions || [];
 
-  console.log('🏠 Landing Page State:', {
-    questionsCount: safeQuestions.length,
-    totalQuestions,
-    totalPages,
-    currentPage,
-    pageSize,
-  });
+  // console.log('🏠 Landing Page State:', {
+  //   questionsCount: safeQuestions.length,
+  //   totalQuestions,
+  //   totalPages,
+  //   currentPage,
+  //   pageSize,
+  // });
 
   const handlePageChange = (page: number) => {
     console.log('📄 Page change requested:', page);

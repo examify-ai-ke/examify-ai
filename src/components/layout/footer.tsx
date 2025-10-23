@@ -1,7 +1,8 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { APP_CONFIG } from '@/lib/constants';
 import { cn } from '@/lib/utils';
-import { BookOpen, Github, Twitter, Mail } from 'lucide-react';
+import { Github, Twitter, Mail } from 'lucide-react';
 
 interface FooterProps {
   className?: string;
@@ -19,9 +20,15 @@ export function Footer({ className }: FooterProps) {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="space-y-4">
-            <Link href="/" className="flex items-center space-x-2">
-              <BookOpen className="h-6 w-6" />
-              <span className="font-bold text-xl">{APP_CONFIG.name}</span>
+            <Link href="/" className="flex items-center space-x-3">
+              <Image
+                src="/exampapepel-logo-resized.png"
+                alt={`${APP_CONFIG.name} Logo`}
+                width={200}
+                height={60}
+                quality={100}
+                className="h-18 w-auto object-contain"
+              />
             </Link>
             <p className="text-sm text-muted-foreground max-w-xs">
               {APP_CONFIG.description}

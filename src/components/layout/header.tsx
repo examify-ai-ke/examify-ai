@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -13,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Menu, User, LogOut, Settings, BookOpen } from 'lucide-react';
+import { Menu, User, LogOut, Settings } from 'lucide-react';
 import { APP_CONFIG } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
@@ -36,7 +37,7 @@ export function Header({ className, onMenuClick }: HeaderProps) {
       'sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60',
       className
     )}>
-      <div className="w-full max-w-7xl mx-auto px-4 flex h-14 items-center">
+      <div className="container mx-auto px-4 flex h-16 items-center">
         {/* Mobile menu button */}
         <Button
           variant="ghost"
@@ -49,9 +50,16 @@ export function Header({ className, onMenuClick }: HeaderProps) {
         </Button>
 
         {/* Logo */}
-        <Link href="/" className="flex items-center space-x-2">
-          <BookOpen className="h-6 w-6" />
-          <span className="font-bold text-xl">{APP_CONFIG.name}</span>
+        <Link href="/" className="flex items-center space-x-3">
+          <Image
+            src="/exampapepel-logo-resized.png"
+            alt={`${APP_CONFIG.name} Logo`}
+            width={120}
+            height={60}
+            quality={100}
+            className="h-16 w-auto object-contain"
+            priority
+          />
         </Link>
 
         {/* Navigation - Desktop */}

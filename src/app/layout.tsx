@@ -34,6 +34,11 @@ export const metadata: Metadata = {
   creator: "Exampapel",
   publisher: "Exampapel",
   robots: "index, follow",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
+  },
   openGraph: {
     title: APP_CONFIG.name,
     description: APP_CONFIG.description,

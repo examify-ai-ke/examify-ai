@@ -10,35 +10,40 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Grid, List, SlidersHorizontal } from 'lucide-react';
-import type { SortOption, ViewMode } from './types';
+import { Search, Grid, List, SlidersHorizontal, X, Loader2, ArrowUpDown } from 'lucide-react';
+import type { SearchFilters } from '@/types/search-filters';
+
+type ViewMode = 'grid' | 'list';
 
 interface SearchAndSortProps {
   searchQuery?: string;
-  sortBy?: SortOption;
+  sortBy?: SearchFilters['sortBy'];
+  sortOrder?: SearchFilters['sortOrder'];
   viewMode?: ViewMode;
   totalResults: number;
+  isLoading?: boolean;
   onSearchChange: (query: string) => void;
-  onSortChange: (sort: SortOption) => void;
+  onSortChange: (sortBy: SearchFilters['sortBy'], sortOrder: SearchFilters['sortOrder']) => void;
   onViewModeChange: (mode: ViewMode) => void;
   onFilterClick?: () => void;
   showFilterButton?: boolean;
   className?: string;
 }
 
-const sortOptions: { value: SortOption; label: string }[] = [
-  { value: 'newest', label: 'Newest First' },
-  { value: 'oldest', label: 'Oldest First' },
-  { value: 'popular', label: 'Most Popular' },
-  { value: 'alphabetical', label: 'A-Z' },
-  { value: 'most-questions', label: 'Most Questions' },
+const sortOptions: { value: SearchFilters['sortBy']; label: string }[] = [
+  { value: 'relevance', label: 'Relevance' },
+  { value: 'date', label: 'Date' },
+  { value: 'duration', label: 'Duration' },
+  { value: 'title', label: 'Title' },
 ];
 
 export function SearchAndSort({
   searchQuery = '',
-  sortBy = 'newest',
-  viewMode = 'grid',
+  sortBy = 'date',
+  sortOrder = 'desc',
+  viewMode = 'list',
   totalResults,
+  isLoading = false,
   onSearchChange,
   onSortChange,
   onViewModeChange,
@@ -47,22 +52,37 @@ export function SearchAndSort({
   className = '',
 }: SearchAndSortProps) {
   const [localSearch, setLocalSearch] = useState(searchQuery);
+  const [isSearching, setIsSearching] = useState(false);
 
-  // Debounce search input
+  // Debounce search input (300ms as per requirements)
   useEffect(() => {
+    setIsSearching(true);
     const timer = setTimeout(() => {
       if (localSearch !== searchQuery) {
         onSearchChange(localSearch);
       }
-    }, 500); // 500ms debounce
+      setIsSearching(false);
+    }, 300);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      setIsSearching(false);
+    };
   }, [localSearch, searchQuery, onSearchChange]);
 
   // Sync with external search query changes
   useEffect(() => {
     setLocalSearch(searchQuery);
   }, [searchQuery]);
+
+  const handleClearSearch = () => {
+    setLocalSearch('');
+    onSearchChange('');
+  };
+
+  const handleSortOrderToggle = () => {
+    onSortChange(sortBy, sortOrder === 'asc' ? 'desc' : 'asc');
+  };
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -88,8 +108,26 @@ export function SearchAndSort({
             placeholder="Search exam papers..."
             value={localSearch}
             onChange={(e) => setLocalSearch(e.target.value)}
-            className="pl-10"
+            className="pl-10 pr-20"
+            disabled={isLoading}
+            aria-label="Search exam papers"
           />
+          {/* Loading Indicator */}
+          {(isSearching || isLoading) && (
+            <Loader2 className="absolute right-10 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 animate-spin" />
+          )}
+          {/* Clear Button */}
+          {localSearch && !isLoading && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearSearch}
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 p-0 hover:bg-gray-100"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -97,27 +135,50 @@ export function SearchAndSort({
       <div className="flex items-center justify-between gap-4 flex-wrap">
         {/* Results Count */}
         <div className="text-sm text-gray-600">
-          <span className="font-medium text-gray-900">
-            {totalResults.toLocaleString()}
-          </span>{' '}
-          {totalResults === 1 ? 'exam paper' : 'exam papers'} found
+          {totalResults === 0 ? (
+            <span className="text-gray-500">No results found</span>
+          ) : (
+            <>
+              <span className="font-medium text-gray-900">
+                {totalResults.toLocaleString()}
+              </span>{' '}
+              {totalResults === 1 ? 'exam paper' : 'exam papers'} found
+            </>
+          )}
         </div>
 
         {/* Sort and View Controls */}
         <div className="flex items-center gap-3">
           {/* Sort Dropdown */}
-          <Select value={sortBy} onValueChange={(value) => onSortChange(value as SortOption)}>
-            <SelectTrigger className="w-[180px]">
+          <Select 
+            value={sortBy} 
+            onValueChange={(value) => onSortChange(value as SearchFilters['sortBy'], sortOrder)}
+            disabled={isLoading}
+          >
+            <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
               {sortOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
+                <SelectItem key={option.value} value={option.value || 'date'}>
                   {option.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+
+          {/* Sort Order Toggle */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSortOrderToggle}
+            disabled={isLoading}
+            className="h-10 px-3"
+            aria-label={`Sort order: ${sortOrder === 'asc' ? 'ascending' : 'descending'}`}
+          >
+            <ArrowUpDown className="h-4 w-4 mr-2" />
+            {sortOrder === 'asc' ? 'Asc' : 'Desc'}
+          </Button>
 
           {/* View Mode Toggle */}
           <div className="hidden sm:flex items-center gap-1 border border-gray-300 rounded-md p-1">

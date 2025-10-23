@@ -17,15 +17,32 @@ export type ModuleRead = components['schemas']['ModuleRead'];
  * Filters for fetching exam papers
  */
 export interface ExamPaperFilters {
+    // Text search
+    q?: string;
+    search?: string;
+    
+    // Entity filters
     institution_id?: string;
     course_id?: string;
     year?: string;
-    search?: string;
-    tags?: string[];
+    tags?: string | string[];
+    
+    // Range filters
+    duration_min?: number;
+    duration_max?: number;
+    exam_date_from?: string;
+    exam_date_to?: string;
+    
+    // Sorting
+    sort_by?: 'created_at' | 'title' | 'year_of_exam' | 'duration';
+    sort_order?: 'asc' | 'desc';
+    
+    // Pagination
     limit?: number;
     skip?: number;
-    sort_by?: 'created_at' | 'title' | 'year_of_exam';
-    sort_order?: 'asc' | 'desc';
+    
+    // AbortController signal for request cancellation
+    signal?: AbortSignal;
 }
 
 /**
@@ -143,6 +160,7 @@ export const publicAPI = {
 
         /**
          * Search exam papers with advanced filters
+         * Supports comprehensive filtering, sorting, and request cancellation
          */
         async search(filters: ExamPaperFilters) {
             try {
@@ -151,17 +169,45 @@ export const publicAPI = {
                     limit: filters.limit || 20,
                 };
 
+                // Text search
+                if (filters.q) searchParams.q = filters.q;
                 if (filters.search) searchParams.q = filters.search;
+                
+                // Entity filters
                 if (filters.institution_id) searchParams.institution_id = filters.institution_id;
                 if (filters.course_id) searchParams.course_id = filters.course_id;
                 if (filters.year) searchParams.year = filters.year;
+                
+                // Tags - handle both string and array
+                if (filters.tags) {
+                    searchParams.tags = Array.isArray(filters.tags) 
+                        ? filters.tags.join(',') 
+                        : filters.tags;
+                }
+                
+                // Range filters
+                if (filters.duration_min !== undefined) {
+                    searchParams.duration_min = filters.duration_min;
+                }
+                if (filters.duration_max !== undefined) {
+                    searchParams.duration_max = filters.duration_max;
+                }
+                if (filters.exam_date_from) {
+                    searchParams.exam_date_from = filters.exam_date_from;
+                }
+                if (filters.exam_date_to) {
+                    searchParams.exam_date_to = filters.exam_date_to;
+                }
+                
+                // Sorting
                 if (filters.sort_by) searchParams.sort_by = filters.sort_by;
                 if (filters.sort_order) searchParams.sort_order = filters.sort_order;
 
                 const response = await api.GET('/api/v1/exampaper/search', {
                     params: {
                         query: searchParams
-                    }
+                    },
+                    signal: filters.signal,
                 });
 
                 return {
@@ -170,7 +216,18 @@ export const publicAPI = {
                     pagination: extractPagination(response),
                     error: response.error,
                 };
-            } catch (error) {
+            } catch (error: any) {
+                // Handle abort errors gracefully
+                if (error.name === 'AbortError') {
+                    console.log('Search request cancelled');
+                    return {
+                        data: [],
+                        total: 0,
+                        pagination: { page: 1, size: 10, pages: 0, total: 0 },
+                        error: null,
+                    };
+                }
+                
                 console.error('Error searching exam papers:', error);
                 return {
                     data: [],
@@ -247,8 +304,8 @@ export const publicAPI = {
                 const response = await api.GET('/api/v1/exampaper/get_by_created_at', {
                     params: {
                         query: {
-                            page: 1,
-                            size: limit,
+                            skip: 0,
+                            limit: limit,
                             order: 'descendent'
                         }
                     }
@@ -411,7 +468,7 @@ export const publicAPI = {
          */
         async list(filters?: InstitutionFilters) {
             try {
-                console.log('🏛️ Fetching institutions:', filters);
+                console.log('🏛️ Fetching institutions from:', process.env.NEXT_PUBLIC_API_URL || 'http://fastapi.localhost');
                 const response = await api.GET('/api/v1/institution', {
                     params: {
                         query: {
@@ -420,6 +477,11 @@ export const publicAPI = {
                         }
                     }
                 });
+
+                if (response.error) {
+                    console.error('❌ Institutions API Error:', response.error);
+                    throw new Error(`API Error: ${JSON.stringify(response.error)}`);
+                }
 
                 const items = extractItems<InstitutionRead>(response);
                 console.log('📦 Institutions response:', {
@@ -437,7 +499,7 @@ export const publicAPI = {
                     error: response.error,
                 };
             } catch (error) {
-                console.error('Error fetching institutions:', error);
+                console.error('❌ Error fetching institutions:', error);
                 return {
                     data: [],
                     total: 0,
@@ -631,6 +693,7 @@ export const publicAPI = {
          */
         async list(filters?: { skip?: number; limit?: number }) {
             try {
+                console.log('📚 Fetching courses from:', process.env.NEXT_PUBLIC_API_URL || 'http://fastapi.localhost');
                 const response = await api.GET('/api/v1/course', {
                     params: {
                         query: {
@@ -640,14 +703,25 @@ export const publicAPI = {
                     }
                 });
 
+                if (response.error) {
+                    console.error('❌ Courses API Error:', response.error);
+                    throw new Error(`API Error: ${JSON.stringify(response.error)}`);
+                }
+
+                const items = extractItems<CourseRead>(response);
+                console.log('📦 Courses response:', {
+                    count: items.length,
+                    sampleData: items[0],
+                });
+
                 return {
-                    data: extractItems<CourseRead>(response),
+                    data: items,
                     total: extractTotal(response),
                     pagination: extractPagination(response),
                     error: response.error,
                 };
             } catch (error) {
-                console.error('Error fetching courses:', error);
+                console.error('❌ Error fetching courses:', error);
                 return {
                     data: [],
                     total: 0,

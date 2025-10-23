@@ -6,18 +6,23 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { X, ChevronDown, ChevronUp } from 'lucide-react';
-import type { ActiveFilters, FilterOption } from './types';
+import { Input } from '@/components/ui/input';
+import { X, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import type { SearchFilters, FilterOption } from '@/types/search-filters';
 
 interface FilterSidebarProps {
-  filters: {
+  filters?: {
     institutions: FilterOption[];
     years: FilterOption[];
     courses: FilterOption[];
+    tags: FilterOption[];
+    durationRange: { min: number; max: number };
+    dateRange: { min: string; max: string };
   };
-  activeFilters: ActiveFilters;
-  onFilterChange: (filters: ActiveFilters) => void;
+  activeFilters: SearchFilters;
+  onFilterChange: (filters: Partial<SearchFilters>) => void;
   onClearFilters: () => void;
+  isLoading?: boolean;
   className?: string;
 }
 
@@ -119,17 +124,17 @@ export function FilterSidebar({
   activeFilters,
   onFilterChange,
   onClearFilters,
+  isLoading = false,
   className = '',
 }: FilterSidebarProps) {
   const handleInstitutionToggle = (value: string) => {
-    const current = activeFilters.institutions || [];
+    const current = activeFilters.institutionIds || [];
     const updated = current.includes(value)
       ? current.filter((v) => v !== value)
       : [...current, value];
     
     onFilterChange({
-      ...activeFilters,
-      institutions: updated.length > 0 ? updated : undefined,
+      institutionIds: updated.length > 0 ? updated : undefined,
     });
   };
 
@@ -140,28 +145,54 @@ export function FilterSidebar({
       : [...current, value];
     
     onFilterChange({
-      ...activeFilters,
       years: updated.length > 0 ? updated : undefined,
     });
   };
 
   const handleCourseToggle = (value: string) => {
-    const current = activeFilters.courses || [];
+    const current = activeFilters.courseIds || [];
     const updated = current.includes(value)
       ? current.filter((v) => v !== value)
       : [...current, value];
     
     onFilterChange({
-      ...activeFilters,
-      courses: updated.length > 0 ? updated : undefined,
+      courseIds: updated.length > 0 ? updated : undefined,
+    });
+  };
+
+  const handleTagToggle = (value: string) => {
+    const current = activeFilters.tags || [];
+    const updated = current.includes(value)
+      ? current.filter((v) => v !== value)
+      : [...current, value];
+    
+    onFilterChange({
+      tags: updated.length > 0 ? updated : undefined,
+    });
+  };
+
+  const handleDurationChange = (min?: number, max?: number) => {
+    onFilterChange({
+      durationMin: min,
+      durationMax: max,
+    });
+  };
+
+  const handleDateRangeChange = (from?: string, to?: string) => {
+    onFilterChange({
+      examDateFrom: from,
+      examDateTo: to,
     });
   };
 
   // Count active filters
   const activeFilterCount = 
-    (activeFilters.institutions?.length || 0) +
+    (activeFilters.institutionIds?.length || 0) +
     (activeFilters.years?.length || 0) +
-    (activeFilters.courses?.length || 0);
+    (activeFilters.courseIds?.length || 0) +
+    (activeFilters.tags?.length || 0) +
+    (activeFilters.durationMin !== undefined || activeFilters.durationMax !== undefined ? 1 : 0) +
+    (activeFilters.examDateFrom || activeFilters.examDateTo ? 1 : 0);
 
   return (
     <div className={`bg-white rounded-lg border border-gray-200 p-6 ${className}`}>
@@ -191,12 +222,12 @@ export function FilterSidebar({
       {/* Filter Sections */}
       <div className="space-y-6">
         {/* Institutions Filter */}
-        {filters.institutions.length > 0 && (
+        {filters?.institutions && filters.institutions.length > 0 && (
           <>
             <FilterSection
               title="Institution"
               options={filters.institutions}
-              selectedValues={activeFilters.institutions || []}
+              selectedValues={activeFilters.institutionIds || []}
               onToggle={handleInstitutionToggle}
               searchable={filters.institutions.length > 5}
             />
@@ -205,7 +236,7 @@ export function FilterSidebar({
         )}
 
         {/* Years Filter */}
-        {filters.years.length > 0 && (
+        {filters?.years && filters.years.length > 0 && (
           <>
             <FilterSection
               title="Year"
@@ -218,16 +249,104 @@ export function FilterSidebar({
         )}
 
         {/* Courses Filter */}
-        {filters.courses.length > 0 && (
+        {filters?.courses && filters.courses.length > 0 && (
           <>
             <FilterSection
               title="Course"
               options={filters.courses}
-              selectedValues={activeFilters.courses || []}
+              selectedValues={activeFilters.courseIds || []}
               onToggle={handleCourseToggle}
               searchable={filters.courses.length > 5}
             />
+            <Separator />
           </>
+        )}
+
+        {/* Tags Filter */}
+        {filters?.tags && filters.tags.length > 0 && (
+          <>
+            <FilterSection
+              title="Tags"
+              options={filters.tags}
+              selectedValues={activeFilters.tags || []}
+              onToggle={handleTagToggle}
+            />
+            <Separator />
+          </>
+        )}
+
+        {/* Duration Range Filter */}
+        {filters?.durationRange && (
+          <>
+            <div className="space-y-3">
+              <h3 className="font-semibold text-sm text-gray-900">Duration (minutes)</h3>
+              <div className="flex gap-2 items-center">
+                <Input
+                  type="number"
+                  placeholder="Min"
+                  min={filters.durationRange.min}
+                  max={filters.durationRange.max}
+                  value={activeFilters.durationMin || ''}
+                  onChange={(e) => handleDurationChange(
+                    e.target.value ? parseInt(e.target.value) : undefined,
+                    activeFilters.durationMax
+                  )}
+                  className="w-full"
+                  disabled={isLoading}
+                />
+                <span className="text-gray-400">—</span>
+                <Input
+                  type="number"
+                  placeholder="Max"
+                  min={filters.durationRange.min}
+                  max={filters.durationRange.max}
+                  value={activeFilters.durationMax || ''}
+                  onChange={(e) => handleDurationChange(
+                    activeFilters.durationMin,
+                    e.target.value ? parseInt(e.target.value) : undefined
+                  )}
+                  className="w-full"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+            <Separator />
+          </>
+        )}
+
+        {/* Date Range Filter */}
+        {filters?.dateRange && (
+          <div className="space-y-3">
+            <h3 className="font-semibold text-sm text-gray-900">Exam Date</h3>
+            <div className="space-y-2">
+              <Input
+                type="date"
+                placeholder="From"
+                min={filters.dateRange.min}
+                max={filters.dateRange.max}
+                value={activeFilters.examDateFrom || ''}
+                onChange={(e) => handleDateRangeChange(
+                  e.target.value || undefined,
+                  activeFilters.examDateTo
+                )}
+                className="w-full"
+                disabled={isLoading}
+              />
+              <Input
+                type="date"
+                placeholder="To"
+                min={filters.dateRange.min}
+                max={filters.dateRange.max}
+                value={activeFilters.examDateTo || ''}
+                onChange={(e) => handleDateRangeChange(
+                  activeFilters.examDateFrom,
+                  e.target.value || undefined
+                )}
+                className="w-full"
+                disabled={isLoading}
+              />
+            </div>
+          </div>
         )}
       </div>
 

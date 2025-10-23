@@ -93,7 +93,7 @@ export function ExamPaperCard({
           <div className="flex-1 p-6">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
-                <h3 className="text-3xl font-semibold text-gray-900 mb-3 line-clamp-2">
+                <h3 className="text-3xl font-semibold text-gray-900 mb-3 line-clamp-3">
                   {mainTitle}
                 </h3>
 

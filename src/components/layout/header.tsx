@@ -50,12 +50,12 @@ export function Header({ className, onMenuClick }: HeaderProps) {
         </Button>
 
         {/* Logo */}
-        <Link href="/" className="flex items-center space-x-3">
+        <Link href="/" className="flex items-center space-x-3 py-1">
           <Image
             src="/exampapepel-logo-resized.png"
             alt={`${APP_CONFIG.name} Logo`}
-            width={120}
-            height={60}
+            width={283}
+            height={72}
             quality={100}
             className="h-16 w-auto object-contain"
             priority

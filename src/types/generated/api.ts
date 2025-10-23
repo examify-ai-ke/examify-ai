@@ -4686,6 +4686,10 @@ export interface components {
             id: string;
             /** Year Of Exam */
             year_of_exam?: string | null;
+            /** Identifying Name */
+            identifying_name?: string | null;
+            /** Slug */
+            slug?: string | null;
         };
         /** ExamPaperUpdate */
         ExamPaperUpdate: {

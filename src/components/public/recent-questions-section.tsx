@@ -138,6 +138,9 @@ export function RecentQuestionsSection({
               questionData.module?.name || 
               questionData.modules?.[0]?.name ||
               question.exam_paper?.module?.name;
+            const exam_paper_name = 
+              questionData.exam_paper?.identifying_name || 
+              'Unknown Exam Paper';
 
             return (
               <div key={question.id} className="group">
@@ -198,6 +201,11 @@ export function RecentQuestionsSection({
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-muted-foreground">Year:</span>
                             <span className="text-base font-bold text-foreground">{year}</span>
+                          </div>
+
+                           <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-muted-foreground">Exam Paper:</span>
+                            <span className="text-base font-medium text-foreground">{exam_paper_name}</span>
                           </div>
                         </div>
                       </div>

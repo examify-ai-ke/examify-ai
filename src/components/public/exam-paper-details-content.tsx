@@ -328,13 +328,20 @@ export function ExamPaperDetailsContent({ slug }: ExamPaperDetailsContentProps) 
                       {/* Questions */}
                       {questionSet.questions && questionSet.questions.length > 0 ? (
                         <div className="space-y-4">
-                          {questionSet.questions.map((question: any, qIndex: number) => (
-                            <QuestionCard
-                              key={question.id || qIndex}
-                              question={question}
-                              questionNumber={question.question_number || (qIndex + 1)}
-                            />
-                          ))}
+                          {[...questionSet.questions]
+                            .sort((a: any, b: any) => {
+                              // Sort by question_number
+                              const numA = a.question_number || '';
+                              const numB = b.question_number || '';
+                              return numA.localeCompare(numB, undefined, { numeric: true });
+                            })
+                            .map((question: any, qIndex: number) => (
+                              <QuestionCard
+                                key={question.id || qIndex}
+                                question={question}
+                                questionNumber={question.question_number || (qIndex + 1)}
+                              />
+                            ))}
                         </div>
                       ) : (
                         <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">

@@ -106,7 +106,7 @@ export function QuestionCard({ question, questionNumber }: QuestionCardProps) {
               <div className="flex-1 min-w-0">
                 {/* Question Number and Badges */}
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-teal-500 text-white font-bold text-base">
+                  <span className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-teal-500 text-white font-bold text-2xl">
                     {displayNumber}
                   </span>
                   <div className="flex flex-wrap items-center gap-2">
@@ -181,7 +181,14 @@ export function QuestionCard({ question, questionNumber }: QuestionCardProps) {
       {/* Expanded Content - Sub-questions */}
       {isExpanded && hasSubQuestions && (
         <div className="mt-2 ml-4 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-          {question.children.map((subQuestion: any, index: number) => {
+          {[...question.children]
+            .sort((a: any, b: any) => {
+              // Sort by question_number (handles roman numerals, letters, and numbers)
+              const numA = a.question_number || '';
+              const numB = b.question_number || '';
+              return numA.localeCompare(numB, undefined, { numeric: true });
+            })
+            .map((subQuestion: any, index: number) => {
             const subQuestionId = subQuestion.id || `sub-${index}`;
             const hasSubAnswer = subQuestion.answers && subQuestion.answers.length > 0;
 
@@ -192,7 +199,7 @@ export function QuestionCard({ question, questionNumber }: QuestionCardProps) {
               >
                 <CardContent className="p-4">
                   <div className="flex items-start gap-3">
-                    <span className="text-sm font-semibold text-teal-600 min-w-fit">
+                    <span className="text-lg font-semibold text-teal-600 min-w-fit">
                       ({subQuestion.question_number || String.fromCharCode(97 + index)})
                     </span>
                     <div className="flex-1">

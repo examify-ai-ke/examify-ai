@@ -135,7 +135,7 @@ export const publicAPI = {
                 const response = await api.GET('/api/v1/exampaper', {
                     params: {
                         query: {
-                            skip: filters?.skip,
+                            skip: filters?.skip || 0,
                             limit: filters?.limit || 20,
                         }
                     }
@@ -374,7 +374,7 @@ export const publicAPI = {
                     mainQuestions: mainQuestions.length,
                     estimatedTotal: estimatedTotalMainQuestions,
                     sampleQuestion: mainQuestions[0],
-                    hasChildren: mainQuestions[0]?.children?.length > 0
+                    hasChildren: (mainQuestions[0]?.children?.length || 0) > 0
                 });
 
                 return {

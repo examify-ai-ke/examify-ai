@@ -67,7 +67,7 @@ export function Pagination({
   const endItem = Math.min(currentPage * pageSize, totalItems);
 
   const handlePrevious = () => {
-    if (currentPage > 1) {
+    if (currentPage > 0) {
       onPageChange(currentPage - 1);
     }
   };
@@ -84,9 +84,8 @@ export function Pagination({
     }
   };
 
-  if (totalPages <= 1) {
-    return null; // Don't show pagination if only one page
-  }
+  // Always show pagination to display results info and page size selector
+  // Even with 1 page, users should see "Showing X to Y of Z results"
 
   return (
     <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 ${className}`}>
@@ -105,9 +104,10 @@ export function Pagination({
           size="sm"
           onClick={handlePrevious}
           disabled={currentPage === 1}
-          className="h-9 w-9 p-0"
+          className="h-9 px-3 gap-1"
         >
           <ChevronLeft className="h-4 w-4" />
+          <span className="hidden sm:inline">Previous</span>
         </Button>
 
         {/* Page Numbers */}
@@ -133,7 +133,7 @@ export function Pagination({
         </div>
 
         {/* Mobile: Current Page Display */}
-        <div className="sm:hidden text-sm text-gray-600">
+        <div className="sm:hidden text-sm text-gray-600 px-2">
           Page {currentPage} of {totalPages}
         </div>
 
@@ -143,8 +143,9 @@ export function Pagination({
           size="sm"
           onClick={handleNext}
           disabled={currentPage === totalPages}
-          className="h-9 w-9 p-0"
+          className="h-9 px-3 gap-1"
         >
+          <span className="hidden sm:inline">Next</span>
           <ChevronRight className="h-4 w-4" />
         </Button>
 

@@ -15,6 +15,7 @@ interface FilterSidebarProps {
     institutions: FilterOption[];
     years: FilterOption[];
     courses: FilterOption[];
+    modules: FilterOption[];
     tags: FilterOption[];
     durationRange: { min: number; max: number };
     dateRange: { min: string; max: string };
@@ -160,6 +161,17 @@ export function FilterSidebar({
     });
   };
 
+  const handleModuleToggle = (value: string) => {
+    const current = activeFilters.moduleIds || [];
+    const updated = current.includes(value)
+      ? current.filter((v) => v !== value)
+      : [...current, value];
+    
+    onFilterChange({
+      moduleIds: updated.length > 0 ? updated : undefined,
+    });
+  };
+
   const handleTagToggle = (value: string) => {
     const current = activeFilters.tags || [];
     const updated = current.includes(value)
@@ -262,6 +274,20 @@ export function FilterSidebar({
           </>
         )}
 
+        {/* Modules Filter */}
+        {filters?.modules && filters.modules.length > 0 && (
+          <>
+            <FilterSection
+              title="Module"
+              options={filters.modules}
+              selectedValues={activeFilters.moduleIds || []}
+              onToggle={handleModuleToggle}
+              searchable={filters.modules.length > 5}
+            />
+            <Separator />
+          </>
+        )}
+
         {/* Tags Filter */}
         {filters?.tags && filters.tags.length > 0 && (
           <>
@@ -270,6 +296,7 @@ export function FilterSidebar({
               options={filters.tags}
               selectedValues={activeFilters.tags || []}
               onToggle={handleTagToggle}
+              searchable={filters.tags.length > 5}
             />
             <Separator />
           </>

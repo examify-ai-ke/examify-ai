@@ -22,6 +22,7 @@ export interface FilterOption {
 export interface AvailableFilters {
   institutions: FilterOption[];
   courses: FilterOption[];
+  modules: FilterOption[];
   years: FilterOption[];
   tags: FilterOption[];
   durationRange: { min: number; max: number };
@@ -57,6 +58,37 @@ function extractYears(papers: any[]): FilterOption[] {
     .map(year => ({
       value: year,
       label: year,
+    }));
+}
+
+/**
+ * Extract unique modules from exam papers
+ */
+function extractModules(papers: any[]): FilterOption[] {
+  const moduleMap = new Map<string, { name: string; count: number }>();
+  
+  papers.forEach(paper => {
+    if (paper.modules && Array.isArray(paper.modules)) {
+      paper.modules.forEach((module: any) => {
+        if (module.id && module.name) {
+          const existing = moduleMap.get(module.id);
+          if (existing) {
+            existing.count++;
+          } else {
+            moduleMap.set(module.id, { name: module.name, count: 1 });
+          }
+        }
+      });
+    }
+  });
+  
+  // Sort modules alphabetically by name
+  return Array.from(moduleMap.entries())
+    .sort((a, b) => a[1].name.localeCompare(b[1].name))
+    .map(([id, { name, count }]) => ({
+      value: id,
+      label: name,
+      count,
     }));
 }
 
@@ -265,6 +297,7 @@ export function useAvailableFilters(): UseAvailableFiltersReturn {
       ? {
           institutions: institutionsData,
           courses: coursesData,
+          modules: extractModules(papersData),
           years: extractYears(papersData),
           tags: extractTags(papersData),
           durationRange: calculateDurationRange(papersData),

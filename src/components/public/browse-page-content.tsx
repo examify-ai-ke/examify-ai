@@ -54,6 +54,19 @@ export function BrowsePageContent() {
 
   const isLoading = papersLoading || filtersLoading;
 
+  // Debug logging to help identify pagination issues
+  console.log('🔍 Pagination Debug Info:', {
+    papersCount: papers.length,
+    total,
+    currentPage,
+    totalPages,
+    pageSize: filters.pageSize || 20,
+    isLoading: papersLoading,
+    isError,
+    shouldShowPagination: totalPages > 1,
+    hasData: papers.length > 0,
+  });
+
   const handleSearchChange = (query: string) => {
     setFilters({ query });
   };
@@ -195,7 +208,7 @@ export function BrowsePageContent() {
           {!isError && papers.length > 0 && (
             <>
               {/* Top Pagination */}
-              {totalPages > 1 && (
+              {papers.length > 0 && (
                 <div className="mb-6">
                   <Pagination
                     currentPage={currentPage}
@@ -224,8 +237,8 @@ export function BrowsePageContent() {
                 ))}
               </div>
 
-              {/* Bottom Pagination */}
-              {totalPages > 1 && (
+              {/* Bottom Pagination - Show when there are items to demonstrate functionality */}
+              {papers.length > 0 && (
                 <div className="mt-8">
                   <Pagination
                     currentPage={currentPage}

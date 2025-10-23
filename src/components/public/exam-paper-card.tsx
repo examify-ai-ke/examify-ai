@@ -5,19 +5,18 @@ import Image from 'next/image';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Building2, 
-  Calendar, 
-  Clock, 
-  FileText, 
-  Bookmark,
+import {
+  Building2,
+  Calendar,
+  Clock,
+  FileText,
   BookmarkPlus,
 } from 'lucide-react';
 import type { PaperCardProps } from './types';
 
-export function ExamPaperCard({ 
-  paper, 
-  variant = 'grid',
+export function ExamPaperCard({
+  paper,
+  variant = 'list',
   showBookmark = true,
   className = '',
 }: PaperCardProps) {
@@ -33,20 +32,42 @@ export function ExamPaperCard({
     console.log('Bookmark clicked');
   };
 
-  // Extract data
-  const title = paper.title?.title || 'Exam Paper';
-  const description = paper.description || '';
+  // Extract data safely from API schema
+  const mainTitle = paper.identifying_name || 'Exam Paper';
+  const titleName = paper.title?.name || null;
+
+  const description = typeof paper.description === 'object' && paper.description !== null
+    ? (paper.description.name || '')
+    : (typeof paper.description === 'string' ? paper.description : '');
+
   const institution = paper.institution;
+  const institutionName = institution?.name || 'Unknown Institution';
+
   const course = paper.course;
-  const courseName = course ? (typeof course === 'object' ? (course.name || course.code || '') : String(course)) : '';
+  const courseName = course?.name || '';
+
   const year = paper.year_of_exam;
   const duration = paper.exam_duration;
-  const questionCount = paper.questions_count || 0;
-  const tags = paper.tags || [];
+  const questionCount = paper.question_sets?.reduce((sum, qs) => sum + (qs.questions_count || 0), 0) || 0;
+
+  const modules = paper.modules || [];
+  const tags = Array.isArray(paper.tags) ? paper.tags : [];
+
+  // Color palette for module badges
+  const moduleColors = [
+    'bg-purple-600 hover:bg-purple-700 border-purple-600',
+    'bg-orange-600 hover:bg-orange-700 border-orange-600',
+    'bg-pink-600 hover:bg-pink-700 border-pink-600',
+    'bg-indigo-600 hover:bg-indigo-700 border-indigo-600',
+    'bg-cyan-600 hover:bg-cyan-700 border-cyan-600',
+    'bg-rose-600 hover:bg-rose-700 border-rose-600',
+    'bg-amber-600 hover:bg-amber-700 border-amber-600',
+    'bg-teal-600 hover:bg-teal-700 border-teal-600',
+  ];
 
   if (variant === 'list') {
     return (
-      <Card 
+      <Card
         className={`hover:shadow-lg transition-shadow cursor-pointer ${className}`}
         onClick={handleViewPaper}
       >
@@ -56,7 +77,7 @@ export function ExamPaperCard({
             {institution?.logo_url ? (
               <Image
                 src={institution.logo_url}
-                alt={institution.name || 'Institution'}
+                alt={institutionName}
                 width={80}
                 height={80}
                 className="object-contain"
@@ -72,18 +93,35 @@ export function ExamPaperCard({
           <div className="flex-1 p-6">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                  {title}
+                <h3 className="text-3xl font-semibold text-gray-900 mb-3 line-clamp-2">
+                  {mainTitle}
                 </h3>
-                
-                {description && (
-                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                    {description}
-                  </p>
-                )}
+
+                {/* Badges: Title, Description, Modules */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {titleName && (
+                    <Badge variant="default" className="text-xs rounded-none bg-blue-600 hover:bg-blue-700 text-white">
+                      {titleName}
+                    </Badge>
+                  )}
+                  {description && (
+                    <Badge variant="secondary" className="text-xs rounded-none bg-green-600 hover:bg-green-700 text-white">
+                      {description}
+                    </Badge>
+                  )}
+                  {modules.map((module, index) => (
+                    <Badge
+                      key={index}
+                      variant="outline"
+                      className={`text-xs rounded-none text-white ${moduleColors[index % moduleColors.length]}`}
+                    >
+                      {module.name}
+                    </Badge>
+                  ))}
+                </div>
 
                 <div className="flex flex-wrap gap-3 text-sm text-gray-600 mb-3">
-                  {institution && (
+                  {institution && typeof institution === 'object' && institution.name && (
                     <div className="flex items-center gap-1">
                       <Building2 className="h-4 w-4" />
                       <span>{institution.name}</span>
@@ -141,8 +179,8 @@ export function ExamPaperCard({
               <div className="text-sm text-gray-600">
                 {questionCount} {questionCount === 1 ? 'question' : 'questions'}
               </div>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 className="bg-teal-500 hover:bg-teal-600"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -160,7 +198,7 @@ export function ExamPaperCard({
 
   // Grid variant
   return (
-    <Card 
+    <Card
       className={`hover:shadow-lg transition-shadow cursor-pointer h-full flex flex-col ${className}`}
       onClick={handleViewPaper}
     >
@@ -183,10 +221,10 @@ export function ExamPaperCard({
             )}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-900 truncate">
-                {institution?.name || 'Unknown Institution'}
+                {institutionName}
               </p>
               {year && (
-                <p className="text-xs text-gray-500">{year}</p>
+                <p className="text-xs text-gray-500">{String(year)}</p>
               )}
             </div>
           </div>
@@ -205,7 +243,7 @@ export function ExamPaperCard({
 
         {/* Title */}
         <h3 className="text-base font-semibold text-gray-900 line-clamp-2 min-h-[3rem]">
-          {title}
+          {mainTitle}
         </h3>
       </CardHeader>
 
@@ -256,7 +294,7 @@ export function ExamPaperCard({
       </CardContent>
 
       <CardFooter className="pt-3 border-t">
-        <Button 
+        <Button
           className="w-full bg-teal-500 hover:bg-teal-600"
           size="sm"
           onClick={(e) => {

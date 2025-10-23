@@ -54,8 +54,8 @@ export function Header({ className, onMenuClick }: HeaderProps) {
           <Image
             src="/exampapepel-logo-resized.png"
             alt={`${APP_CONFIG.name} Logo`}
-            width={283}
-            height={72}
+            width={252}
+            height={64}
             quality={100}
             className="h-16 w-auto object-contain"
             priority

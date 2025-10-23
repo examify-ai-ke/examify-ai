@@ -13,6 +13,7 @@ import {
   BookmarkPlus,
 } from 'lucide-react';
 import type { PaperCardProps } from './types';
+import { getExamPaperSlug } from '@/lib/slugify';
 
 export function ExamPaperCard({
   paper,
@@ -23,7 +24,8 @@ export function ExamPaperCard({
   const router = useRouter();
 
   const handleViewPaper = () => {
-    router.push(`/exampapers/${paper.slug || paper.id}`);
+    const slug = getExamPaperSlug(paper);
+    router.push(`/exampapers/${slug}`);
   };
 
   const handleBookmark = (e: React.MouseEvent) => {

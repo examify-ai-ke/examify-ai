@@ -111,7 +111,7 @@ export function QuestionCard({ question, questionNumber }: QuestionCardProps) {
                   </span>
                   <div className="flex flex-wrap items-center gap-2">
                     {question.marks && (
-                      <Badge variant="secondary" className="text-base">
+                      <Badge className="text-xs bg-orange-500 hover:bg-orange-600 text-white">
                         {question.marks} marks
                       </Badge>
                     )}
@@ -201,7 +201,7 @@ export function QuestionCard({ question, questionNumber }: QuestionCardProps) {
 
                       {/* Marks Badge */}
                       {subQuestion.marks && (
-                        <Badge variant="secondary" className="text-base mt-2">
+                        <Badge className="text-xs bg-orange-500 hover:bg-orange-600 text-white mt-2">
                           {subQuestion.marks} marks
                         </Badge>
                       )}

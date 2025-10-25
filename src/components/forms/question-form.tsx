@@ -48,11 +48,6 @@ interface QuestionFormProps {
 export function QuestionForm({ questionSetId, examPaperId, question, onSuccess, onCancel, availableQuestionSets, availableMainQuestions, parentQuestionId, isSubQuestion: isSubQuestionProp }: QuestionFormProps) {
     const { addNotification } = useUIStore()
     const [isSubmitting, setIsSubmitting] = useState(false)
-    // Generate stable editor ID that only changes when question ID changes
-    const editorHolderId = useMemo(() => 
-        `question-editor-${question?.id || 'new'}`,
-        [question?.id]
-    )
     const isEditing = !!question
     
     // Debug logging
@@ -432,7 +427,6 @@ export function QuestionForm({ questionSetId, examPaperId, question, onSuccess, 
                                                 <Editor
                                                     data={field.value}
                                                     onChange={field.onChange}
-                                                    holder={editorHolderId}
                                                 />
                                             </div>
                                         </div>

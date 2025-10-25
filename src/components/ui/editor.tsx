@@ -23,14 +23,27 @@ const Editor: React.FC<EditorProps> = ({ data, onChange, holder: externalHolder 
   const [isReady, setIsReady] = useState(false);
   const isInitializing = useRef(false);
   const isMounted = useRef(true);
+  const isDestroying = useRef(false);
   const cleanupTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // Generate a stable holder ID once on mount
   const [holder] = useState(() =>
-    externalHolder || `editorjs-${Math.random().toString(36).substr(2, 9)}`
+    externalHolder || `editorjs-${Math.random().toString(36).substring(2, 11)}`
   );
 
   const initialDataRef = useRef(data);
+
+  // Update editor data when prop changes
+  useEffect(() => {
+    if (ref.current && isReady && data !== initialDataRef.current) {
+      try {
+        ref.current.render(data);
+        initialDataRef.current = data;
+      } catch (error) {
+        console.warn('Error updating editor data:', error);
+      }
+    }
+  }, [data, isReady]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -239,13 +252,31 @@ const Editor: React.FC<EditorProps> = ({ data, onChange, holder: externalHolder 
               },
             },
           },
-          async onChange(api) {
-            try {
-              const data = await api.saver.save();
-              onChange(data);
-            } catch (error) {
-              console.error('Error saving editor data:', error);
+          onChange(api) {
+            // Don't process changes if we're destroying or unmounted
+            if (isDestroying.current || !isMounted.current) return;
+
+            // Debounce the onChange to prevent excessive calls
+            if (cleanupTimeout.current) {
+              clearTimeout(cleanupTimeout.current);
             }
+
+            cleanupTimeout.current = setTimeout(async () => {
+              // Double check we're still mounted and not destroying
+              if (!isMounted.current || isDestroying.current) return;
+
+              try {
+                const data = await api.saver.save();
+                if (isMounted.current && !isDestroying.current) {
+                  onChange(data);
+                }
+              } catch (error) {
+                // Silently ignore errors during cleanup
+                if (!isDestroying.current) {
+                  console.error('Error saving editor data:', error);
+                }
+              }
+            }, 300); // 300ms debounce
           },
           minHeight: 50,
         });
@@ -276,29 +307,38 @@ const Editor: React.FC<EditorProps> = ({ data, onChange, holder: externalHolder 
     }, 100);
 
     return () => {
+      // Mark as destroying and unmounted immediately
+      isDestroying.current = true;
       isMounted.current = false;
-      clearTimeout(timeoutId);
+      isInitializing.current = false;
+      setIsReady(false);
 
-      // Clear any pending cleanup
+      // Clear all timeouts immediately
+      clearTimeout(timeoutId);
       if (cleanupTimeout.current) {
         clearTimeout(cleanupTimeout.current);
         cleanupTimeout.current = null;
       }
 
-      // Immediate cleanup - don't wait
+      // Immediate synchronous cleanup
       if (ref.current) {
         const editorInstance = ref.current;
         ref.current = null;
-        setIsReady(false);
-        isInitializing.current = false;
 
-        // Destroy synchronously without waiting
+        // Force destroy without any async operations
         try {
-          if (editorInstance && typeof editorInstance.destroy === 'function') {
+          // Clear the holder element first to prevent any rendering
+          const holderElement = document.getElementById(holder);
+          if (holderElement) {
+            holderElement.innerHTML = '';
+          }
+
+          // Then destroy the editor instance
+          if (typeof editorInstance.destroy === 'function') {
             editorInstance.destroy();
           }
         } catch (error) {
-          // Ignore all cleanup errors
+          // Completely ignore cleanup errors
         }
       }
     };

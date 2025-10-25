@@ -3333,6 +3333,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/questions/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Question Image
+         * @description Upload an image for use in Editor.js question content.
+         *
+         *     This endpoint is specifically designed for Editor.js image tool integration.
+         *     Returns the image URL that can be embedded in question text JSON.
+         */
+        post: operations["upload_question_image_api_v1_questions_image_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/questions/stats": {
         parameters: {
             query?: never;
@@ -4096,6 +4119,14 @@ export interface components {
              * Format: binary
              */
             programme_image: string;
+        };
+        /** Body_upload_question_image_api_v1_questions_image_post */
+        Body_upload_question_image_api_v1_questions_image_post: {
+            /**
+             * Image File
+             * Format: binary
+             */
+            image_file: string;
         };
         /** Body_upload_user_image_api_v1_user__user_id__image_post */
         Body_upload_user_image_api_v1_user__user_id__image_post: {
@@ -6523,6 +6554,25 @@ export interface components {
             } | unknown | null;
             /** Data */
             data?: boolean | null;
+        };
+        /** IPostResponseBase[dict] */
+        IPostResponseBase_dict_: {
+            /**
+             * Message
+             * @default Data created correctly
+             */
+            message: string | null;
+            /**
+             * Meta
+             * @default {}
+             */
+            meta: {
+                [key: string]: unknown;
+            } | unknown | null;
+            /** Data */
+            data?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** IPostResponseBase[list[SubQuestionRead]] */
         IPostResponseBase_list_SubQuestionRead__: {
@@ -14737,6 +14787,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IPutResponseBase_QuestionRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_question_image_api_v1_questions_image_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_question_image_api_v1_questions_image_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IPostResponseBase_dict_"];
                 };
             };
             /** @description Validation Error */

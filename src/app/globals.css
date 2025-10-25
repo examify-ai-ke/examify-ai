@@ -184,7 +184,8 @@
   /* Increase font sizes for GTSuper headings */
   h1 {
     @apply text-5xl md:text-7xl tracking-normal;
-    line-height: 1.05; /* extra punch for hero titles */
+    line-height: 1.05;
+    /* extra punch for hero titles */
   }
 
   h2 {
@@ -193,14 +194,16 @@
   }
 
   h3 {
-  @apply text-3xl md:text-4xl tracking-wide;
-  line-height: 1.15;
- 
+    @apply text-3xl md:text-4xl tracking-wide;
+    line-height: 1.15;
+
   }
+
   h4 {
     @apply text-2xl md:text-3xl tracking-wide;
     line-height: 1.2;
   }
+
   h5,
   h6 {
     @apply tracking-wide;
@@ -226,6 +229,22 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-}
 
- 
+  /* EditorJS Styles */
+  /* Responsive width */
+  #editorjs {
+    width: 90%;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  /* Control individual block widths */
+  .ce-block {
+    max-width: 100%;
+  }
+
+  .ce-block__content {
+    max-width: 650px;
+    margin: 0 auto;
+  }
+}

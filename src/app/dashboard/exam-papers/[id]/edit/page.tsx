@@ -2156,7 +2156,15 @@ export default function EditExamPaperPage() {
 
             {/* Add Question Dialog */}
             <Dialog open={showAddQuestionDialog} onOpenChange={setShowAddQuestionDialog}>
-                <DialogContent className="max-w-[90vw] max-h-[90vh] overflow-y-auto">
+                <DialogContent className="
+                    w-[90vw]                 /* Base: almost full width on small screens */
+                    sm:max-w-[450px]         /* Small screens (≥640px): up to 450px */
+                    md:max-w-[650px]         /* Medium screens (≥768px): up to 650px */
+                    lg:max-w-[800px]         /* Large screens (≥1024px): up to 800px */
+                    xl:max-w-[1000px]        /* Extra large: up to 1000px */
+                    max-h-[90vh]             /* Limit height */
+                    overflow-y-auto          /* Scroll if content too tall */
+                    ">
                     <DialogHeader>
                         <DialogTitle className="text-2xl">{isSubQuestion ? 'Add Sub-question' : 'Add New Question'}</DialogTitle>
                         <DialogDescription className="text-base">
@@ -2195,7 +2203,7 @@ export default function EditExamPaperPage() {
 
             {/* Add Question Set Dialog */}
             <Dialog open={showAddQuestionSetDialog} onOpenChange={setShowAddQuestionSetDialog}>
-                <DialogContent className="max-w-[95vw] sm:max-w-[450px] lg:max-w-[500px] max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-[95vw] sm:max-w-[450px] lg:max-w-[800px] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Add Question Sets</DialogTitle>
                         <DialogDescription>

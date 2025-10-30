@@ -1739,6 +1739,60 @@ const adminAPI = {
         },
     },
 
+    // Answer Management
+    answers: {
+        async list(params?: {
+            limit?: number;
+            skip?: number;
+            question_id?: string;
+        }) {
+            return api.GET('/api/v1/answer', {
+                params: {
+                    query: params
+                }
+            });
+        },
+
+        async getByQuestion(questionId: string) {
+            return api.GET('/api/v1/answer/question/{question_id}', {
+                params: {
+                    path: { question_id: questionId }
+                }
+            });
+        },
+
+        async getById(answerId: string) {
+            return api.GET('/api/v1/answer/{answer_id}', {
+                params: {
+                    path: { answer_id: answerId }
+                }
+            });
+        },
+
+        async create(answerData: components['schemas']['AnswerCreate']) {
+            return api.POST('/api/v1/answer', {
+                body: answerData
+            });
+        },
+
+        async update(answerId: string, answerData: components['schemas']['AnswerUpdate']) {
+            return api.PUT('/api/v1/answer/{answer_id}', {
+                params: {
+                    path: { answer_id: answerId }
+                },
+                body: answerData
+            });
+        },
+
+        async delete(answerId: string) {
+            return api.DELETE('/api/v1/answer/{answer_id}', {
+                params: {
+                    path: { answer_id: answerId }
+                }
+            });
+        },
+    },
+
 };
 
 // Helper functions for backward compatibility

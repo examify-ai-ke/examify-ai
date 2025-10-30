@@ -87,13 +87,34 @@ export function QuestionCard({ question, questionNumber }: QuestionCardProps) {
     return <p className="text-gray-400 italic">Invalid question text format</p>;
   };
 
+  // Handle keyboard events for accessibility
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (hasSubQuestions && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      setIsExpanded(!isExpanded);
+    }
+  };
+
+  // Handle container click
+  const handleContainerClick = () => {
+    if (hasSubQuestions) {
+      setIsExpanded(!isExpanded);
+    }
+  };
+
   return (
     <div className="group">
       {/* Main Question - Clickable to expand/collapse */}
-      <button
-        onClick={() => hasSubQuestions && setIsExpanded(!isExpanded)}
+      <div
+        {...(hasSubQuestions && {
+          role: 'button',
+          tabIndex: 0,
+          onClick: handleContainerClick,
+          onKeyDown: handleKeyDown,
+          'aria-expanded': isExpanded,
+          'aria-label': `Question ${displayNumber}, click to ${isExpanded ? 'collapse' : 'expand'} sub-questions`
+        })}
         className="w-full text-left"
-        disabled={!hasSubQuestions}
       >
         <Card className={`
           transition-all duration-200
@@ -176,7 +197,7 @@ export function QuestionCard({ question, questionNumber }: QuestionCardProps) {
             </div>
           </CardContent>
         </Card>
-      </button>
+      </div>
 
       {/* Expanded Content - Sub-questions */}
       {isExpanded && hasSubQuestions && (

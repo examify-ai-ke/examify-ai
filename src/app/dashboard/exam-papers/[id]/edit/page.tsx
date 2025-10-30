@@ -58,7 +58,6 @@ import { QuestionForm } from '@/components/forms/question-form'
 import { QuestionList } from '@/components/features/question-list'
 import { parseQuestionSetsResponse, sanitizeQuestionSetData } from '@/lib/api-response-utils'
 import { executeAPICall, handleAPIError, apiPerformanceMonitor } from '@/lib/api-error-handler'
-import { HierarchicalQuestions } from '@/components/ui/hierarchical-questions'
 type QuestionRead = components['schemas']['QuestionRead'] & {
     // Add missing properties for UI compatibility
     question_text?: string
@@ -66,11 +65,6 @@ type QuestionRead = components['schemas']['QuestionRead'] & {
     difficulty_level?: string
 }
 type QuestionSetRead = components['schemas']['QuestionSetRead']
-type ExamTitleRead = components['schemas']['ExamTitleRead']
-type ExamDescriptionRead = components['schemas']['ExamDescriptionRead']
-type InstitutionRead = components['schemas']['InstitutionRead']
-type CourseRead = components['schemas']['CourseRead']
-type InstructionRead = components['schemas']['InstructionRead']
 
 // Form validation schema
 const examPaperEditSchema = z.object({
@@ -97,6 +91,12 @@ interface QuestionItemProps {
     onMoveDown: (index: number) => void
     isFirst: boolean
     isLast: boolean
+}
+
+interface QuestionSetItemProps {
+    questionSet: QuestionSetRead
+    index: number
+    onRemove: (questionSetId: string) => void
 }
 
 function QuestionItem({ question, index, onRemove, onMoveUp, onMoveDown, isFirst, isLast }: QuestionItemProps) {
@@ -177,6 +177,35 @@ function QuestionItem({ question, index, onRemove, onMoveUp, onMoveDown, isFirst
                             <Trash2 className="h-4 w-4" />
                         </Button>
                     </div>
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
+
+function QuestionSetItem({ questionSet, index, onRemove }: QuestionSetItemProps) {
+    return (
+        <Card className="mb-2">
+            <CardContent className="p-3">
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+                        <Badge variant="outline" className="text-xs">Set {index + 1}</Badge>
+                        <Badge variant="default" className="text-xs truncate max-w-[200px]">
+                            {questionSet.title || 'Question Set'}
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs">
+                            {questionSet.questions_count || 0} questions
+                        </Badge>
+                    </div>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onRemove(questionSet.id)}
+                        className="text-red-600 hover:text-red-800 hover:bg-red-50 shrink-0 h-8 w-8 p-0"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
                 </div>
             </CardContent>
         </Card>
@@ -416,9 +445,6 @@ export default function EditExamPaperPage() {
     const [availableQuestions, setAvailableQuestions] = useState<QuestionRead[]>([])
     const [questionSets, setQuestionSets] = useState<QuestionSetRead[]>([])
     const [availableQuestionSets, setAvailableQuestionSets] = useState<QuestionSetRead[]>([])
-    const [questionSetQuestions, setQuestionSetQuestions] = useState<QuestionRead[]>([])
-    const [loadingQuestions, setLoadingQuestions] = useState(false)
-    const lastLoadedQuestionSetIds = React.useRef<string>('')
     const [newTag, setNewTag] = useState('')
     const [lastSaved, setLastSaved] = useState<Date | null>(null)
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
@@ -446,7 +472,6 @@ export default function EditExamPaperPage() {
     const [isSubQuestion, setIsSubQuestion] = useState(false)
     const [parentQuestionId, setParentQuestionId] = useState('')
     const [mainQuestions, setMainQuestions] = useState<any[]>([])
-    const [editingQuestion, setEditingQuestion] = useState<QuestionRead | null>(null)
 
     const form = useForm<ExamPaperEditFormData>({
         resolver: zodResolver(examPaperEditSchema),
@@ -486,7 +511,7 @@ export default function EditExamPaperPage() {
                 const saveTime = new Date()
                 setLastSaved(saveTime)
                 setHasUnsavedChanges(false)
-
+                
                 // Show subtle auto-save notification
                 addNotification({
                     type: 'info',
@@ -563,32 +588,18 @@ export default function EditExamPaperPage() {
 
                     // Load question sets - prioritize exam paper data since it's already loaded
                     console.log('📋 [EDIT PAGE] Loading question sets for exam paper:', params.id)
-
-                    // Load question sets with nested questions using the dedicated endpoint
-                    const questionSetsResponse = await adminAPI.questionSets.getByExamPaper(params.id as string)
                     
-                    if (!questionSetsResponse.error && questionSetsResponse.data) {
-                        const questionSetsData = (questionSetsResponse.data as any).data || []
-                        setQuestionSets(questionSetsData as QuestionSetRead[])
+                    // Use question sets from exam paper data directly (they're already loaded with the exam paper)
+                    if (paperData?.question_sets && paperData.question_sets.length > 0) {
+                        console.log('📋 [EDIT PAGE] Using question sets from exam paper data:', paperData.question_sets.length)
+                        console.log('📋 [EDIT PAGE] Question sets:', paperData.question_sets)
                         
-                        // Extract all questions (main and sub) from the nested structure
-                        const allQuestions: QuestionRead[] = []
-                        questionSetsData.forEach((qs: any) => {
-                            if (qs.questions && Array.isArray(qs.questions)) {
-                                qs.questions.forEach((q: any) => {
-                                    allQuestions.push(q)
-                                    // Also add children if they exist
-                                    if (q.children && Array.isArray(q.children)) {
-                                        allQuestions.push(...q.children)
-                                    }
-                                })
-                            }
-                        })
-                        
-                        setQuestionSetQuestions(allQuestions)
+                        // The question sets are already in the correct format from the API
+                        setQuestionSets(paperData.question_sets as QuestionSetRead[])
+                        console.log('📋 [EDIT PAGE] Successfully set question sets:', paperData.question_sets.length)
                     } else {
+                        console.log('📋 [EDIT PAGE] No question sets in exam paper data')
                         setQuestionSets([])
-                        setQuestionSetQuestions([])
                     }
 
                     // If there's a selected institution, add it to the institutions list
@@ -714,7 +725,7 @@ export default function EditExamPaperPage() {
                     console.log('Question sets response:', questionsResponse.data)
                     // Use the utility function to parse the response consistently
                     const rawQuestionSets = parseQuestionSetsResponse(questionsResponse as any)
-
+                    
                     console.log('Available question sets:', rawQuestionSets)
                     setAvailableQuestionSets(rawQuestionSets as QuestionSetRead[])
 
@@ -741,10 +752,13 @@ export default function EditExamPaperPage() {
         loadExamPaper()
     }, [params.id, form, addNotification, router])
 
-
-
-    // Note: Questions are now loaded with question sets in the nested structure
-    // No need for separate loading since getByExamPaper returns questions with children
+    // Debug: Log when questionSets state changes
+    useEffect(() => {
+        console.log('📋 [EDIT PAGE] questionSets state changed:', {
+            length: questionSets.length,
+            items: questionSets.map(qs => ({ id: qs.id, title: qs.title }))
+        })
+    }, [questionSets])
 
     // Load main questions when dialog opens for sub-questions
     useEffect(() => {
@@ -854,8 +868,8 @@ export default function EditExamPaperPage() {
             addNotification({
                 type: 'error',
                 title: 'Save Failed',
-                message: error instanceof Error ?
-                    `Failed to save exam paper: ${error.message}. Please check your connection and try again.` :
+                message: error instanceof Error ? 
+                    `Failed to save exam paper: ${error.message}. Please check your connection and try again.` : 
                     'Failed to update exam paper. Please check your connection and try again.',
             })
         } finally {
@@ -1073,7 +1087,7 @@ export default function EditExamPaperPage() {
     const handleOpenAddQuestionSetDialog = () => {
         // Check if there are available question sets to add
         const availableToAdd = availableQuestionSets.filter(qs => !questionSets.find(existing => existing.id === qs.id))
-
+        
         if (availableToAdd.length === 0) {
             addNotification({
                 type: 'info',
@@ -1082,7 +1096,7 @@ export default function EditExamPaperPage() {
             })
             return
         }
-
+        
         setSelectedQuestionSetIds([])
         setShowAddQuestionSetDialog(true)
     }
@@ -1091,14 +1105,14 @@ export default function EditExamPaperPage() {
         if (selectedQuestionSetIds.length === 0 || !examPaper || addingQuestionSets) return
 
         setAddingQuestionSets(true)
-
+        
         try {
             console.log('🔄 Adding question sets to exam paper:', {
                 examPaperId: params.id,
                 questionSetIds: selectedQuestionSetIds,
                 count: selectedQuestionSetIds.length
             })
-
+            
             // Add all selected question sets using standardized error handling
             const promises = selectedQuestionSetIds.map(async (questionSetId) => {
                 const { result, errorResult } = await executeAPICall(
@@ -1120,7 +1134,7 @@ export default function EditExamPaperPage() {
                 const questionSetNames = selectedQuestionSetIds
                     .map(id => availableQuestionSets.find(qs => qs.id === id)?.title || `Question Set ${id}`)
                     .join(', ')
-
+                
                 addNotification({
                     type: 'success',
                     title: 'Question Sets Added Successfully',
@@ -1128,7 +1142,7 @@ export default function EditExamPaperPage() {
                 })
                 setShowAddQuestionSetDialog(false)
                 setSelectedQuestionSetIds([])
-
+                
                 // Reload question sets to show the newly added ones
                 await reloadQuestionSets()
             } else if (failedCount < selectedQuestionSetIds.length) {
@@ -1140,13 +1154,13 @@ export default function EditExamPaperPage() {
                 const successfulNames = successfulIds
                     .map(id => availableQuestionSets.find(qs => qs.id === id)?.title || `Question Set ${id}`)
                     .join(', ')
-
+                
                 console.warn('⚠️ Partial success adding question sets:', {
                     successCount,
                     failedCount,
                     failedResults: failedResults.map(r => ({ id: r.questionSetId, error: r.errorResult }))
                 })
-
+                
                 addNotification({
                     type: 'warning',
                     title: 'Partially Successful',
@@ -1154,24 +1168,24 @@ export default function EditExamPaperPage() {
                 })
                 setShowAddQuestionSetDialog(false)
                 setSelectedQuestionSetIds([])
-
+                
                 // Reload question sets to show what was actually added
                 await reloadQuestionSets()
             } else {
                 // All failed - handle specific error cases like the details page
                 const firstError = failedResults[0]?.errorResult
                 const firstResult = failedResults[0]?.result
-
+                
                 // Check if it's a 409 conflict (already associated)
-                if (firstResult?.error && typeof firstResult.error === 'object' &&
+                if (firstResult?.error && typeof firstResult.error === 'object' && 
                     (firstResult.error as any).detail?.includes('already associated')) {
-
+                    
                     addNotification({
                         type: 'warning',
                         title: 'Already Associated',
                         message: 'The selected question set is already associated with this exam paper.'
                     })
-
+                    
                     // Still reload question sets to show current state
                     await reloadQuestionSets()
                 } else if (firstError) {
@@ -1187,7 +1201,7 @@ export default function EditExamPaperPage() {
                         message: 'Failed to add question sets to exam paper'
                     })
                 }
-
+                
                 setShowAddQuestionSetDialog(false)
                 setSelectedQuestionSetIds([])
             }
@@ -1216,7 +1230,7 @@ export default function EditExamPaperPage() {
                     questionSetsCount: paperData.question_sets?.length || 0
                 })
                 setExamPaper(paperData as ExamPaperRead)
-
+                
                 // If the exam paper has question sets, use them to update the display
                 if (paperData?.question_sets && paperData.question_sets.length > 0) {
                     console.log('📋 [EDIT PAGE] Found question sets in exam paper data:', paperData.question_sets.length)
@@ -1228,83 +1242,47 @@ export default function EditExamPaperPage() {
         }
     }
 
-    // Helper function to load questions for all question sets
-    const loadQuestionSetQuestions = async (questionSetIds: string[]) => {
-        if (questionSetIds.length === 0) {
-            setQuestionSetQuestions([])
-            return
-        }
-
-        setLoadingQuestions(true)
-        try {
-            console.log('🔄 Loading questions for question sets:', questionSetIds)
-
-            // Load questions for each question set
-            const promises = questionSetIds.map(async (questionSetId) => {
-                const response = await adminAPI.questions.list({
-                    question_set_id: questionSetId,
-                    exam_paper_id: params.id as string,
-                    limit: 100,
-                    skip: 0
-                })
-
-                if (!response.error && response.data) {
-                    const data = (response.data as any).data
-                    return data?.items || []
-                }
-                return []
-            })
-
-            const results = await Promise.all(promises)
-            const allQuestions = results.flat()
-
-            // Deduplicate questions by ID to avoid React key conflicts
-            const uniqueQuestions = Array.from(
-                new Map(allQuestions.map(q => [q.id, q])).values()
-            )
-
-            setQuestionSetQuestions(uniqueQuestions as QuestionRead[])
-        } catch (error) {
-            console.error('❌ Error loading question set questions:', error)
-            setQuestionSetQuestions([])
-        } finally {
-            setLoadingQuestions(false)
-        }
-    }
-
-    // Helper function to reload question sets with nested questions
+    // Helper function to reload question sets by reloading the exam paper
     const reloadQuestionSets = async () => {
         setQuestionSetsLoading(true)
-
+        
         try {
-            // Load question sets with nested questions using the dedicated endpoint
-            const questionSetsResponse = await adminAPI.questionSets.getByExamPaper(params.id as string)
+            console.log('🔄 Reloading exam paper to get updated question sets')
             
-            if (!questionSetsResponse.error && questionSetsResponse.data) {
-                const questionSetsData = (questionSetsResponse.data as any).data || []
-                setQuestionSets(questionSetsData as QuestionSetRead[])
-                
-                // Extract all questions (main and sub) from the nested structure
-                const allQuestions: QuestionRead[] = []
-                questionSetsData.forEach((qs: any) => {
-                    if (qs.questions && Array.isArray(qs.questions)) {
-                        qs.questions.forEach((q: any) => {
-                            allQuestions.push(q)
-                            // Also add children if they exist
-                            if (q.children && Array.isArray(q.children)) {
-                                allQuestions.push(...q.children)
-                            }
-                        })
-                    }
+            // Reload the exam paper data to get the latest question sets
+            const response = await adminAPI.examPapers.getById(params.id as string)
+            
+            if (!response.error && response.data) {
+                const paperData = (response.data as any).data || response.data
+                console.log('✅ Reloaded exam paper data:', {
+                    id: paperData.id,
+                    questionSetsCount: paperData.question_sets?.length || 0
                 })
                 
-                setQuestionSetQuestions(allQuestions)
+                // Update the exam paper state
+                setExamPaper(paperData as ExamPaperRead)
+                
+                // Use question sets from the reloaded exam paper data
+                if (paperData?.question_sets && paperData.question_sets.length > 0) {
+                    console.log('📋 [EDIT PAGE] Found question sets in reloaded exam paper:', paperData.question_sets.length)
+                    setQuestionSets(paperData.question_sets as QuestionSetRead[])
+                    console.log('📋 [EDIT PAGE] Successfully updated question sets:', paperData.question_sets.length)
+                } else {
+                    console.log('📋 [EDIT PAGE] No question sets in reloaded exam paper')
+                    setQuestionSets([])
+                }
+            } else {
+                console.error('❌ Failed to reload exam paper:', response.error)
+                
+                // Keep existing question sets if reload fails
+                console.log('📋 [EDIT PAGE] Keeping existing question sets due to reload failure')
             }
-
+            
             // Also reload available question sets to ensure the QuestionSetSelector has updated data
             await reloadAvailableQuestionSets()
         } catch (error) {
-            console.error('Error reloading question sets:', error)
+            console.error('❌ Exception reloading question sets:', error)
+            // Keep existing question sets on error
         } finally {
             setQuestionSetsLoading(false)
         }
@@ -1319,17 +1297,17 @@ export default function EditExamPaperPage() {
                 logParams: { limit: 100, skip: 0 }
             }
         )
-
+        
         if (!result.error && result.data) {
             // The list endpoint returns IGetResponsePaginated_QuestionSetRead_
             const questionSetsData = parseQuestionSetsResponse(result as any)
-
+            
             console.log('✅ Successfully reloaded available question sets:', {
                 count: questionSetsData.length
             })
-
+            
             setAvailableQuestionSets(questionSetsData as QuestionSetRead[])
-
+            
             // Note: QuestionSetRead doesn't include questions array, so we can't extract individual questions
             // The AddQuestionDialog should use the question sets API or questions API directly
             setAvailableQuestions([])
@@ -1341,15 +1319,15 @@ export default function EditExamPaperPage() {
 
     const handleRemoveQuestionSet = async (questionSetId: string) => {
         const removedQuestionSet = questionSets.find(qs => qs.id === questionSetId)
-
+        
         const { result, errorResult } = await executeAPICall(
             () => adminAPI.examPapers.removeQuestionSet(params.id as string, questionSetId),
             {
                 operation: 'Remove Question Set',
-                logParams: {
-                    examPaperId: params.id,
-                    questionSetId,
-                    questionSetTitle: removedQuestionSet?.title
+                logParams: { 
+                    examPaperId: params.id, 
+                    questionSetId, 
+                    questionSetTitle: removedQuestionSet?.title 
                 }
             }
         )
@@ -1371,59 +1349,6 @@ export default function EditExamPaperPage() {
                 message: `${errorResult.message} Please try again or contact support if the problem persists.`
             })
         }
-    }
-
-    // Handler for editing a question
-    const handleEditQuestion = (question: QuestionRead) => {
-        // Open the edit dialog with the question data
-        setEditingQuestion(question)
-        setIsSubQuestion(question.is_sub_question || false)
-        setParentQuestionId(question.parent_id || '')
-        setShowAddQuestionDialog(true)
-    }
-
-    // Handler for deleting a question
-    const handleDeleteQuestion = async (questionId: string) => {
-        if (!confirm('Are you sure you want to delete this question? This action cannot be undone.')) {
-            return
-        }
-
-        try {
-            const response = await adminAPI.questions.delete(questionId)
-
-            if (!response.error) {
-                addNotification({
-                    type: 'success',
-                    title: 'Question Deleted',
-                    message: 'The question has been successfully deleted.'
-                })
-
-                // Reload questions
-                await reloadQuestionSets()
-            } else {
-                throw new Error(response.error?.message || 'Failed to delete question')
-            }
-        } catch (error) {
-            console.error('Error deleting question:', error)
-            addNotification({
-                type: 'error',
-                title: 'Delete Failed',
-                message: error instanceof Error ? error.message : 'Failed to delete question'
-            })
-        }
-    }
-
-    // Handler for viewing a question
-    const handleViewQuestion = (questionId: string) => {
-        router.push(`/dashboard/questions/${questionId}`)
-    }
-
-    // Handler for adding a sub-question
-    const handleAddSubQuestion = (parentId: string) => {
-        // Set the parent ID and open the add question dialog
-        setParentQuestionId(parentId)
-        setIsSubQuestion(true)
-        setShowAddQuestionDialog(true)
     }
 
     const breadcrumbItems = [
@@ -1815,32 +1740,24 @@ export default function EditExamPaperPage() {
                                 </CardHeader>
                                 <CardContent className="space-y-4">
 
-
-                                    {questionSetsLoading || loadingQuestions ? (
+                                    
+                                    {questionSetsLoading ? (
                                         <div className="text-center py-8">
                                             <LoadingSpinner className="mx-auto mb-4" />
-                                            <h4 className="text-lg font-medium mb-2">
-                                                {questionSetsLoading ? 'Loading question sets...' : 'Loading questions...'}
-                                            </h4>
-                                            <p className="text-sm text-gray-500">
-                                                {questionSetsLoading
-                                                    ? 'Please wait while we load the question sets for this exam paper.'
-                                                    : 'Please wait while we load the questions for each question set.'}
-                                            </p>
+                                            <h4 className="text-lg font-medium mb-2">Loading question sets...</h4>
+                                            <p className="text-sm text-gray-500">Please wait while we load the question sets for this exam paper.</p>
                                         </div>
                                     ) : questionSets.length > 0 ? (
-                                        <HierarchicalQuestions
-                                            questionSets={questionSets}
-                                            questions={questionSetQuestions}
-                                            onEditQuestion={handleEditQuestion}
-                                            onDeleteQuestion={handleDeleteQuestion}
-                                            onViewQuestion={handleViewQuestion}
-                                            onAddSubQuestion={handleAddSubQuestion}
-                                            onDeleteQuestionSet={handleRemoveQuestionSet}
-                                            showActions={true}
-                                            defaultExpanded={false}
-                                            emptyMessage="No question sets found for this exam paper."
-                                        />
+                                        <div className="space-y-2">
+                                            {questionSets.map((questionSet, index) => (
+                                                <QuestionSetItem
+                                                    key={questionSet.id}
+                                                    questionSet={questionSet}
+                                                    index={index}
+                                                    onRemove={handleRemoveQuestionSet}
+                                                />
+                                            ))}
+                                        </div>
                                     ) : (
                                         <div className="text-center py-8 text-gray-500">
                                             <Layers className="mx-auto h-12 w-12 text-gray-400 mb-4" />
@@ -1859,7 +1776,7 @@ export default function EditExamPaperPage() {
                                             <Plus className="mr-2 h-4 w-4" />
                                             Add Question Set
                                         </Button>
-
+                                        
 
                                     </div>
                                 </CardContent>
@@ -2158,85 +2075,38 @@ export default function EditExamPaperPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Add/Edit Question Dialog */}
-            <Dialog open={showAddQuestionDialog} onOpenChange={(open) => {
-                if (!open) {
-                    // Immediately reset to trigger unmount
-                    setEditingQuestion(null)
-                    setIsSubQuestion(false)
-                    setParentQuestionId('')
-                }
-                setShowAddQuestionDialog(open)
-            }}>
-                <DialogContent className="
-                    w-[90vw]                 /* Base: almost full width on small screens */
-                    sm:max-w-[450px]         /* Small screens (≥640px): up to 450px */
-                    md:max-w-[650px]         /* Medium screens (≥768px): up to 650px */
-                    lg:max-w-[800px]         /* Large screens (≥1024px): up to 800px */
-                    xl:max-w-[1000px]        /* Extra large: up to 1000px */
-                    max-h-[90vh]             /* Limit height */
-                    overflow-y-auto          /* Scroll if content too tall */
-                    ">
-                    {showAddQuestionDialog && (
-                        <>
-                            <DialogHeader>
-                                <DialogTitle className="text-2xl">
-                                    {editingQuestion 
-                                        ? 'Edit Question' 
-                                        : isSubQuestion 
-                                            ? 'Add Sub-question' 
-                                            : 'Add New Question'}
-                                </DialogTitle>
-                                <DialogDescription className="text-base">
-                                    {editingQuestion
-                                        ? 'Update the question details below.'
-                                        : isSubQuestion
-                                            ? 'Fill in the details to create a sub-question for the selected main question.'
-                                            : 'Fill in the details to create a new question and add it to a question set.'}
-                                </DialogDescription>
-                            </DialogHeader>
-                            {questionSetsLoading || loadingQuestions ? (
-                                <div className="py-8 text-center">
-                                    <LoadingSpinner className="mx-auto mb-4" />
-                                    <p className="text-sm text-gray-500">Loading question data...</p>
-                                </div>
-                            ) : questionSets.length > 0 ? (
-                                <QuestionForm
-                                    key={editingQuestion?.id || 'new'}
-                                    question={editingQuestion || undefined}
-                                    questionSetId={editingQuestion?.question_set_id || questionSets[0]?.id}
-                                    examPaperId={params.id as string}
-                                    availableQuestionSets={questionSets || []}
-                                    availableMainQuestions={(questionSetQuestions || []).filter(q => !q.parent_id && !q.is_sub_question)}
-                                    parentQuestionId={isSubQuestion ? parentQuestionId : undefined}
-                                    isSubQuestion={isSubQuestion}
-                                    onSuccess={() => {
-                                        setShowAddQuestionDialog(false)
-                                        setEditingQuestion(null)
-                                        setIsSubQuestion(false)
-                                        setParentQuestionId('')
-                                        reloadQuestionSets()
-                                    }}
-                                    onCancel={() => {
-                                        setShowAddQuestionDialog(false)
-                                        setEditingQuestion(null)
-                                        setIsSubQuestion(false)
-                                        setParentQuestionId('')
-                                    }}
-                                />
-                            ) : (
-                                <div className="py-8 text-center">
-                                    <p className="text-red-600">Please add a question set to the exam paper before adding questions.</p>
-                                </div>
-                            )}
-                        </>
+            {/* Add Question Dialog */}
+            <Dialog open={showAddQuestionDialog} onOpenChange={setShowAddQuestionDialog}>
+                <DialogContent className="max-w-[70vw] w-full max-h-[85vh] overflow-y-auto mx-4">
+                    <DialogHeader>
+                        <DialogTitle>Add New Question</DialogTitle>
+                        <DialogDescription>
+                            Fill in the details to create a new question and add it to a question set.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {questionSets.length > 0 ? (
+                        <QuestionForm
+                                questionSetId={questionSets[0]?.id} // Default to the first question set
+                                examPaperId={params.id as string}
+                                availableQuestionSets={questionSets}
+                                availableMainQuestions={questions.filter(q => !q.is_sub_question)}
+                                onSuccess={() => {
+                                    setShowAddQuestionDialog(false)
+                                    reloadQuestionSets()
+                                }}
+                                onCancel={() => setShowAddQuestionDialog(false)}
+                            />
+                    ) : (
+                        <div className="py-8 text-center">
+                            <p className="text-red-600">Please add a question set to the exam paper before adding questions.</p>
+                        </div>
                     )}
                 </DialogContent>
             </Dialog>
 
             {/* Add Question Set Dialog */}
             <Dialog open={showAddQuestionSetDialog} onOpenChange={setShowAddQuestionSetDialog}>
-                <DialogContent className="max-w-[95vw] sm:max-w-[450px] lg:max-w-[800px] max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-[95vw] sm:max-w-[450px] lg:max-w-[500px] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Add Question Sets</DialogTitle>
                         <DialogDescription>

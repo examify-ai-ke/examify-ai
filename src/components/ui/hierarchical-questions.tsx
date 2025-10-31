@@ -218,7 +218,11 @@ const SubQuestionDisplay: React.FC<SubQuestionDisplayProps> = ({
                             }}
                             className="text-xs h-7"
                         >
-                            {showAnswers ? 'Hide' : 'Show'} Answers ({hasAnswers ? question.answers?.length || 0 : 0})
+                            {hasAnswers ? (
+                                showAnswers ? `Hide Answers (${question.answers?.length || 0})` : `Show Answers (${question.answers?.length || 0})`
+                            ) : (
+                                'Add Answer'
+                            )}
                         </Button>
                     </div>
 

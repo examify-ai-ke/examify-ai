@@ -8554,13 +8554,31 @@ export interface components {
          *       "blocks": [
          *         {
          *           "data": {
-         *             "text": "Write a Python function that calculates the factorial of a given number. Explain your code."
+         *             "caption": "logo-sample",
+         *             "file": {
+         *               "format": "PNG",
+         *               "height": 262,
+         *               "name": "favicon-exam.png",
+         *               "size": 104763,
+         *               "url": "https://exampapel-images-bucket2025.s3.amazonaws.com/019a1c1c-a20e-77fc-b3c8-dfd5587162b0favicon-exam.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA6QJRQF7UB6UGBA4E%2F20251025%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20251025T160351Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=4d2bc69a2d68b30da57cfd18cebae3f18150f3d0936ad566a0fb6a7b5cc32fee",
+         *               "width": 265
+         *             },
+         *             "stretched": false,
+         *             "withBackground": false,
+         *             "withBorder": false
          *           },
-         *           "id": "dCcbQeoht12",
+         *           "id": "8z7KYTOioJ",
+         *           "type": "image"
+         *         },
+         *         {
+         *           "data": {
+         *             "text": "this is a question with an image.edited"
+         *           },
+         *           "id": "pp0wt2psxQ",
          *           "type": "paragraph"
          *         }
          *       ],
-         *       "time": 1742156891260
+         *       "time": 1761416444650
          *     }
          */
         QuestionTextSchema: {

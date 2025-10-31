@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -39,6 +39,7 @@ export function AnswerForm({ questionId, answer, onSuccess, onCancel }: AnswerFo
     const { addNotification } = useUIStore()
     const [isSubmitting, setIsSubmitting] = useState(false)
     const isEditing = !!answer
+    const editorInstanceRef = useRef<any>(null)
 
     const form = useForm<AnswerFormData>({
         resolver: zodResolver(answerFormSchema),
@@ -63,10 +64,31 @@ export function AnswerForm({ questionId, answer, onSuccess, onCancel }: AnswerFo
         try {
             setIsSubmitting(true)
 
+            // Validate that we have actual content
+            const hasContent = data.text.blocks.some(block => {
+                if (block.type === 'paragraph' && block.data?.text) {
+                    return block.data.text.trim().length > 0;
+                }
+                // Non-paragraph blocks (images, tables, etc.) count as content
+                return block.type !== 'paragraph';
+            });
+
+            if (!hasContent) {
+                addNotification({
+                    type: 'error',
+                    title: 'Validation Error',
+                    message: 'Please enter some content for the answer before submitting.'
+                });
+                setIsSubmitting(false);
+                return;
+            }
+
             const answerPayload = {
                 text: { ...data.text, time: data.text.time || Date.now() },
                 question_id: questionId,
             }
+
+            console.log('Submitting answer:', answerPayload);
 
             let response
             if (isEditing && answer) {
@@ -102,9 +124,24 @@ export function AnswerForm({ questionId, answer, onSuccess, onCancel }: AnswerFo
         }
     }
 
-    const handleSubmit = (e: React.MouseEvent) => {
+    const handleSubmit = async (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        
+        // Get the latest data directly from the editor instance
+        if (editorInstanceRef.current) {
+            try {
+                const currentData = await editorInstanceRef.current.save();
+                form.setValue('text', currentData);
+                console.log('Got current editor data:', currentData);
+            } catch (error) {
+                console.error('Error getting editor data:', error);
+            }
+        }
+        
+        // Small delay to ensure form state is updated
+        await new Promise(resolve => setTimeout(resolve, 50));
+        
         form.handleSubmit(onSubmit)();
     };
 
@@ -126,6 +163,7 @@ export function AnswerForm({ questionId, answer, onSuccess, onCancel }: AnswerFo
                                         <Editor
                                             data={field.value}
                                             onChange={field.onChange}
+                                            editorRef={editorInstanceRef}
                                         />
                                     </div>
                                 </div>

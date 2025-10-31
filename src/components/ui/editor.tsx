@@ -16,9 +16,10 @@ interface EditorProps {
   data: OutputData;
   onChange: (data: OutputData) => void;
   holder?: string; // Make optional since we'll generate it internally
+  editorRef?: React.MutableRefObject<EditorJS | null>; // Expose editor instance
 }
 
-const Editor: React.FC<EditorProps> = ({ data, onChange, holder: externalHolder }) => {
+const Editor: React.FC<EditorProps> = ({ data, onChange, holder: externalHolder, editorRef: externalEditorRef }) => {
   const ref = useRef<EditorJS | null>(null);
   const [isReady, setIsReady] = useState(false);
   const isInitializing = useRef(false);
@@ -285,6 +286,10 @@ const Editor: React.FC<EditorProps> = ({ data, onChange, holder: externalHolder 
 
         if (isMounted.current) {
           ref.current = editor;
+          // Also expose to external ref if provided
+          if (externalEditorRef) {
+            externalEditorRef.current = editor;
+          }
           setIsReady(true);
         } else {
           // Component unmounted during initialization, cleanup immediately

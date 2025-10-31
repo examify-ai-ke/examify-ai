@@ -566,11 +566,11 @@ export default function EditExamPaperPage() {
 
                     // Load question sets with nested questions using the dedicated endpoint
                     const questionSetsResponse = await adminAPI.questionSets.getByExamPaper(params.id as string)
-                    
+
                     if (!questionSetsResponse.error && questionSetsResponse.data) {
                         const questionSetsData = (questionSetsResponse.data as any).data || []
                         setQuestionSets(questionSetsData as QuestionSetRead[])
-                        
+
                         // Extract all questions (main and sub) from the nested structure
                         const allQuestions: QuestionRead[] = []
                         questionSetsData.forEach((qs: any) => {
@@ -584,7 +584,7 @@ export default function EditExamPaperPage() {
                                 })
                             }
                         })
-                        
+
                         setQuestionSetQuestions(allQuestions)
                     } else {
                         setQuestionSets([])
@@ -1279,11 +1279,11 @@ export default function EditExamPaperPage() {
         try {
             // Load question sets with nested questions using the dedicated endpoint
             const questionSetsResponse = await adminAPI.questionSets.getByExamPaper(params.id as string)
-            
+
             if (!questionSetsResponse.error && questionSetsResponse.data) {
                 const questionSetsData = (questionSetsResponse.data as any).data || []
                 setQuestionSets(questionSetsData as QuestionSetRead[])
-                
+
                 // Extract all questions (main and sub) from the nested structure
                 const allQuestions: QuestionRead[] = []
                 questionSetsData.forEach((qs: any) => {
@@ -1297,7 +1297,7 @@ export default function EditExamPaperPage() {
                         })
                     }
                 })
-                
+
                 setQuestionSetQuestions(allQuestions)
             }
 
@@ -1837,6 +1837,7 @@ export default function EditExamPaperPage() {
                                             onViewQuestion={handleViewQuestion}
                                             onAddSubQuestion={handleAddSubQuestion}
                                             onDeleteQuestionSet={handleRemoveQuestionSet}
+                                            onAnswersChange={reloadQuestionSets}
                                             showActions={true}
                                             defaultExpanded={false}
                                             emptyMessage="No question sets found for this exam paper."
@@ -2181,10 +2182,10 @@ export default function EditExamPaperPage() {
                         <>
                             <DialogHeader>
                                 <DialogTitle className="text-2xl">
-                                    {editingQuestion 
-                                        ? 'Edit Question' 
-                                        : isSubQuestion 
-                                            ? 'Add Sub-question' 
+                                    {editingQuestion
+                                        ? 'Edit Question'
+                                        : isSubQuestion
+                                            ? 'Add Sub-question'
                                             : 'Add New Question'}
                                 </DialogTitle>
                                 <DialogDescription className="text-base">

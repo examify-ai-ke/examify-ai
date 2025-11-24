@@ -11,38 +11,40 @@ interface RecentQuestionsSectionProps {
   totalPages?: number;
   totalItems?: number;
   onPageChange?: (page: number) => void;
+  isLoading?: boolean;
 }
 
 /**
- * Helper to extract plain text from question blocks
+ * Helper to extract plain text from question text schema
+ * The text field contains EditorJS format with blocks
  */
 function extractQuestionText(questionText: unknown): string {
+  if (!questionText) {
+    return '';
+  }
+
+  // If it's a string, return it directly
   if (typeof questionText === 'string') {
     return questionText;
   }
 
+  // Handle EditorJS format with blocks
   if (questionText && typeof questionText === 'object') {
     const textObj = questionText as any;
+    
+    // Check for blocks array (EditorJS format)
     if (textObj.blocks && Array.isArray(textObj.blocks)) {
       return textObj.blocks
-        .map((block: any) => block?.data?.text || '')
+        .map((block: any) => {
+          // Handle different block types
+          if (block?.data?.text) return block.data.text;
+          if (block?.data?.level !== undefined && block?.data?.content) return block.data.content;
+          return '';
+        })
         .filter(Boolean)
         .join(' ')
         .trim();
     }
-  }
-
-  if (Array.isArray(questionText)) {
-    return questionText
-      .map((block: any) => {
-        if (typeof block === 'string') return block;
-        if (block?.data?.text) return block.data.text;
-        if (block?.text) return block.text;
-        return '';
-      })
-      .filter(Boolean)
-      .join(' ')
-      .trim();
   }
 
   return '';
@@ -66,12 +68,47 @@ export function RecentQuestionsSection({
   totalPages = 1,
   totalItems = 0,
   onPageChange,
+  isLoading = false,
 }: RecentQuestionsSectionProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
   };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[...Array(5)].map((_, index) => (
+          <div key={index} className="p-6 rounded-lg border-2 border-border bg-card animate-pulse">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  <div className="h-6 w-24 rounded-full bg-muted"></div>
+                  <div className="h-6 w-20 rounded-full bg-muted"></div>
+                  <div className="h-6 w-16 rounded-full bg-muted"></div>
+                </div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="h-8 w-8 rounded-full bg-muted"></div>
+                  <div className="h-4 w-24 bg-muted rounded"></div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-muted rounded w-3/4"></div>
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
+                  <div className="h-4 bg-muted rounded w-2/3"></div>
+                </div>
+                <div className="flex flex-wrap items-center gap-4 mt-4">
+                  <div className="h-4 w-16 bg-muted rounded"></div>
+                  <div className="h-4 w-20 bg-muted rounded"></div>
+                  <div className="h-4 w-24 bg-muted rounded"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   if (!questions || questions.length === 0) {
     return null;
@@ -102,44 +139,40 @@ export function RecentQuestionsSection({
         <div className="space-y-4">
           {questions.map((question) => {
             const isExpanded = expandedId === question.id;
-            const mainText = extractQuestionText(question.question_text || (question as any).text);
+            // Extract text from the EditorJS format
+            const mainText = extractQuestionText(question.text);
 
-            // Try to get data from both question level and exam_paper level
-            const questionData = question as any;
+            // Get data from question level (direct properties on QuestionRead)
             const institution =
-              questionData.institution?.name ||
-              question.exam_paper?.institution?.name ||
+              question.institution?.name ||
               'Unknown Institution';
+            
             const courseAcronym =
-              questionData.course?.course_acronym ||
-              questionData.course?.code ||
-              questionData.course?.name ||
-              question.exam_paper?.course?.course_acronym ||
-              question.exam_paper?.course?.code ||
-              question.exam_paper?.course?.name ||
+              question.course?.course_acronym ||
+              question.course?.name ||
               'N/A';
+            
             const year =
-              questionData.exam_paper?.year_of_exam ||
               question.exam_paper?.year_of_exam ||
               'N/A';
 
             // Calculate total marks by summing all sub-question marks
-            const childrenCount = question.children_count || question.children?.length || 0;
+            const childrenCount = question.children_count || 0;
             const calculatedTotalMarks = question.children && question.children.length > 0
               ? question.children.reduce((sum: number, child: any) => sum + (child.marks || 0), 0)
               : question.marks || 0;
 
             // Use calculated total or fallback to total_marks from API
-            const totalMarks = calculatedTotalMarks || question.total_marks || question.marks || 0;
+            const totalMarks = calculatedTotalMarks || question.total_marks || 0;
+            
             const programme =
-              questionData.programme?.name ||
-              question.exam_paper?.programme?.name;
+              question.programme?.name;
+            
             const module =
-              questionData.module?.name ||
-              questionData.modules?.[0]?.name ||
-              question.exam_paper?.module?.name;
+              question.modules?.[0]?.name;
+            
             const exam_paper_name =
-              questionData.exam_paper?.identifying_name ||
+              question.exam_paper?.identifying_name ||
               'Unknown Exam Paper';
 
             return (
@@ -224,7 +257,7 @@ export function RecentQuestionsSection({
                 {isExpanded && childrenCount > 0 && (
                   <div className="mt-2 ml-4 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
                     {sortSubQuestions(question.children || []).map((subQuestion: any) => {
-                      const subText = extractQuestionText(subQuestion.question_text || subQuestion.text);
+                      const subText = extractQuestionText(subQuestion.text);
                       return (
                         <div
                           key={subQuestion.id}

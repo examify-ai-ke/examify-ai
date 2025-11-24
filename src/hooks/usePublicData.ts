@@ -12,6 +12,7 @@ import { publicAPI } from '@/lib/api-public';
 export const publicQueryKeys = {
   stats: ['public', 'stats'] as const,
   recentQuestions: (limit: number) => ['public', 'questions', 'recent', limit] as const,
+  listQuestions: (filters?: Record<string, unknown>) => ['public', 'questions', 'list', filters] as const,
   featuredInstitutions: (limit: number) => ['public', 'institutions', 'featured', limit] as const,
   examPapers: (filters?: Record<string, unknown>) => ['public', 'examPapers', filters] as const,
   examPaper: (id: string) => ['public', 'examPaper', id] as const,
@@ -48,17 +49,49 @@ export function useRecentQuestions(limit: number = 9) {
     queryFn: async () => {
       console.log('🔍 Fetching recent questions from API...');
       const result = await publicAPI.questions.getRecent(limit);
-      console.log('📦 API Response:', { 
-        dataCount: result.data?.length, 
-        total: result.total, 
+      console.log('📦 API Response:', {
+        dataCount: result.data?.length,
+        total: result.total,
         error: result.error,
-        sampleData: result.data?.[0] 
+        sampleData: result.data?.[0]
       });
       if (result.error) {
         console.error('❌ Error fetching questions:', result.error);
         throw new Error('Failed to fetch recent questions');
       }
       return result.data;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+}
+
+/**
+ * Fetch list of questions with pagination and filters
+ * Cache: 5 minutes
+ */
+export function useListQuestions(filters?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: publicQueryKeys.listQuestions(filters),
+    queryFn: async () => {
+      console.log('🔍 Fetching list of questions from API with filters:', filters);
+      // Use the search method instead of the non-existent list method
+      const result = await publicAPI.questions.search(filters as any);
+      console.log('📦 API Response:', {
+        dataCount: result.data?.length,
+        total: result.total,
+        error: result.error,
+        sampleData: result.data?.[0]
+      });
+      if (result.error) {
+        console.error('❌ Error fetching questions list:', result.error);
+        throw new Error('Failed to fetch questions list');
+      }
+      return {
+        data: result.data,
+        total: result.total,
+        pagination: result.pagination,
+      };
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes

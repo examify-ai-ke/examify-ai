@@ -68,7 +68,13 @@ export function Header({ className, onMenuClick }: HeaderProps) {
             href="/exampapers"
             className="text-sm font-medium transition-colors hover:text-primary"
           >
-            Browse Papers
+            ExamPapers
+          </Link>
+          <Link
+            href="/questions"
+            className="text-sm font-medium transition-colors hover:text-primary"
+          >
+            Questions
           </Link>
           <Link
             href="/institutions"
@@ -76,7 +82,8 @@ export function Header({ className, onMenuClick }: HeaderProps) {
           >
             Institutions
           </Link>
-          {isAuthenticated && (
+          {isAuthenticated && user?.role?.name && 
+            (user.role.name === 'admin' || user.role.name === 'manager') && (
             <Link
               href="/dashboard"
               className="text-sm font-medium transition-colors hover:text-primary"

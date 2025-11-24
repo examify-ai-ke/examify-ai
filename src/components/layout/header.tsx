@@ -70,6 +70,12 @@ export function Header({ className, onMenuClick }: HeaderProps) {
           >
             Browse Papers
           </Link>
+          <Link
+            href="/institutions"
+            className="text-sm font-medium transition-colors hover:text-primary"
+          >
+            Institutions
+          </Link>
           {isAuthenticated && (
             <Link
               href="/dashboard"

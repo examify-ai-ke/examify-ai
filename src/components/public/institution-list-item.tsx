@@ -36,8 +36,7 @@ export function InstitutionListItem({ institution, className = '' }: Institution
   };
 
   const InstitutionIcon = getInstitutionIcon(institution.institution_type || '');
-  const src = institution.logo?.media?.path
-   
+  
   return (
     <div className={`flex flex-col sm:flex-row sm:items-center gap-4 p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow ${className}`}>
       {/* Left side - Institution info */}
@@ -47,7 +46,7 @@ export function InstitutionListItem({ institution, className = '' }: Institution
           <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
             {(institution as any).logo ? (
               <Image
-                src={src || '/placeholder.svg'}
+                src={institution.logo?.media?.path || '/placeholder.svg'}
                 alt={institution.logo?.media?.title || 'Institution logo'}
                 width={64}  
                 height={64}                

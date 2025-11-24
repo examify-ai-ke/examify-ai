@@ -66,7 +66,7 @@ export function ExamPaperCard({
     'bg-amber-600 hover:bg-amber-700 border-amber-600',
     'bg-teal-600 hover:bg-teal-700 border-teal-600',
   ];
-  const logo_url = institution.logo?.media?.path || '/placeholder.svg';
+ 
   if (variant === 'list') {
     return (
       <Card
@@ -78,7 +78,7 @@ export function ExamPaperCard({
           <div className="sm:w-32 sm:shrink-0 p-6 flex items-center justify-center bg-gray-50">
             {institution?.logo ? (
               <img
-                src={logo_url}
+                src={institution.logo?.media?.path || '/placeholder.svg'}
                 alt={institution.logo?.media?.title || 'Institution logo'}
                 width={80}
                 height={80}

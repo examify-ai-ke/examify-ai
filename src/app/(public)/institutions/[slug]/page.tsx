@@ -120,10 +120,10 @@ export default function InstitutionProfilePage() {
             {/* Institution Logo */}
             <div className="shrink-0">
               <div className="bg-white rounded-2xl p-4 shadow-xl">
-                {institution.logo?.media?.link ? (
+                {institution.logo ? (
                   <Image
-                    src={institution.logo.media.link}
-                    alt={institution.name}
+                    src={institution.logo.media?.link || '/placeholder.svg'}
+                    alt={institution.logo.media?.title || 'Institution logo'}
                     width={160}
                     height={160}
                     className="object-contain rounded-lg"

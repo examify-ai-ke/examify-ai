@@ -16,7 +16,7 @@ const nextConfig: NextConfig = {
     // Enable experimental features if needed
   },
   images: {
-    domains: ['localhost', 'fastapi.localhost'],
+    domains: ['localhost', 'fastapi.localhost','exampapel-images-bucket2025.s3.amazonaws.com'],
   },
   async rewrites() {
     return [

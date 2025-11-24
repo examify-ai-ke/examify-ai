@@ -6178,10 +6178,16 @@ export interface components {
         };
         /** IImageMediaRead */
         IImageMediaRead: {
-            media: components["schemas"]["IMediaReadForInstituion"] | null;
+            media: components["schemas"]["IMediaRead"] | null;
         };
-        /** IMediaReadForInstituion */
-        IMediaReadForInstituion: {
+        /** IMediaRead */
+        IMediaRead: {
+            /** Title */
+            title?: string | null;
+            /** Description */
+            description?: string | null;
+            /** Path */
+            path?: string | null;
             /** Id */
             id: string;
             /** Link */

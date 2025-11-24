@@ -38,9 +38,9 @@ export function InstitutionListItem({ institution, className = '' }: Institution
   const InstitutionIcon = getInstitutionIcon(institution.institution_type || '');
 
   return (
-    <div className={`flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow ${className}`}>
+    <div className={`flex flex-col sm:flex-row sm:items-center gap-4 p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow ${className}`}>
       {/* Left side - Institution info */}
-      <div className="flex items-center space-x-4 flex-1">
+      <div className="flex items-center space-x-4 flex-1 min-w-0">
         {/* Institution Logo/Icon */}
         <div className="flex-shrink-0">
           <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
@@ -60,8 +60,8 @@ export function InstitutionListItem({ institution, className = '' }: Institution
 
         {/* Institution details */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-semibold text-lg text-gray-900 truncate">
+          <div className="flex items-start flex-col gap-1 mb-1">
+            <h3 className="font-semibold text-lg text-gray-900 truncate w-full">
               {institution.name}
             </h3>
             {(institution as any).key && (
@@ -98,10 +98,11 @@ export function InstitutionListItem({ institution, className = '' }: Institution
       </div>
 
       {/* Right side - Action button */}
-      <div className="flex-shrink-0 ml-4">
+      <div className="flex-shrink-0 sm:ml-4 w-full sm:w-auto">
         <Button
           onClick={handleViewInstitution}
           variant="outline"
+          className="w-full sm:w-auto"
         >
           View Institution
         </Button>

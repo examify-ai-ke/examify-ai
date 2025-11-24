@@ -61,7 +61,10 @@ export default function InstitutionsPage() {
       }
       
       // Filter by category on client side (until backend adds category support)
+      // Note: Client-side filtering only filters the current page, so pagination
+      // will show all pages but filtered results only appear on current page
       let institutions = result.data || [];
+      
       if (institutionCategory !== 'all') {
         institutions = institutions.filter((inst: any) => inst.category === institutionCategory);
       }
@@ -79,7 +82,7 @@ export default function InstitutionsPage() {
       
       return {
         data: institutions,
-        total: institutions.length, // Update total after filtering
+        total: result.total, // Keep original total for pagination
         pagination: result.pagination,
       };
     },

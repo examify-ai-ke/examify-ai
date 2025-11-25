@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { FileText, Building2, HelpCircle } from 'lucide-react';
+import { FileText, Building2, BookOpen, Layers, HelpCircle } from 'lucide-react';
 import type { PlatformStats } from './types';
 
 interface StatsSectionProps {
@@ -99,7 +99,7 @@ export function StatsSection({ stats }: StatsSectionProps) {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <StatItem
               icon={<FileText className="h-5 w-5 text-blue-600" />}
               value={stats.totalPapers}
@@ -115,8 +115,20 @@ export function StatsSection({ stats }: StatsSectionProps) {
             <StatItem
               icon={<HelpCircle className="h-5 w-5 text-blue-600" />}
               value={stats.totalQuestions}
-              label="Questions"
+              label="Total Questions"
               delay={200}
+            />
+            <StatItem
+              icon={<Layers className="h-5 w-5 text-blue-600" />}
+              value={stats.totalModules || 0}
+              label="Total Modules"
+              delay={300}
+            />
+            <StatItem
+              icon={<BookOpen className="h-5 w-5 text-blue-600" />}
+              value={stats.totalCourses || 0}
+              label="Total Courses"
+              delay={400}
             />
           </div>
         </div>

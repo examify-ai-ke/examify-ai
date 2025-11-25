@@ -1027,45 +1027,80 @@ export const publicAPI = {
      */
     stats: {
         /**
-         * Get platform statistics
+         * Get platform statistics using dedicated statistics endpoint
          */
         async getPlatformStats() {
             try {
-                // Fetch counts from multiple endpoints
-                // Using limit: 10 to avoid potential backend issues with limit: 1
-                const [papersResponse, institutionsResponse, questionsResponse] = await Promise.allSettled([
-                    api.GET('/api/v1/exampaper', { params: { query: { limit: 10 } } }),
-                    api.GET('/api/v1/institution', { params: { query: { limit: 10 } } }),
-                    api.GET('/api/v1/questions', { params: { query: { limit: 10 } } }),
-                ]);
+                console.log('📊 Fetching platform statistics from dedicated endpoint...');
+                const response = await api.GET('/api/v1/report/detailed-statistics');
 
-                const totalPapers = papersResponse.status === 'fulfilled' 
-                    ? extractTotal(papersResponse.value) 
-                    : 0;
-                
-                const totalInstitutions = institutionsResponse.status === 'fulfilled'
-                    ? extractTotal(institutionsResponse.value)
-                    : 0;
-                
-                const totalQuestions = questionsResponse.status === 'fulfilled'
-                    ? extractTotal(questionsResponse.value)
-                    : 0;
+                console.log('📦 Statistics response:', {
+                    hasData: !!response.data,
+                    hasError: !!response.error,
+                    dataType: typeof response.data,
+                });
 
+                // Check for API errors
+                if (response.error) {
+                    console.error('❌ Statistics API error:', response.error);
+                    return {
+                        data: {
+                            totalPapers: 0,
+                            totalInstitutions: 0,
+                            totalQuestions: 0,
+                            totalCourses: 0,
+                            totalDepartments: 0,
+                            totalModules: 0,
+                            totalFaculties: 0,
+                            totalUsers: 0,
+                            totalAnswers: 0,
+                            totalCampuses: 0,
+                        },
+                        error: response.error,
+                    };
+                }
+
+                // Extract data from nested response structure
+                let extractedData: any = null;
+                
+                if (typeof response.data === 'object' && 'data' in response.data) {
+                    extractedData = (response.data as any).data;
+                } else {
+                    extractedData = response.data;
+                }
+
+                console.log('✅ Extracted statistics:', extractedData);
+
+                // Map the statistics response to our expected format
                 return {
                     data: {
-                        totalPapers,
-                        totalInstitutions,
-                        totalQuestions,
+                        totalPapers: extractedData?.total_exam_papers || 0,
+                        totalInstitutions: extractedData?.total_institutions || 0,
+                        totalQuestions: extractedData?.total_main_questions || 0,
+                        totalCourses: extractedData?.total_courses || 0,
+                        totalDepartments: extractedData?.total_departments || 0,
+                        totalModules: extractedData?.total_modules || 0,
+                        totalFaculties: extractedData?.total_faculties || 0,
+                        totalUsers: extractedData?.total_users || 0,
+                        totalAnswers: extractedData?.total_answers || 0,
+                        totalCampuses: extractedData?.total_campuses || 0,
                     },
                     error: null,
                 };
             } catch (error) {
-                console.error('Error fetching platform stats:', error);
+                console.error('❌ Error fetching platform stats:', error);
                 return {
                     data: {
                         totalPapers: 0,
                         totalInstitutions: 0,
                         totalQuestions: 0,
+                        totalCourses: 0,
+                        totalDepartments: 0,
+                        totalModules: 0,
+                        totalFaculties: 0,
+                        totalUsers: 0,
+                        totalAnswers: 0,
+                        totalCampuses: 0,
                     },
                     error: error as any,
                 };

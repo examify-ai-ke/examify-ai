@@ -7273,7 +7273,7 @@ export interface components {
          * InstitutionCategory
          * @enum {string}
          */
-        InstitutionCategory: "University" | "College" | "TVET" | "TVC" | "TTI" | "Other";
+        InstitutionCategory: "University" | "College" | "Tvet" | "Tvc" | "Tti" | "Other";
         /** InstitutionCreate */
         InstitutionCreate: {
             /** Name */

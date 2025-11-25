@@ -96,6 +96,13 @@ export interface PlatformStats {
   totalPapers: number;
   totalInstitutions: number;
   totalQuestions: number;
+  totalCourses?: number;
+  totalDepartments?: number;
+  totalModules?: number;
+  totalFaculties?: number;
+  totalUsers?: number;
+  totalAnswers?: number;
+  totalCampuses?: number;
 }
 
 // Sign-up prompt types

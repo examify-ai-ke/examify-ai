@@ -1,11 +1,9 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Search, ArrowRight, Users } from 'lucide-react';
+import { ArrowRight, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import type { PlatformStats } from './types';
 
 interface HeroSectionProps {
@@ -14,14 +12,6 @@ interface HeroSectionProps {
 
 export function HeroSection({ stats }: HeroSectionProps) {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
 
   const handleBrowseClick = () => {
     router.push('/exampapers');
@@ -133,7 +123,7 @@ export function HeroSection({ stats }: HeroSectionProps) {
       {/* Bottom Stats Bar */}
       <div className="bg-teal-500 text-white">
         <div className="container mx-auto px-4 py-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-6 text-center">
             <div className="space-y-1">
               <div className="text-2xl md:text-3xl font-bold">
                 {stats.totalPapers.toLocaleString()}
@@ -150,11 +140,19 @@ export function HeroSection({ stats }: HeroSectionProps) {
               <div className="text-2xl md:text-3xl font-bold">
                 {stats.totalQuestions.toLocaleString()}
               </div>
-              <div className="text-sm text-teal-100">Questions</div>
+              <div className="text-sm text-teal-100">Total Questions</div>
             </div>
             <div className="space-y-1">
-              <div className="text-2xl md:text-3xl font-bold">6,000</div>
-              <div className="text-sm text-teal-100">Active Students</div>
+              <div className="text-2xl md:text-3xl font-bold">
+                {(stats.totalModules || 0).toLocaleString()}
+              </div>
+              <div className="text-sm text-teal-100">Total Modules</div>
+            </div>
+            <div className="space-y-1">
+              <div className="text-2xl md:text-3xl font-bold">
+                {(stats.totalCourses || 0).toLocaleString()}
+              </div>
+              <div className="text-sm text-teal-100">Total Courses</div>
             </div>
           </div>
         </div>

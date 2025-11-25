@@ -105,8 +105,8 @@ export default function InstitutionProfilePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-teal-600 to-blue-600 text-white">
-        <div className="container mx-auto px-4 py-8">
+      <div className="bg-gradient-to-r from-teal-600 to-blue-600 text-white pb-20">
+        <div className="container mx-auto px-4 py-12">
           <Button
             variant="ghost"
             onClick={() => router.push('/institutions')}
@@ -182,10 +182,11 @@ export default function InstitutionProfilePage() {
       </div>
 
       {/* Content */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 -mt-10  py-8">
         <div className="max-w-7xl mx-auto">
           {/* Statistics Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 -mt-16 mb-8 relative z-10">
+          {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12 relative z-10"> */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 -mt-10 mb-8 relative z-10">
             <Card className="shadow-lg hover:shadow-xl transition-shadow">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-4">

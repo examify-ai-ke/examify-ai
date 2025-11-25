@@ -206,6 +206,7 @@ export function useQuestion(questionId: string) {
 /**
  * Advanced search for questions with comprehensive filtering
  * Cache: 3 minutes (search results change frequently)
+ * Priority: High (main content)
  */
 export function useAdvancedQuestionSearch(filters?: Record<string, unknown>) {
   return useQuery({
@@ -230,6 +231,7 @@ export function useAdvancedQuestionSearch(filters?: Record<string, unknown>) {
     },
     staleTime: 3 * 60 * 1000, // 3 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
+    networkMode: 'online', // Ensure it runs immediately when online
   });
 }
 
@@ -285,6 +287,7 @@ export function useQuestionSearchSuggestions(query: string) {
 /**
  * Fetch institutions for filter options with optional search
  * Cache: 15 minutes (relatively stable data)
+ * Lower priority: Filter options can load after main content
  */
 export function useInstitutionsList(searchQuery?: string) {
   return useQuery({
@@ -312,12 +315,14 @@ export function useInstitutionsList(searchQuery?: string) {
     },
     staleTime: 15 * 60 * 1000, // 15 minutes
     gcTime: 20 * 60 * 1000, // 20 minutes
+    refetchOnMount: false, // Don't refetch on every mount
   });
 }
 
 /**
  * Fetch courses for filter options with optional search
  * Cache: 15 minutes (relatively stable data)
+ * Lower priority: Filter options can load after main content
  */
 export function useCoursesList(searchQuery?: string) {
   return useQuery({
@@ -344,12 +349,14 @@ export function useCoursesList(searchQuery?: string) {
     },
     staleTime: 15 * 60 * 1000, // 15 minutes
     gcTime: 20 * 60 * 1000, // 20 minutes
+    refetchOnMount: false, // Don't refetch on every mount
   });
 }
 
 /**
  * Fetch modules for filter options with optional search
  * Cache: 15 minutes (relatively stable data)
+ * Lower priority: Filter options can load after main content
  */
 export function useModulesList(searchQuery?: string) {
   return useQuery({
@@ -376,12 +383,14 @@ export function useModulesList(searchQuery?: string) {
     },
     staleTime: 15 * 60 * 1000, // 15 minutes
     gcTime: 20 * 60 * 1000, // 20 minutes
+    refetchOnMount: false, // Don't refetch on every mount
   });
 }
 
 /**
  * Fetch all programmes for filter options
  * Cache: 15 minutes (relatively stable data)
+ * Lower priority: Filter options can load after main content
  */
 export function useProgrammesList() {
   return useQuery({
@@ -395,5 +404,6 @@ export function useProgrammesList() {
     },
     staleTime: 15 * 60 * 1000, // 15 minutes
     gcTime: 20 * 60 * 1000, // 20 minutes
+    refetchOnMount: false, // Don't refetch on every mount
   });
 }

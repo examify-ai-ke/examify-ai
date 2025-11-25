@@ -67,7 +67,8 @@ export default function PublicQuestionsContent() {
     limit: pageSize,
   };
 
-  // Fetch questions with advanced filters
+  // Fetch questions with advanced filters (PRIORITY: Main content - loads first)
+  // Note: All React Query hooks below execute in parallel automatically
   const {
     data: questionsData,
     isLoading,
@@ -76,10 +77,10 @@ export default function PublicQuestionsContent() {
     refetch
   } = useAdvancedQuestionSearch(searchFilters);
 
-  // Fetch platform statistics (not question-specific stats)
+  // Fetch platform statistics (runs in parallel with questions)
   const { data: platformStats, isLoading: isStatsLoading } = usePlatformStats();
 
-  // Fetch filter options with search
+  // Fetch filter options with search (runs in parallel)
   const { data: institutions = [] } = useInstitutionsList(institutionSearchQuery);
   const { data: courses = [] } = useCoursesList(courseSearchQuery);
   const { data: modules = [] } = useModulesList(moduleSearchQuery);

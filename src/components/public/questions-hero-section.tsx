@@ -36,7 +36,7 @@ export function QuestionsHeroSection({ stats, onSearchClick }: QuestionsHeroSect
               Master Your Exams with
               <br />
               <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                {stats.totalQuestions.toLocaleString()}+ Practice Questions
+                {stats.totalQuestions.toLocaleString()}+ Real Exam Questions
               </span>
             </h1>
 

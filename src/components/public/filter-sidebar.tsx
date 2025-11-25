@@ -98,7 +98,6 @@ function FilterSection({
             <Checkbox
               id={`${title}-${option.value}`}
               checked={selectedValues.includes(option.value)}
-              onCheckedChange={() => onToggle(option.value)}
               className="pointer-events-none"
             />
             <Label

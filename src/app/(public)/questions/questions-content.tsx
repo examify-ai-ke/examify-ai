@@ -145,18 +145,26 @@ export default function PublicQuestionsContent() {
 
   // Handle filter changes
   const handleFilterChange = useCallback((filters: any) => {
-    // Handle both array format (from FilterSidebar) and single value format
+    // Handle array format from FilterSidebar - properly handle empty arrays as undefined
     if (filters.institutionIds !== undefined) {
-      setSelectedInstitution(filters.institutionIds?.[0]);
+      const ids = filters.institutionIds;
+      const newValue = ids && ids.length > 0 ? ids[0] : undefined;
+      setSelectedInstitution(newValue);
     }
     if (filters.courseIds !== undefined) {
-      setSelectedCourse(filters.courseIds?.[0]);
+      const ids = filters.courseIds;
+      const newValue = ids && ids.length > 0 ? ids[0] : undefined;
+      setSelectedCourse(newValue);
     }
     if (filters.moduleIds !== undefined) {
-      setSelectedModule(filters.moduleIds?.[0]);
+      const ids = filters.moduleIds;
+      const newValue = ids && ids.length > 0 ? ids[0] : undefined;
+      setSelectedModule(newValue);
     }
     if (filters.programmeIds !== undefined) {
-      setSelectedProgramme(filters.programmeIds?.[0]);
+      const ids = filters.programmeIds;
+      const newValue = ids && ids.length > 0 ? ids[0] : undefined;
+      setSelectedProgramme(newValue);
     }
     if (filters.hasAnswers !== undefined) {
       setHasAnswersFilter(filters.hasAnswers);
@@ -175,56 +183,29 @@ export default function PublicQuestionsContent() {
     setPage(1);
   }, []);
 
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="container mx-auto p-8 text-center">
-        <h1 className="text-3xl font-bold mb-6">Public Questions</h1>
-        <p>Loading questions...</p>
-      </div>
-    );
-  }
-
-  // Error state
-  if (isError) {
-    return (
-      <div className="container mx-auto p-8 text-center">
-        <h1 className="text-3xl font-bold mb-6">Public Questions</h1>
-        <p className="text-red-500">Error loading questions.</p>
-        <Button
-          onClick={() => refetch()}
-          className="mt-4"
-        >
-          Try Again
-        </Button>
-      </div>
-    );
-  }
-
-  // Empty state
-  if (questions.length === 0) {
-    return (
-      <div className="container mx-auto p-8 text-center">
-        <h1 className="text-3xl font-bold mb-6">Public Questions</h1>
-        {searchQuery ? (
-          <>
-            <p className="text-gray-600 mb-4">No questions found for "{searchQuery}"</p>
-            <Button
-              variant="outline"
-              onClick={() => handleSearch('')}
-            >
-              Clear Search
-            </Button>
-          </>
-        ) : (
-          <p className="text-gray-600">No questions available at the moment.</p>
-        )}
-      </div>
-    );
-  }
-
   // Check if any filters are active
   const hasActiveFilters = selectedInstitution || selectedCourse || selectedModule || selectedProgramme || hasAnswersFilter !== undefined;
+
+  // Helper functions to get names from IDs
+  const getInstitutionName = (id: string) => {
+    const institution = institutions.find((inst: any) => inst.id === id);
+    return institution?.name || id;
+  };
+
+  const getCourseName = (id: string) => {
+    const course = courses.find((c: any) => c.id === id);
+    return course?.name || id;
+  };
+
+  const getModuleName = (id: string) => {
+    const module = modules.find((m: any) => m.id === id);
+    return module?.name || id;
+  };
+
+  const getProgrammeName = (id: string) => {
+    const programme = programmes.find((p: any) => p.id === id);
+    return programme?.name || id;
+  };
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -287,7 +268,7 @@ export default function PublicQuestionsContent() {
               <div className="flex flex-wrap gap-2 mt-2">
                 {selectedInstitution && (
                   <div className="inline-flex items-center gap-2 px-3 py-1 bg-white rounded-full border border-blue-200">
-                    <span className="text-sm">Institution: {selectedInstitution}</span>
+                    <span className="text-sm">Institution: {getInstitutionName(selectedInstitution)}</span>
                     <button onClick={() => setSelectedInstitution(undefined)} className="text-blue-600 hover:text-blue-700">
                       <X className="w-4 h-4" />
                     </button>
@@ -295,7 +276,7 @@ export default function PublicQuestionsContent() {
                 )}
                 {selectedCourse && (
                   <div className="inline-flex items-center gap-2 px-3 py-1 bg-white rounded-full border border-blue-200">
-                    <span className="text-sm">Course: {selectedCourse}</span>
+                    <span className="text-sm">Course: {getCourseName(selectedCourse)}</span>
                     <button onClick={() => setSelectedCourse(undefined)} className="text-blue-600 hover:text-blue-700">
                       <X className="w-4 h-4" />
                     </button>
@@ -303,7 +284,7 @@ export default function PublicQuestionsContent() {
                 )}
                 {selectedModule && (
                   <div className="inline-flex items-center gap-2 px-3 py-1 bg-white rounded-full border border-blue-200">
-                    <span className="text-sm">Module: {selectedModule}</span>
+                    <span className="text-sm">Module: {getModuleName(selectedModule)}</span>
                     <button onClick={() => setSelectedModule(undefined)} className="text-blue-600 hover:text-blue-700">
                       <X className="w-4 h-4" />
                     </button>
@@ -311,7 +292,7 @@ export default function PublicQuestionsContent() {
                 )}
                 {selectedProgramme && (
                   <div className="inline-flex items-center gap-2 px-3 py-1 bg-white rounded-full border border-blue-200">
-                    <span className="text-sm">Programme: {selectedProgramme}</span>
+                    <span className="text-sm">Programme: {getProgrammeName(selectedProgramme)}</span>
                     <button onClick={() => setSelectedProgramme(undefined)} className="text-blue-600 hover:text-blue-700">
                       <X className="w-4 h-4" />
                     </button>
@@ -330,15 +311,56 @@ export default function PublicQuestionsContent() {
           )}
 
           {/* Questions List */}
-          <div className="bg-white shadow-lg rounded-lg p-0">
-            <RecentQuestionsSection
-              questions={questions}
-              currentPage={page}
-              totalPages={totalPages}
-              totalItems={totalItems}
-              onPageChange={handlePageChange}
-              isLoading={isFetching}
-            />
+          <div className="bg-white shadow-lg rounded-lg p-0 relative min-h-[400px]">
+            {/* Loading Overlay */}
+            {isFetching && (
+              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-teal-500"></div>
+                  <p className="text-sm text-gray-600">Loading questions...</p>
+                </div>
+              </div>
+            )}
+            
+            {/* Error State */}
+            {isError && (
+              <div className="p-8 text-center">
+                <p className="text-red-500 mb-4">Error loading questions.</p>
+                <Button onClick={() => refetch()} variant="outline">
+                  Try Again
+                </Button>
+              </div>
+            )}
+            
+            {/* Empty State */}
+            {!isError && !isLoading && questions.length === 0 && (
+              <div className="p-8 text-center">
+                {searchQuery || hasActiveFilters ? (
+                  <>
+                    <p className="text-gray-600 mb-4">No questions found matching your criteria</p>
+                    <Button variant="outline" onClick={handleClearFilters}>
+                      Clear Filters
+                    </Button>
+                  </>
+                ) : (
+                  <p className="text-gray-600">No questions available at the moment.</p>
+                )}
+              </div>
+            )}
+            
+            {/* Questions List with Fade Transition */}
+            {!isError && questions.length > 0 && (
+              <div className={`transition-opacity duration-300 ${isFetching ? 'opacity-50' : 'opacity-100'}`}>
+                <RecentQuestionsSection
+                  questions={questions}
+                  currentPage={page}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  onPageChange={handlePageChange}
+                  isLoading={false}
+                />
+              </div>
+            )}
           </div>
         </main>
       </div>

@@ -20,11 +20,13 @@ interface SearchAndSortProps {
   sortBy?: SearchFilters['sortBy'];
   sortOrder?: SearchFilters['sortOrder'];
   viewMode?: ViewMode;
+  pageSize?: number;
   totalResults: number;
   isLoading?: boolean;
   onSearchChange: (query: string) => void;
   onSortChange: (sortBy: SearchFilters['sortBy'], sortOrder: SearchFilters['sortOrder']) => void;
   onViewModeChange: (mode: ViewMode) => void;
+  onPageSizeChange?: (pageSize: number) => void;
   onFilterClick?: () => void;
   showFilterButton?: boolean;
   className?: string;
@@ -42,11 +44,13 @@ export function SearchAndSort({
   sortBy = 'date',
   sortOrder = 'desc',
   viewMode = 'list',
+  pageSize = 20,
   totalResults,
   isLoading = false,
   onSearchChange,
   onSortChange,
   onViewModeChange,
+  onPageSizeChange,
   onFilterClick,
   showFilterButton = false,
   className = '',
@@ -149,23 +153,24 @@ export function SearchAndSort({
 
         {/* Sort and View Controls */}
         <div className="flex items-center gap-3">
-          {/* Sort Dropdown */}
-          <Select 
-            value={sortBy} 
-            onValueChange={(value) => onSortChange(value as SearchFilters['sortBy'], sortOrder)}
-            disabled={isLoading}
-          >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              {sortOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value || 'date'}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* Page Size Selector */}
+          {onPageSizeChange && (
+            <Select 
+              value={pageSize.toString()} 
+              onValueChange={(value) => onPageSizeChange(parseInt(value))}
+              disabled={isLoading}
+            >
+              <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="Per page" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10 per page</SelectItem>
+                <SelectItem value="20">20 per page</SelectItem>
+                <SelectItem value="50">50 per page</SelectItem>
+                <SelectItem value="100">100 per page</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
 
           {/* Sort Order Toggle */}
           <Button

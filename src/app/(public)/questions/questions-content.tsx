@@ -20,10 +20,9 @@ import { QuestionsListSkeleton } from '@/components/ui/skeleton-loaders';
 import { X } from 'lucide-react';
 import type { FilterOption } from '@/types/search-filters';
 
-const ITEMS_PER_PAGE = 20;
-
 export default function PublicQuestionsContent() {
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'relevance' | 'marks' | 'created_at'>('relevance');
@@ -64,8 +63,8 @@ export default function PublicQuestionsContent() {
     sort_order: sortOrder,
     highlight: true,
     include_children: true,
-    skip: (page - 1) * ITEMS_PER_PAGE,
-    limit: ITEMS_PER_PAGE,
+    skip: (page - 1) * pageSize,
+    limit: pageSize,
   };
 
   // Fetch questions with advanced filters
@@ -125,7 +124,7 @@ export default function PublicQuestionsContent() {
   // Extract questions, total, and pagination from the data
   const questions = questionsData?.data || [];
   const totalItems = questionsData?.total || 0;
-  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(totalItems / pageSize);
 
   // Handle page change
   const handlePageChange = useCallback((newPage: number) => {
@@ -143,6 +142,12 @@ export default function PublicQuestionsContent() {
     setSortBy(newSortBy);
     setSortOrder(newSortOrder);
     setPage(1);
+  }, []);
+
+  // Handle page size change
+  const handlePageSizeChange = useCallback((newPageSize: number) => {
+    setPageSize(newPageSize);
+    setPage(1); // Reset to first page when changing page size
   }, []);
 
   // Handle filter changes
@@ -244,10 +249,12 @@ export default function PublicQuestionsContent() {
             searchQuery={searchQuery}
             sortBy={sortBy}
             sortOrder={sortOrder}
+            pageSize={pageSize}
             totalResults={totalItems}
             isLoading={isLoading}
             onSearchChange={handleSearch}
             onSortChange={handleSortChange}
+            onPageSizeChange={handlePageSizeChange}
             onViewModeChange={() => {}} // View mode toggle not implemented yet
             onFilterClick={() => setIsMobileFilterOpen(true)}
             showFilterButton={true}
@@ -255,7 +262,7 @@ export default function PublicQuestionsContent() {
 
           {/* Active Filters Display */}
           {hasActiveFilters && (
-            <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="mt-6 mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-blue-900">Active Filters</span>
                 <Button
@@ -313,7 +320,7 @@ export default function PublicQuestionsContent() {
           )}
 
           {/* Questions List */}
-          <div className="bg-white shadow-lg rounded-lg p-0 relative min-h-[400px]">
+          <div className="mt-6 bg-white shadow-lg rounded-lg p-0 relative min-h-[400px]">
             {/* Initial Loading State - Skeleton */}
             {isLoading && (
               <QuestionsListSkeleton count={5} />

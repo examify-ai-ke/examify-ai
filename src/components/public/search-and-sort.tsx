@@ -106,19 +106,19 @@ export function SearchAndSort({
 
         {/* Search Input */}
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-teal-500" />
           <Input
             type="text"
-            placeholder="Search exam papers..."
+            placeholder="Search for questions..."
             value={localSearch}
             onChange={(e) => setLocalSearch(e.target.value)}
-            className="pl-10 pr-20"
+            className="pl-12 pr-20 h-12 text-base border-2 border-teal-400 focus:border-teal-500 focus:ring-teal-500"
             disabled={isLoading}
-            aria-label="Search exam papers"
+            aria-label="Search for questions"
           />
           {/* Loading Indicator */}
           {(isSearching || isLoading) && (
-            <Loader2 className="absolute right-10 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 animate-spin" />
+            <Loader2 className="absolute right-12 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 animate-spin" />
           )}
           {/* Clear Button */}
           {localSearch && !isLoading && (
@@ -126,10 +126,10 @@ export function SearchAndSort({
               variant="ghost"
               size="sm"
               onClick={handleClearSearch}
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 p-0 hover:bg-gray-100"
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-gray-100"
               aria-label="Clear search"
             >
-              <X className="h-4 w-4" />
+              <X className="h-5 w-5" />
             </Button>
           )}
         </div>

@@ -12,6 +12,7 @@ interface RecentQuestionsSectionProps {
   totalItems?: number;
   onPageChange?: (page: number) => void;
   isLoading?: boolean;
+  showHeading?: boolean;
 }
 
 /**
@@ -69,6 +70,7 @@ export function RecentQuestionsSection({
   totalItems = 0,
   onPageChange,
   isLoading = false,
+  showHeading = false,
 }: RecentQuestionsSectionProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -126,6 +128,16 @@ export function RecentQuestionsSection({
   return (
     <section className="bg-background">
       <div className="w-full max-w-7xl mx-auto">
+        {/* Optional Section Header */}
+        {showHeading && (
+          <div className="text-center mb-12 py-12">
+            <h2 className="text-5xl font-semibold text-foreground mb-4">Recent Questions</h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Explore the latest exam questions added to our platform. Practice with real past paper questions from top institutions.
+            </p>
+          </div>
+        )}
+
         {/* Questions List */}
         <div className="space-y-4">
           {questions.map((question) => {

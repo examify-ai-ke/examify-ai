@@ -87,6 +87,7 @@ export default function HomePage() {
           totalPages={totalPages}
           totalItems={totalQuestions}
           onPageChange={handlePageChange}
+          showHeading={true}
         />
       </div>
 

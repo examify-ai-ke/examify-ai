@@ -211,7 +211,8 @@ export function RecentQuestionsSection({
                           {mainText || 'No question text available'}
                         </h3>
 
-                        <div className="flex flex-wrap items-center gap-4">
+                        {/* First Row: Marks, Sub-questions, Year */}
+                        <div className="flex flex-wrap items-center gap-4 mb-2">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-muted-foreground">Marks:</span>
                             <span className="text-base font-bold text-primary">{totalMarks}</span>
@@ -226,11 +227,12 @@ export function RecentQuestionsSection({
                             <span className="text-sm font-medium text-muted-foreground">Year:</span>
                             <span className="text-base font-bold text-foreground">{year}</span>
                           </div>
+                        </div>
 
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-muted-foreground">Exam Paper:</span>
-                            <span className="text-base font-medium text-foreground">{exam_paper_name}</span>
-                          </div>
+                        {/* Second Row: Exam Paper */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-muted-foreground">Exam Paper:</span>
+                          <span className="text-base font-medium text-foreground">{exam_paper_name}</span>
                         </div>
                       </div>
 

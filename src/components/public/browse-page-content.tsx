@@ -8,6 +8,7 @@ import { SearchAndSort } from './search-and-sort';
 import { MobileFilterDrawer } from './mobile-filter-drawer';
 import { ExamPaperCard } from './exam-paper-card';
 import { Pagination } from './pagination';
+import { ExamPapersGridSkeleton, ExamPapersListSkeleton } from '@/components/ui/skeleton-loaders';
 import { Loader2 } from 'lucide-react';
 
 type ViewMode = 'grid' | 'list';
@@ -152,6 +153,7 @@ export function BrowsePageContent() {
                   viewMode={viewMode}
                   totalResults={total}
                   isLoading={papersLoading}
+                  placeholder="Search for exam papers..."
                   onSearchChange={handleSearchChange}
                   onSortChange={handleSortChange}
                   onViewModeChange={setViewMode}
@@ -178,12 +180,15 @@ export function BrowsePageContent() {
             </div>
           )}
 
-          {/* Loading State */}
+          {/* Loading State - Show skeleton based on view mode */}
           {isLoading && !papers.length && (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-teal-500" />
-              <span className="ml-3 text-gray-600">Loading exam papers...</span>
-            </div>
+            <>
+              {viewMode === 'grid' ? (
+                <ExamPapersGridSkeleton count={12} />
+              ) : (
+                <ExamPapersListSkeleton count={6} />
+              )}
+            </>
           )}
 
           {/* Empty State */}

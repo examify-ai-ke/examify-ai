@@ -253,6 +253,7 @@ export default function PublicQuestionsContent() {
             pageSize={pageSize}
             totalResults={totalItems}
             isLoading={isLoading}
+            placeholder="Search for questions..."
             onSearchChange={handleSearch}
             onSortChange={handleSortChange}
             onPageSizeChange={handlePageSizeChange}

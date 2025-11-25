@@ -23,6 +23,7 @@ interface SearchAndSortProps {
   pageSize?: number;
   totalResults: number;
   isLoading?: boolean;
+  placeholder?: string;
   onSearchChange: (query: string) => void;
   onSortChange: (sortBy: SearchFilters['sortBy'], sortOrder: SearchFilters['sortOrder']) => void;
   onViewModeChange: (mode: ViewMode) => void;
@@ -47,6 +48,7 @@ export function SearchAndSort({
   pageSize = 20,
   totalResults,
   isLoading = false,
+  placeholder = 'Search for questions...',
   onSearchChange,
   onSortChange,
   onViewModeChange,
@@ -109,12 +111,12 @@ export function SearchAndSort({
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-teal-500" />
           <Input
             type="text"
-            placeholder="Search for questions..."
+            placeholder={placeholder}
             value={localSearch}
             onChange={(e) => setLocalSearch(e.target.value)}
             className="pl-12 pr-20 h-12 text-base border-2 border-teal-400 focus:border-teal-500 focus:ring-teal-500"
             disabled={isLoading}
-            aria-label="Search for questions"
+            aria-label={placeholder}
           />
           {/* Loading Indicator */}
           {(isSearching || isLoading) && (

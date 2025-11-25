@@ -157,3 +157,50 @@ export function InstitutionsListSkeleton({ count = 6 }: { count?: number }) {
     </div>
   );
 }
+
+// Exam Paper Card Skeleton
+export function ExamPaperCardSkeleton() {
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-4">
+      {/* Header */}
+      <div className="space-y-2">
+        <Skeleton className="h-6 w-3/4" />
+        <Skeleton className="h-4 w-1/2" />
+      </div>
+      
+      {/* Content */}
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-5/6" />
+      </div>
+      
+      {/* Footer */}
+      <div className="flex gap-4 pt-2">
+        <Skeleton className="h-6 w-20" />
+        <Skeleton className="h-6 w-20" />
+      </div>
+    </div>
+  );
+}
+
+// Exam Papers Grid Skeleton
+export function ExamPapersGridSkeleton({ count = 12 }: { count?: number }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      {[...Array(count)].map((_, i) => (
+        <ExamPaperCardSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
+
+// Exam Papers List Skeleton
+export function ExamPapersListSkeleton({ count = 6 }: { count?: number }) {
+  return (
+    <div className="space-y-4">
+      {[...Array(count)].map((_, i) => (
+        <ExamPaperCardSkeleton key={i} />
+      ))}
+    </div>
+  );
+}

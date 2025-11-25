@@ -321,13 +321,13 @@ export default function PublicQuestionsContent() {
 
           {/* Questions List */}
           <div className="mt-6 bg-white shadow-lg rounded-lg p-0 relative min-h-[400px]">
-            {/* Initial Loading State - Skeleton */}
-            {isLoading && (
+            {/* Loading State - Show skeleton when loading OR when fetching with no existing data */}
+            {(isLoading || (isFetching && questions.length === 0)) && (
               <QuestionsListSkeleton count={5} />
             )}
             
-            {/* Loading Overlay for Refetch */}
-            {!isLoading && isFetching && (
+            {/* Loading Overlay for Refetch with existing data */}
+            {!isLoading && isFetching && questions.length > 0 && (
               <LoadingOverlay
                 isVisible={true}
                 message="Updating questions..."
@@ -346,7 +346,7 @@ export default function PublicQuestionsContent() {
             )}
             
             {/* Empty State */}
-            {!isError && !isLoading && questions.length === 0 && (
+            {!isError && !isLoading && !isFetching && questions.length === 0 && (
               <div className="p-8 text-center">
                 {searchQuery || hasActiveFilters ? (
                   <>
@@ -362,7 +362,7 @@ export default function PublicQuestionsContent() {
             )}
             
             {/* Questions List with Fade Transition */}
-            {!isError && !isLoading && questions.length > 0 && (
+            {!isError && !isLoading && !(isFetching && questions.length === 0) && questions.length > 0 && (
               <div className={`transition-opacity duration-300 ${isFetching ? 'opacity-70' : 'opacity-100'}`}>
                 <RecentQuestionsSection
                   questions={questions}

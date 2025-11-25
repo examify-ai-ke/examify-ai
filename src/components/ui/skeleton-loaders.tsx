@@ -82,3 +82,78 @@ export function QuestionsListSkeleton({ count = 5 }: { count?: number }) {
     </div>
   );
 }
+
+// Institution Card Skeleton
+export function InstitutionCardSkeleton() {
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-4">
+      {/* Header */}
+      <div className="space-y-2">
+        <Skeleton className="h-6 w-3/4" />
+        <Skeleton className="h-4 w-1/2" />
+      </div>
+      
+      {/* Content */}
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-5/6" />
+      </div>
+      
+      {/* Stats */}
+      <div className="flex gap-4 pt-2">
+        <Skeleton className="h-6 w-20" />
+        <Skeleton className="h-6 w-20" />
+      </div>
+    </div>
+  );
+}
+
+// Institution List Item Skeleton
+export function InstitutionListItemSkeleton() {
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-4">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-6 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+        </div>
+        <Skeleton className="h-8 w-24" />
+      </div>
+      
+      {/* Content */}
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-5/6" />
+      </div>
+      
+      {/* Footer */}
+      <div className="flex items-center gap-4 pt-2">
+        <Skeleton className="h-6 w-24" />
+        <Skeleton className="h-6 w-24" />
+      </div>
+    </div>
+  );
+}
+
+// Institutions Grid Skeleton
+export function InstitutionsGridSkeleton({ count = 12 }: { count?: number }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {[...Array(count)].map((_, i) => (
+        <InstitutionCardSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
+
+// Institutions List Skeleton
+export function InstitutionsListSkeleton({ count = 6 }: { count?: number }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {[...Array(count)].map((_, i) => (
+        <InstitutionListItemSkeleton key={i} />
+      ))}
+    </div>
+  );
+}

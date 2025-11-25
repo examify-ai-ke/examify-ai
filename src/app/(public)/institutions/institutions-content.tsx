@@ -9,6 +9,7 @@ import { BaseSearch } from '@/components/public/base-search';
 import { Pagination } from '@/components/public/pagination';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Button } from '@/components/ui/button';
+import { InstitutionsGridSkeleton, InstitutionsListSkeleton } from '@/components/ui/skeleton-loaders';
 import { publicAPI } from '@/lib/api-public';
 import type { InstitutionRead } from '@/components/public/types';
 import { Building2, GraduationCap, School, List, Grid } from 'lucide-react';
@@ -275,11 +276,15 @@ export default function InstitutionsPageContent() {
           </div>
         </div>
 
-        {/* Loading State */}
+        {/* Loading State - Show skeleton based on view mode */}
         {isLoading && (
-          <div className="flex items-center justify-center py-20">
-            <LoadingSpinner />
-          </div>
+          <>
+            {viewMode === 'grid' ? (
+              <InstitutionsGridSkeleton count={pageSize} />
+            ) : (
+              <InstitutionsListSkeleton count={Math.min(pageSize, 6)} />
+            )}
+          </>
         )}
 
         {/* No Results */}

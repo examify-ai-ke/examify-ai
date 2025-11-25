@@ -204,30 +204,79 @@ export function useQuestion(questionId: string) {
 }
 
 /**
- * Advanced search for questions with comprehensive filtering
+ * Check if any filters are active (excluding pagination)
+ */
+function hasActiveFilters(filters?: Record<string, unknown>): boolean {
+  if (!filters) return false;
+  
+  const filterKeys = Object.keys(filters).filter(
+    key => !['skip', 'limit'].includes(key)
+  );
+  
+  return filterKeys.some(key => {
+    const value = filters[key];
+    return value !== undefined && value !== null && value !== '';
+  });
+}
+
+/**
+ * Advanced search for questions with smart endpoint selection
+ * - Uses /api/v1/questions for initial browse (no filters)
+ * - Uses /api/v1/questions/search for filtered results
  * Cache: 3 minutes (search results change frequently)
  * Priority: High (main content)
  */
 export function useAdvancedQuestionSearch(filters?: Record<string, unknown>) {
+  const isFiltered = hasActiveFilters(filters);
+  
   return useQuery({
-    queryKey: publicQueryKeys.searchQuestions(filters),
+    queryKey: isFiltered 
+      ? publicQueryKeys.searchQuestions(filters)
+      : publicQueryKeys.listQuestions(filters),
     queryFn: async () => {
-      console.log('🔍 Fetching advanced question search with filters:', filters);
-      const result = await publicAPI.questions.search(filters as any);
-      console.log('📦 Advanced Search Response:', {
-        dataCount: result.data?.length,
-        total: result.total,
-        error: result.error,
-      });
-      if (result.error) {
-        console.error('❌ Error in advanced question search:', result.error);
-        throw new Error('Failed to search questions');
+      if (isFiltered) {
+        console.log('🔍 Fetching questions with search endpoint (filters active):', filters);
+        const result = await publicAPI.questions.search(filters as any);
+        console.log('📦 Search Response:', {
+          dataCount: result.data?.length,
+          total: result.total,
+          error: result.error,
+        });
+        if (result.error) {
+          console.error('❌ Error in question search:', result.error);
+          throw new Error('Failed to search questions');
+        }
+        return {
+          data: result.data,
+          total: result.total,
+          pagination: result.pagination,
+        };
+      } else {
+        console.log('📋 Fetching questions with list endpoint (no filters):', filters);
+        const result = await publicAPI.questions.getRecent(
+          filters?.limit as number || 20,
+          filters?.skip as number || 0
+        );
+        console.log('📦 List Response:', {
+          dataCount: result.data?.length,
+          total: result.total,
+          error: result.error,
+        });
+        if (result.error) {
+          console.error('❌ Error fetching questions:', result.error);
+          throw new Error('Failed to fetch questions');
+        }
+        return {
+          data: result.data,
+          total: result.total,
+          pagination: {
+            page: Math.floor((filters?.skip as number || 0) / (filters?.limit as number || 20)) + 1,
+            size: filters?.limit as number || 20,
+            pages: Math.ceil((result.total || 0) / (filters?.limit as number || 20)),
+            total: result.total || 0,
+          },
+        };
       }
-      return {
-        data: result.data,
-        total: result.total,
-        pagination: result.pagination,
-      };
     },
     staleTime: 3 * 60 * 1000, // 3 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -16,6 +16,7 @@ interface FilterSidebarProps {
     years: FilterOption[];
     courses: FilterOption[];
     modules: FilterOption[];
+    programmes: FilterOption[];
     tags: FilterOption[];
     durationRange: { min: number; max: number };
     dateRange: { min: string; max: string };
@@ -23,6 +24,9 @@ interface FilterSidebarProps {
   activeFilters: SearchFilters;
   onFilterChange: (filters: Partial<SearchFilters>) => void;
   onClearFilters: () => void;
+  onInstitutionSearch?: (query: string) => void;
+  onCourseSearch?: (query: string) => void;
+  onModuleSearch?: (query: string) => void;
   isLoading?: boolean;
   className?: string;
 }
@@ -33,6 +37,8 @@ interface FilterSectionProps {
   selectedValues: string[];
   onToggle: (value: string) => void;
   searchable?: boolean;
+  onSearch?: (query: string) => void;
+  isSearching?: boolean;
 }
 
 function FilterSection({ 
@@ -41,18 +47,25 @@ function FilterSection({
   selectedValues, 
   onToggle,
   searchable = false,
+  onSearch,
+  isSearching = false,
 }: FilterSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredOptions = searchable
-    ? options.filter((opt) =>
-        opt.label.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : options;
+  // Debounce search
+  useEffect(() => {
+    if (!searchable || !onSearch) return;
+    
+    const timer = setTimeout(() => {
+      onSearch(searchQuery);
+    }, 300);
 
-  const displayOptions = filteredOptions.slice(0, isExpanded ? 10 : 5);
-  const hasMore = filteredOptions.length > 5;
+    return () => clearTimeout(timer);
+  }, [searchQuery, searchable, onSearch]);
+
+  const displayOptions = options.slice(0, isExpanded ? 10 : 5);
+  const hasMore = options.length > 5;
 
   return (
     <div className="space-y-3">
@@ -65,7 +78,7 @@ function FilterSection({
         )}
       </div>
 
-      {searchable && options.length > 5 && (
+      {searchable && (
         <input
           type="text"
           placeholder={`Search ${title.toLowerCase()}...`}
@@ -77,15 +90,20 @@ function FilterSection({
 
       <div className="space-y-2">
         {displayOptions.map((option) => (
-          <div key={option.value} className="flex items-center space-x-2">
+          <div 
+            key={option.value} 
+            className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded-md -mx-2"
+            onClick={() => onToggle(option.value)}
+          >
             <Checkbox
               id={`${title}-${option.value}`}
               checked={selectedValues.includes(option.value)}
               onCheckedChange={() => onToggle(option.value)}
+              className="pointer-events-none"
             />
             <Label
               htmlFor={`${title}-${option.value}`}
-              className="text-sm font-normal cursor-pointer flex-1 flex items-center justify-between"
+              className="text-sm font-normal cursor-pointer flex-1 flex items-center justify-between pointer-events-none"
             >
               <span>{option.label}</span>
               {option.count !== undefined && (
@@ -111,7 +129,7 @@ function FilterSection({
           ) : (
             <>
               <ChevronDown className="h-3 w-3 mr-1" />
-              Show More ({filteredOptions.length - 5})
+              Show More ({options.length - 5})
             </>
           )}
         </Button>
@@ -125,6 +143,9 @@ export function FilterSidebar({
   activeFilters,
   onFilterChange,
   onClearFilters,
+  onInstitutionSearch,
+  onCourseSearch,
+  onModuleSearch,
   isLoading = false,
   className = '',
 }: FilterSidebarProps) {
@@ -172,6 +193,17 @@ export function FilterSidebar({
     });
   };
 
+  const handleProgrammeToggle = (value: string) => {
+    const current = activeFilters.programmeIds || [];
+    const updated = current.includes(value)
+      ? current.filter((v) => v !== value)
+      : [...current, value];
+    
+    onFilterChange({
+      programmeIds: updated.length > 0 ? updated : undefined,
+    });
+  };
+
   const handleTagToggle = (value: string) => {
     const current = activeFilters.tags || [];
     const updated = current.includes(value)
@@ -202,6 +234,8 @@ export function FilterSidebar({
     (activeFilters.institutionIds?.length || 0) +
     (activeFilters.years?.length || 0) +
     (activeFilters.courseIds?.length || 0) +
+    (activeFilters.moduleIds?.length || 0) +
+    (activeFilters.programmeIds?.length || 0) +
     (activeFilters.tags?.length || 0) +
     (activeFilters.durationMin !== undefined || activeFilters.durationMax !== undefined ? 1 : 0) +
     (activeFilters.examDateFrom || activeFilters.examDateTo ? 1 : 0);
@@ -234,14 +268,16 @@ export function FilterSidebar({
       {/* Filter Sections */}
       <div className="space-y-6">
         {/* Institutions Filter */}
-        {filters?.institutions && filters.institutions.length > 0 && (
+        {filters?.institutions && filters.institutions.length >= 0 && (
           <>
             <FilterSection
               title="Institution"
               options={filters.institutions}
               selectedValues={activeFilters.institutionIds || []}
               onToggle={handleInstitutionToggle}
-              searchable={filters.institutions.length > 5}
+              searchable={true}
+              onSearch={onInstitutionSearch}
+              isSearching={isLoading}
             />
             <Separator />
           </>
@@ -261,28 +297,46 @@ export function FilterSidebar({
         )}
 
         {/* Courses Filter */}
-        {filters?.courses && filters.courses.length > 0 && (
+        {filters?.courses && filters.courses.length >= 0 && (
           <>
             <FilterSection
               title="Course"
               options={filters.courses}
               selectedValues={activeFilters.courseIds || []}
               onToggle={handleCourseToggle}
-              searchable={filters.courses.length > 5}
+              searchable={true}
+              onSearch={onCourseSearch}
+              isSearching={isLoading}
             />
             <Separator />
           </>
         )}
 
         {/* Modules Filter */}
-        {filters?.modules && filters.modules.length > 0 && (
+        {filters?.modules && filters.modules.length >= 0 && (
           <>
             <FilterSection
               title="Module"
               options={filters.modules}
               selectedValues={activeFilters.moduleIds || []}
               onToggle={handleModuleToggle}
-              searchable={filters.modules.length > 5}
+              searchable={true}
+              onSearch={onModuleSearch}
+              isSearching={isLoading}
+            />
+            <Separator />
+          </>
+        )}
+
+        {/* Programmes Filter */}
+        {filters?.programmes && filters.programmes.length > 0 && (
+          <>
+            <FilterSection
+              title="Programme"
+              options={filters.programmes}
+              selectedValues={activeFilters.programmeIds || []}
+              onToggle={handleProgrammeToggle}
+              searchable={filters.programmes.length > 5}
             />
             <Separator />
           </>

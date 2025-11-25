@@ -13,6 +13,9 @@ export const publicQueryKeys = {
   stats: ['public', 'stats'] as const,
   recentQuestions: (limit: number) => ['public', 'questions', 'recent', limit] as const,
   listQuestions: (filters?: Record<string, unknown>) => ['public', 'questions', 'list', filters] as const,
+  searchQuestions: (filters?: Record<string, unknown>) => ['public', 'questions', 'search', filters] as const,
+  questionStats: ['public', 'questions', 'stats'] as const,
+  questionSuggestions: (query: string) => ['public', 'questions', 'suggestions', query] as const,
   featuredInstitutions: (limit: number) => ['public', 'institutions', 'featured', limit] as const,
   examPapers: (filters?: Record<string, unknown>) => ['public', 'examPapers', filters] as const,
   examPaper: (id: string) => ['public', 'examPaper', id] as const,
@@ -197,5 +200,200 @@ export function useQuestion(questionId: string) {
     staleTime: 10 * 60 * 1000, // 10 minutes
     gcTime: 15 * 60 * 1000, // 15 minutes
     enabled: !!questionId,
+  });
+}
+
+/**
+ * Advanced search for questions with comprehensive filtering
+ * Cache: 3 minutes (search results change frequently)
+ */
+export function useAdvancedQuestionSearch(filters?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: publicQueryKeys.searchQuestions(filters),
+    queryFn: async () => {
+      console.log('🔍 Fetching advanced question search with filters:', filters);
+      const result = await publicAPI.questions.search(filters as any);
+      console.log('📦 Advanced Search Response:', {
+        dataCount: result.data?.length,
+        total: result.total,
+        error: result.error,
+      });
+      if (result.error) {
+        console.error('❌ Error in advanced question search:', result.error);
+        throw new Error('Failed to search questions');
+      }
+      return {
+        data: result.data,
+        total: result.total,
+        pagination: result.pagination,
+      };
+    },
+    staleTime: 3 * 60 * 1000, // 3 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+/**
+ * Fetch question statistics
+ * Cache: 10 minutes (stats don't change often)
+ */
+export function useQuestionStats() {
+  return useQuery({
+    queryKey: publicQueryKeys.questionStats,
+    queryFn: async () => {
+      console.log('📊 Fetching question statistics...');
+      const result = await publicAPI.questions.getStats();
+      console.log('📦 Question Stats Response:', result);
+      
+      // Check for errors
+      if (result.error) {
+        console.error('❌ Error fetching question stats:', result.error);
+        throw new Error('Failed to fetch question statistics');
+      }
+      
+      // Return data (even if empty object, let the component handle it)
+      return result.data || {};
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes
+  });
+}
+
+/**
+ * Fetch search suggestions for questions
+ * Cache: 5 minutes
+ */
+export function useQuestionSearchSuggestions(query: string) {
+  return useQuery({
+    queryKey: publicQueryKeys.questionSuggestions(query),
+    queryFn: async () => {
+      console.log('💡 Fetching question search suggestions for:', query);
+      const result = await publicAPI.questions.getSuggestions(query);
+      console.log('📦 Suggestions Response:', result);
+      if (result.error) {
+        console.error('❌ Error fetching suggestions:', result.error);
+        throw new Error('Failed to fetch search suggestions');
+      }
+      return result.data;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    enabled: !!query && query.length > 0, // Only fetch if query is not empty
+  });
+}
+
+/**
+ * Fetch institutions for filter options with optional search
+ * Cache: 15 minutes (relatively stable data)
+ */
+export function useInstitutionsList(searchQuery?: string) {
+  return useQuery({
+    queryKey: ['public', 'institutions', 'list', searchQuery],
+    queryFn: async () => {
+      if (searchQuery && searchQuery.length > 0) {
+        // Use list endpoint with search_term parameter
+        const result = await publicAPI.institutions.list({ 
+          search_term: searchQuery,
+          limit: 20 
+        });
+        if (result.error) {
+          throw new Error('Failed to search institutions');
+        }
+        return result.data;
+      } else {
+        // Default: fetch top institutions sorted by exam count
+        const result = await publicAPI.institutions.list({ limit: 10 });
+        if (result.error) {
+          throw new Error('Failed to fetch institutions');
+        }
+        // Sort by exams_count descending
+        return result.data.sort((a: any, b: any) => (b.exams_count || 0) - (a.exams_count || 0));
+      }
+    },
+    staleTime: 15 * 60 * 1000, // 15 minutes
+    gcTime: 20 * 60 * 1000, // 20 minutes
+  });
+}
+
+/**
+ * Fetch courses for filter options with optional search
+ * Cache: 15 minutes (relatively stable data)
+ */
+export function useCoursesList(searchQuery?: string) {
+  return useQuery({
+    queryKey: ['public', 'courses', 'list', searchQuery],
+    queryFn: async () => {
+      if (searchQuery && searchQuery.length > 0) {
+        // Use search endpoint when query is provided
+        const result = await publicAPI.courses.search({ 
+          q: searchQuery,
+          limit: 20 
+        });
+        if (result.error) {
+          throw new Error('Failed to search courses');
+        }
+        return result.data;
+      } else {
+        // Default: fetch top courses
+        const result = await publicAPI.courses.list({ limit: 10 });
+        if (result.error) {
+          throw new Error('Failed to fetch courses');
+        }
+        return result.data;
+      }
+    },
+    staleTime: 15 * 60 * 1000, // 15 minutes
+    gcTime: 20 * 60 * 1000, // 20 minutes
+  });
+}
+
+/**
+ * Fetch modules for filter options with optional search
+ * Cache: 15 minutes (relatively stable data)
+ */
+export function useModulesList(searchQuery?: string) {
+  return useQuery({
+    queryKey: ['public', 'modules', 'list', searchQuery],
+    queryFn: async () => {
+      if (searchQuery && searchQuery.length > 0) {
+        // Use search endpoint when query is provided
+        const result = await publicAPI.modules.search({ 
+          q: searchQuery,
+          limit: 20 
+        });
+        if (result.error) {
+          throw new Error('Failed to search modules');
+        }
+        return result.data;
+      } else {
+        // Default: fetch top modules
+        const result = await publicAPI.modules.list({ limit: 10 });
+        if (result.error) {
+          throw new Error('Failed to fetch modules');
+        }
+        return result.data;
+      }
+    },
+    staleTime: 15 * 60 * 1000, // 15 minutes
+    gcTime: 20 * 60 * 1000, // 20 minutes
+  });
+}
+
+/**
+ * Fetch all programmes for filter options
+ * Cache: 15 minutes (relatively stable data)
+ */
+export function useProgrammesList() {
+  return useQuery({
+    queryKey: ['public', 'programmes', 'list'],
+    queryFn: async () => {
+      const result = await publicAPI.programmes.list({ limit: 100 });
+      if (result.error) {
+        throw new Error('Failed to fetch programmes');
+      }
+      return result.data;
+    },
+    staleTime: 15 * 60 * 1000, // 15 minutes
+    gcTime: 20 * 60 * 1000, // 20 minutes
   });
 }

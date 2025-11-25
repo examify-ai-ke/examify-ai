@@ -9,44 +9,56 @@ import { FilterSidebar } from './filter-sidebar';
 import type { SearchFilters, FilterOption } from '@/types/search-filters';
 
 interface MobileFilterDrawerProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onApplyFilters: (filters: any) => void;
+  onClearFilters: () => void;
   filters?: {
     institutions: FilterOption[];
     years: FilterOption[];
     courses: FilterOption[];
+    modules: FilterOption[];
+    programmes?: FilterOption[];
     tags: FilterOption[];
     durationRange: { min: number; max: number };
     dateRange: { min: string; max: string };
   };
-  activeFilters: SearchFilters;
-  onFilterChange: (filters: Partial<SearchFilters>) => void;
-  onClearFilters: () => void;
+  activeFilters?: SearchFilters;
+  onInstitutionSearch?: (query: string) => void;
+  onCourseSearch?: (query: string) => void;
+  onModuleSearch?: (query: string) => void;
   isLoading?: boolean;
 }
 
 export function MobileFilterDrawer({
+  isOpen,
+  onClose,
+  onApplyFilters,
+  onClearFilters,
   filters,
   activeFilters,
-  onFilterChange,
-  onClearFilters,
+  onInstitutionSearch,
+  onCourseSearch,
+  onModuleSearch,
   isLoading = false,
 }: MobileFilterDrawerProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  // Count active filters
+  // Count active filters safely - handle undefined activeFilters
+  const safeActiveFilters = activeFilters || {};
   const activeFilterCount = 
-    (activeFilters.institutionIds?.length || 0) +
-    (activeFilters.years?.length || 0) +
-    (activeFilters.courseIds?.length || 0) +
-    (activeFilters.tags?.length || 0) +
-    (activeFilters.durationMin !== undefined || activeFilters.durationMax !== undefined ? 1 : 0) +
-    (activeFilters.examDateFrom || activeFilters.examDateTo ? 1 : 0);
+    ((safeActiveFilters as any)?.institutionIds?.length || 0) +
+    ((safeActiveFilters as any)?.years?.length || 0) +
+    ((safeActiveFilters as any)?.courseIds?.length || 0) +
+    ((safeActiveFilters as any)?.tags?.length || 0) +
+    (((safeActiveFilters as any)?.durationMin !== undefined || (safeActiveFilters as any)?.durationMax !== undefined) ? 1 : 0) +
+    (((safeActiveFilters as any)?.examDateFrom || (safeActiveFilters as any)?.examDateTo) ? 1 : 0);
 
   const handleApplyFilters = () => {
-    setIsOpen(false);
+    onApplyFilters({});
+    onClose();
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
+    <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetTrigger asChild>
         <Button 
           variant="outline" 
@@ -70,14 +82,19 @@ export function MobileFilterDrawer({
           <SheetTitle>Filters</SheetTitle>
         </SheetHeader>
         <div className="mt-6">
-          <FilterSidebar
-            filters={filters}
-            activeFilters={activeFilters}
-            onFilterChange={onFilterChange}
-            onClearFilters={onClearFilters}
-            isLoading={isLoading}
-            className="border-0 p-0"
-          />
+          {filters && (
+            <FilterSidebar
+              filters={filters}
+              activeFilters={safeActiveFilters}
+              onFilterChange={onApplyFilters}
+              onClearFilters={onClearFilters}
+              onInstitutionSearch={onInstitutionSearch}
+              onCourseSearch={onCourseSearch}
+              onModuleSearch={onModuleSearch}
+              isLoading={isLoading}
+              className="border-0 p-0"
+            />
+          )}
           <div className="mt-6 sticky bottom-0 bg-white pt-4 border-t">
             <Button 
               onClick={handleApplyFilters}

@@ -51,8 +51,6 @@ export function InstitutionListItem({ institution, className = '' }: Institution
                 width={64}  
                 height={64}                
                 className="rounded-full object-cover"
-                unoptimized={true}
-                preload={true}
               />
             ) : (
               <InstitutionIcon className="h-8 w-8 text-blue-600" />

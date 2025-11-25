@@ -34,6 +34,8 @@ export interface SearchFilters {
   // Entity filters
   institutionIds?: string[];
   courseIds?: string[];
+  moduleIds?: string[];
+  programmeIds?: string[];
   years?: string[];
   tags?: string[];
   

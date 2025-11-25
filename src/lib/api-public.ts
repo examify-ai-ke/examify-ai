@@ -61,6 +61,7 @@ export interface QuestionFilters {
  */
 export interface InstitutionFilters {
     search?: string;
+    search_term?: string;
     institution_type?: 'Public' | 'Private' | 'Other';
     location?: string;
     limit?: number;
@@ -402,9 +403,26 @@ export const publicAPI = {
                     limit: filters.limit || 20,
                 };
 
+                // Text search
                 if (filters.search) searchParams.q = filters.search;
+                if ((filters as any).q) searchParams.q = (filters as any).q;
+                
+                // Entity filters
                 if (filters.exam_paper_id) searchParams.exam_paper_id = filters.exam_paper_id;
                 if (filters.question_set_id) searchParams.question_set_id = filters.question_set_id;
+                if ((filters as any).institution_id) searchParams.institution_id = (filters as any).institution_id;
+                if ((filters as any).course_id) searchParams.course_id = (filters as any).course_id;
+                if ((filters as any).module_id) searchParams.module_id = (filters as any).module_id;
+                if ((filters as any).programme_id) searchParams.programme_id = (filters as any).programme_id;
+                
+                // Other filters
+                if ((filters as any).has_answers !== undefined) searchParams.has_answers = (filters as any).has_answers;
+                if ((filters as any).include_children !== undefined) searchParams.include_children = (filters as any).include_children;
+                if ((filters as any).highlight !== undefined) searchParams.highlight = (filters as any).highlight;
+                
+                // Sorting
+                if ((filters as any).sort_by) searchParams.sort_by = (filters as any).sort_by;
+                if ((filters as any).sort_order) searchParams.sort_order = (filters as any).sort_order;
 
                 const response = await api.GET('/api/v1/questions/search', {
                     params: {
@@ -457,6 +475,101 @@ export const publicAPI = {
                 };
             }
         },
+
+        /**
+         * Get question statistics
+         */
+        async getStats() {
+            try {
+                console.log('📊 Fetching question statistics...');
+                const response = await api.GET('/api/v1/questions/stats');
+
+                console.log('📦 Raw stats response:', {
+                    hasData: !!response.data,
+                    hasError: !!response.error,
+                    dataType: typeof response.data,
+                    dataKeys: response.data ? Object.keys(response.data) : [],
+                    fullResponse: response
+                });
+
+                // Check for API errors first
+                if (response.error) {
+                    console.error('❌ API returned error:', response.error);
+                    return {
+                        data: null,
+                        error: response.error,
+                    };
+                }
+
+                // Validate response has data
+                if (!response.data) {
+                    console.warn('⚠️ Stats response has no data');
+                    return {
+                        data: null,
+                        error: { message: 'No data returned from stats endpoint' } as any,
+                    };
+                }
+
+                // Extract data from nested response structure
+                // Backend returns: { message, meta, data: dict }
+                // openapi-fetch wraps it: { data: { message, meta, data: dict } }
+                let extractedData: any = null;
+                
+                if (typeof response.data === 'object' && 'data' in response.data) {
+                    // Nested structure - extract inner data
+                    extractedData = (response.data as any).data;
+                } else {
+                    // Direct structure (fallback)
+                    extractedData = response.data;
+                }
+
+                console.log('✅ Extracted stats data:', extractedData);
+
+                return {
+                    data: extractedData || {},
+                    error: null,
+                };
+            } catch (error) {
+                console.error('❌ Exception fetching question stats:', error);
+                return {
+                    data: null,
+                    error: error as any,
+                };
+            }
+        },
+
+        /**
+         * Get search suggestions for questions
+         */
+        async getSuggestions(query: string, limit: number = 10) {
+            try {
+                console.log('💡 Fetching question search suggestions for:', query);
+                const response = await api.GET('/api/v1/questions/search/suggestions', {
+                    params: {
+                        query: {
+                            q: query,
+                            limit: limit,
+                        }
+                    }
+                });
+
+                // Extract data from nested response structure
+                const data = response.data && typeof response.data === 'object' && 'data' in response.data
+                    ? (response.data as any).data
+                    : response.data;
+
+                return {
+                    data: data || [],
+                    error: response.error,
+                };
+            } catch (error) {
+                console.error('Error fetching question suggestions:', error);
+                return {
+                    data: [],
+                    error: error as any,
+                };
+            }
+        },
     },
 
     /**
@@ -474,6 +587,7 @@ export const publicAPI = {
                         query: {
                             skip: filters?.skip,
                             limit: filters?.limit || 20,
+                            search_term: filters?.search_term,
                         }
                     }
                 });
@@ -732,6 +846,38 @@ export const publicAPI = {
         },
 
         /**
+         * Search courses
+         */
+        async search(filters: { q?: string; skip?: number; limit?: number }) {
+            try {
+                const response = await api.GET('/api/v1/course/search', {
+                    params: {
+                        query: {
+                            q: filters.q,
+                            skip: filters.skip || 0,
+                            limit: filters.limit || 20,
+                        }
+                    }
+                });
+
+                return {
+                    data: extractItems<CourseRead>(response),
+                    total: extractTotal(response),
+                    pagination: extractPagination(response),
+                    error: response.error,
+                };
+            } catch (error) {
+                console.error('Error searching courses:', error);
+                return {
+                    data: [],
+                    total: 0,
+                    pagination: { page: 1, size: 10, pages: 0, total: 0 },
+                    error: error as any,
+                };
+            }
+        },
+
+        /**
          * Get a single course by ID
          */
         async getById(courseId: string) {
@@ -909,6 +1055,112 @@ export const publicAPI = {
                         totalInstitutions: 0,
                         totalQuestions: 0,
                     },
+                    error: error as any,
+                };
+            }
+        },
+    },
+
+    /**
+     * Modules
+     */
+    modules: {
+        /**
+         * Fetch modules
+         */
+        async list(filters?: { skip?: number; limit?: number; course_id?: string }) {
+            try {
+                const response = await api.GET('/api/v1/module', {
+                    params: {
+                        query: {
+                            skip: filters?.skip,
+                            limit: filters?.limit || 100,
+                            course_id: filters?.course_id,
+                        }
+                    }
+                });
+
+                return {
+                    data: extractItems<ModuleRead>(response),
+                    total: extractTotal(response),
+                    pagination: extractPagination(response),
+                    error: response.error,
+                };
+            } catch (error) {
+                console.error('Error fetching modules:', error);
+                return {
+                    data: [],
+                    total: 0,
+                    pagination: { page: 1, size: 10, pages: 0, total: 0 },
+                    error: error as any,
+                };
+            }
+        },
+
+        /**
+         * Search modules
+         */
+        async search(filters: { q?: string; skip?: number; limit?: number }) {
+            try {
+                const response = await api.GET('/api/v1/module/search', {
+                    params: {
+                        query: {
+                            q: filters.q,
+                            skip: filters.skip || 0,
+                            limit: filters.limit || 20,
+                        }
+                    }
+                });
+
+                return {
+                    data: extractItems<ModuleRead>(response),
+                    total: extractTotal(response),
+                    pagination: extractPagination(response),
+                    error: response.error,
+                };
+            } catch (error) {
+                console.error('Error searching modules:', error);
+                return {
+                    data: [],
+                    total: 0,
+                    pagination: { page: 1, size: 10, pages: 0, total: 0 },
+                    error: error as any,
+                };
+            }
+        },
+    },
+
+    /**
+     * Programmes
+     */
+    programmes: {
+        /**
+         * Fetch programmes
+         */
+        async list(filters?: { skip?: number; limit?: number; department_id?: string }) {
+            try {
+                const response = await api.GET('/api/v1/programme', {
+                    params: {
+                        query: {
+                            skip: filters?.skip,
+                            limit: filters?.limit || 100,
+                            department_id: filters?.department_id,
+                        }
+                    }
+                });
+
+                return {
+                    data: extractItems<any>(response),
+                    total: extractTotal(response),
+                    pagination: extractPagination(response),
+                    error: response.error,
+                };
+            } catch (error) {
+                console.error('Error fetching programmes:', error);
+                return {
+                    data: [],
+                    total: 0,
+                    pagination: { page: 1, size: 10, pages: 0, total: 0 },
                     error: error as any,
                 };
             }

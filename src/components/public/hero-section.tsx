@@ -49,9 +49,9 @@ export function HeroSection({ stats }: HeroSectionProps) {
 
       {/* Content */}
       <div className="relative container mx-auto px-4 py-20 md:py-32">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Left Column - Content */}
-          <div className="space-y-8 z-10">
+        <div>
+          {/* Content */}
+          <div className="space-y-8 z-10 max-w-2xl">
             {/* Badge */}
             <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 rounded-full px-4 py-2 w-fit">
               <Zap className="w-4 h-4 text-blue-400" />
@@ -132,42 +132,6 @@ export function HeroSection({ stats }: HeroSectionProps) {
             </div>
           </div>
 
-          {/* Right Column - Featured Image Showcase */}
-          <div className="relative hidden lg:block z-10">
-            <div className="relative">
-              {/* Glow Effect */}
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/30 to-blue-500/30 rounded-3xl blur-3xl"></div>
-              
-              {/* Image Container */}
-              <div className="relative rounded-3xl overflow-hidden border-2 border-emerald-500/30 shadow-2xl">
-                <div className="relative w-full h-[500px]">
-                  <Image
-                    src="/hero-image.jpg"
-                    alt="Students studying with exam papers"
-                    fill
-                    className="object-cover"
-                    priority
-                  />
-                  {/* Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent"></div>
-                  
-                  {/* Bottom Text Overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                    <p className="text-lg font-semibold">Start Your Exam Preparation</p>
-                    <p className="text-sm text-slate-300 mt-1">Join thousands of students mastering their exams</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Floating Badge */}
-              <div className="absolute -top-6 -right-6 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full p-4 shadow-lg">
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-white">{stats.totalPapers.toLocaleString()}+</p>
-                  <p className="text-xs text-emerald-100">Papers Ready</p>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 

@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ArrowRight, BookOpen, Zap, Target } from 'lucide-react';
+import { ArrowRight, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { PlatformStats } from './types';
 
@@ -132,63 +132,40 @@ export function HeroSection({ stats }: HeroSectionProps) {
             </div>
           </div>
 
-          {/* Right Column - Visual */}
+          {/* Right Column - Featured Image Showcase */}
           <div className="relative hidden lg:block z-10">
             <div className="relative">
-              {/* Card Stack Effect */}
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-2xl blur-2xl"></div>
+              {/* Glow Effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/30 to-blue-500/30 rounded-3xl blur-3xl"></div>
               
-              {/* Main Card */}
-              <div className="relative bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-8 border border-slate-700/50 shadow-2xl">
-                <div className="space-y-6">
-                  {/* Icon */}
-                  <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                    <BookOpen className="w-8 h-8 text-white" />
+              {/* Image Container */}
+              <div className="relative rounded-3xl overflow-hidden border-2 border-emerald-500/30 shadow-2xl">
+                <div className="relative w-full h-[500px]">
+                  <Image
+                    src="/hero-image.jpg"
+                    alt="Students studying with exam papers"
+                    fill
+                    className="object-cover"
+                    priority
+                  />
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent"></div>
+                  
+                  {/* Bottom Text Overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                    <p className="text-lg font-semibold">Start Your Exam Preparation</p>
+                    <p className="text-sm text-slate-300 mt-1">Join thousands of students mastering their exams</p>
                   </div>
-
-                  {/* Stats Grid */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg border border-slate-600/50">
-                      <div>
-                        <p className="text-sm text-slate-400">Exam Papers</p>
-                        <p className="text-2xl font-bold text-white">{stats.totalPapers.toLocaleString()}+</p>
-                      </div>
-                      <div className="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                        <BookOpen className="w-6 h-6 text-blue-400" />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg border border-slate-600/50">
-                      <div>
-                        <p className="text-sm text-slate-400">Questions</p>
-                        <p className="text-2xl font-bold text-white">{stats.totalQuestions.toLocaleString()}+</p>
-                      </div>
-                      <div className="w-12 h-12 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-                        <Target className="w-6 h-6 text-cyan-400" />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 bg-slate-700/30 rounded-lg border border-slate-600/50">
-                      <div>
-                        <p className="text-sm text-slate-400">Institutions</p>
-                        <p className="text-2xl font-bold text-white">{stats.totalInstitutions.toLocaleString()}+</p>
-                      </div>
-                      <div className="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                        <Zap className="w-6 h-6 text-purple-400" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* CTA */}
-                  <button onClick={handleBrowseClick} className="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold rounded-lg transition-all">
-                    Start Exploring
-                  </button>
                 </div>
               </div>
 
-              {/* Floating Elements */}
-              <div className="absolute -top-4 -right-4 w-24 h-24 bg-blue-500/20 rounded-full blur-2xl"></div>
-              <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-purple-500/20 rounded-full blur-2xl"></div>
+              {/* Floating Badge */}
+              <div className="absolute -top-6 -right-6 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-full p-4 shadow-lg">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-white">{stats.totalPapers.toLocaleString()}+</p>
+                  <p className="text-xs text-emerald-100">Papers Ready</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -197,30 +174,37 @@ export function HeroSection({ stats }: HeroSectionProps) {
       {/* Bottom Stats Bar */}
       <div className="relative border-t border-slate-700/50 bg-slate-800/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <div className="space-y-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {/* Exam Papers Card */}
+            <div className="bg-gradient-to-br from-slate-700/50 to-slate-800/50 backdrop-blur-sm border border-slate-600/50 rounded-xl p-6 text-center hover:border-blue-500/50 transition-all">
               <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
                 {stats.totalPapers.toLocaleString()}
               </div>
-              <div className="text-sm text-slate-400">Exam Papers</div>
+              <div className="text-sm text-slate-400 mt-2">Exam Papers</div>
             </div>
-            <div className="space-y-2">
+            
+            {/* Institutions Card */}
+            <div className="bg-gradient-to-br from-slate-700/50 to-slate-800/50 backdrop-blur-sm border border-slate-600/50 rounded-xl p-6 text-center hover:border-emerald-500/50 transition-all">
               <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">
                 {stats.totalInstitutions.toLocaleString()}
               </div>
-              <div className="text-sm text-slate-400">Institutions</div>
+              <div className="text-sm text-slate-400 mt-2">Institutions</div>
             </div>
-            <div className="space-y-2">
+            
+            {/* Questions Card */}
+            <div className="bg-gradient-to-br from-slate-700/50 to-slate-800/50 backdrop-blur-sm border border-slate-600/50 rounded-xl p-6 text-center hover:border-cyan-500/50 transition-all">
               <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent">
                 {stats.totalQuestions.toLocaleString()}
               </div>
-              <div className="text-sm text-slate-400">Questions</div>
+              <div className="text-sm text-slate-400 mt-2">Questions</div>
             </div>
-            <div className="space-y-2">
+            
+            {/* Courses Card */}
+            <div className="bg-gradient-to-br from-slate-700/50 to-slate-800/50 backdrop-blur-sm border border-slate-600/50 rounded-xl p-6 text-center hover:border-blue-500/50 transition-all">
               <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
                 {(stats.totalCourses || 0).toLocaleString()}
               </div>
-              <div className="text-sm text-slate-400">Courses</div>
+              <div className="text-sm text-slate-400 mt-2">Courses</div>
             </div>
           </div>
         </div>

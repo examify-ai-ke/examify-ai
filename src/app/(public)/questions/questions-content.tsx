@@ -10,7 +10,7 @@ import {
   useProgrammesList
 } from '@/hooks/usePublicData';
 import { RecentQuestionsSection } from '@/components/public/recent-questions-section';
-import { StatsSection } from '@/components/public/stats-section';
+import { QuestionsHeroSection } from '@/components/public/questions-hero-section';
 import { SearchAndSort } from '@/components/public/search-and-sort';
 import { FilterSidebar } from '@/components/public/filter-sidebar';
 import { MobileFilterDrawer } from '@/components/public/mobile-filter-drawer';
@@ -216,15 +216,15 @@ export default function PublicQuestionsContent() {
   };
 
   return (
-    <div className="container mx-auto p-4 md:p-8">
-      {/* Statistics Section */}
+    <div>
+      {/* Hero Section */}
       {platformStats && !isStatsLoading && (
-        <div className="mb-6">
-          <StatsSection stats={platformStats} />
-        </div>
+        <QuestionsHeroSection stats={platformStats} />
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="container mx-auto p-4 md:p-8">
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Sidebar with Filters - Desktop */}
         <aside className="hidden lg:block lg:col-span-1">
           <FilterSidebar
@@ -377,6 +377,7 @@ export default function PublicQuestionsContent() {
             )}
           </div>
         </main>
+        </div>
       </div>
 
       {/* Mobile Filter Drawer */}

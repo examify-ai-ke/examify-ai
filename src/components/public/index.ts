@@ -13,6 +13,7 @@ export { BaseSearch, QuickSearch } from './base-search';
 
 // Landing page components
 export { HeroSection } from './hero-section';
+export { QuestionsHeroSection } from './questions-hero-section';
 export { RecentQuestionsSection } from './recent-questions-section';
 export { FeaturedInstitutionsSection } from './featured-institutions-section';
 export { StatsSection } from './stats-section';

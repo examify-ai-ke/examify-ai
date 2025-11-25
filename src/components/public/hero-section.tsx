@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { ArrowRight, Zap } from 'lucide-react';
+import { ArrowRight, Zap, FileText, Building2, HelpCircle, BookOpen, Layers, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { PlatformStats } from './types';
 
@@ -49,9 +49,9 @@ export function HeroSection({ stats }: HeroSectionProps) {
 
       {/* Content */}
       <div className="relative container mx-auto px-4 py-20 md:py-32">
-        <div>
-          {/* Content */}
-          <div className="space-y-8 z-10 max-w-2xl">
+        <div className="grid lg:grid-cols-2 gap-12 items-center">
+          {/* Left Column - Content */}
+          <div className="space-y-8 z-10">
             {/* Badge */}
             <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 rounded-full px-4 py-2 w-fit">
               <Zap className="w-4 h-4 text-blue-400" />
@@ -132,43 +132,86 @@ export function HeroSection({ stats }: HeroSectionProps) {
             </div>
           </div>
 
-        </div>
-      </div>
-
-      {/* Bottom Stats Bar */}
-      <div className="relative border-t border-slate-700/50 bg-slate-800/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {/* Exam Papers Card */}
-            <div className="bg-gradient-to-br from-slate-700/50 to-slate-800/50 backdrop-blur-sm border border-slate-600/50 rounded-xl p-6 text-center hover:border-blue-500/50 transition-all">
-              <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                {stats.totalPapers.toLocaleString()}
+          {/* Right Column - Stats Cards Grid */}
+          <div className="hidden lg:flex justify-center">
+            <div className="grid grid-cols-3 gap-6 w-full max-w-2xl">
+              {/* Exam Papers Card */}
+              <div className="bg-gradient-to-br from-slate-700/50 to-slate-800/50 backdrop-blur-sm border border-slate-600/50 rounded-xl p-6 hover:border-blue-500/50 transition-all text-center">
+                <div className="flex justify-center mb-4">
+                  <div className="w-14 h-14 rounded-lg bg-blue-500/20 border border-blue-500/50 flex items-center justify-center">
+                    <FileText className="w-7 h-7 text-blue-400" />
+                  </div>
+                </div>
+                <div className="text-3xl font-bold text-white">
+                  {stats.totalPapers.toLocaleString()}
+                </div>
+                <div className="text-sm text-slate-400 mt-2">Exam Papers</div>
               </div>
-              <div className="text-sm text-slate-400 mt-2">Exam Papers</div>
-            </div>
-            
-            {/* Institutions Card */}
-            <div className="bg-gradient-to-br from-slate-700/50 to-slate-800/50 backdrop-blur-sm border border-slate-600/50 rounded-xl p-6 text-center hover:border-emerald-500/50 transition-all">
-              <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-                {stats.totalInstitutions.toLocaleString()}
+              
+              {/* Institutions Card */}
+              <div className="bg-gradient-to-br from-slate-700/50 to-slate-800/50 backdrop-blur-sm border border-slate-600/50 rounded-xl p-6 hover:border-emerald-500/50 transition-all text-center">
+                <div className="flex justify-center mb-4">
+                  <div className="w-14 h-14 rounded-lg bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center">
+                    <Building2 className="w-7 h-7 text-emerald-400" />
+                  </div>
+                </div>
+                <div className="text-3xl font-bold text-white">
+                  {stats.totalInstitutions.toLocaleString()}
+                </div>
+                <div className="text-sm text-slate-400 mt-2">Institutions</div>
               </div>
-              <div className="text-sm text-slate-400 mt-2">Institutions</div>
-            </div>
-            
-            {/* Questions Card */}
-            <div className="bg-gradient-to-br from-slate-700/50 to-slate-800/50 backdrop-blur-sm border border-slate-600/50 rounded-xl p-6 text-center hover:border-cyan-500/50 transition-all">
-              <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-emerald-400 to-blue-400 bg-clip-text text-transparent">
-                {stats.totalQuestions.toLocaleString()}
+              
+              {/* Questions Card */}
+              <div className="bg-gradient-to-br from-slate-700/50 to-slate-800/50 backdrop-blur-sm border border-slate-600/50 rounded-xl p-6 hover:border-cyan-500/50 transition-all text-center">
+                <div className="flex justify-center mb-4">
+                  <div className="w-14 h-14 rounded-lg bg-cyan-500/20 border border-cyan-500/50 flex items-center justify-center">
+                    <HelpCircle className="w-7 h-7 text-cyan-400" />
+                  </div>
+                </div>
+                <div className="text-3xl font-bold text-white">
+                  {stats.totalQuestions.toLocaleString()}
+                </div>
+                <div className="text-sm text-slate-400 mt-2">Questions</div>
               </div>
-              <div className="text-sm text-slate-400 mt-2">Questions</div>
-            </div>
-            
-            {/* Courses Card */}
-            <div className="bg-gradient-to-br from-slate-700/50 to-slate-800/50 backdrop-blur-sm border border-slate-600/50 rounded-xl p-6 text-center hover:border-blue-500/50 transition-all">
-              <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
-                {(stats.totalCourses || 0).toLocaleString()}
+              
+              {/* Courses Card */}
+              <div className="bg-gradient-to-br from-slate-700/50 to-slate-800/50 backdrop-blur-sm border border-slate-600/50 rounded-xl p-6 hover:border-purple-500/50 transition-all text-center">
+                <div className="flex justify-center mb-4">
+                  <div className="w-14 h-14 rounded-lg bg-purple-500/20 border border-purple-500/50 flex items-center justify-center">
+                    <BookOpen className="w-7 h-7 text-purple-400" />
+                  </div>
+                </div>
+                <div className="text-3xl font-bold text-white">
+                  {(stats.totalCourses || 0).toLocaleString()}
+                </div>
+                <div className="text-sm text-slate-400 mt-2">Courses</div>
               </div>
-              <div className="text-sm text-slate-400 mt-2">Courses</div>
+              
+              {/* Modules Card */}
+              <div className="bg-gradient-to-br from-slate-700/50 to-slate-800/50 backdrop-blur-sm border border-slate-600/50 rounded-xl p-6 hover:border-indigo-500/50 transition-all text-center">
+                <div className="flex justify-center mb-4">
+                  <div className="w-14 h-14 rounded-lg bg-indigo-500/20 border border-indigo-500/50 flex items-center justify-center">
+                    <Layers className="w-7 h-7 text-indigo-400" />
+                  </div>
+                </div>
+                <div className="text-3xl font-bold text-white">
+                  {(stats.totalModules || 0).toLocaleString()}
+                </div>
+                <div className="text-sm text-slate-400 mt-2">Modules</div>
+              </div>
+              
+              {/* Active Users Card */}
+              <div className="bg-gradient-to-br from-slate-700/50 to-slate-800/50 backdrop-blur-sm border border-slate-600/50 rounded-xl p-6 hover:border-rose-500/50 transition-all text-center">
+                <div className="flex justify-center mb-4">
+                  <div className="w-14 h-14 rounded-lg bg-rose-500/20 border border-rose-500/50 flex items-center justify-center">
+                    <Users className="w-7 h-7 text-rose-400" />
+                  </div>
+                </div>
+                <div className="text-3xl font-bold text-white">
+                  {(stats.totalUsers || 0).toLocaleString()}
+                </div>
+                <div className="text-sm text-slate-400 mt-2">Active Users</div>
+              </div>
             </div>
           </div>
         </div>

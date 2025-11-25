@@ -590,17 +590,26 @@ export const publicAPI = {
     institutions: {
         /**
          * Fetch institutions with optional filters
+         * Uses the main endpoint with support for institution_type filtering
          */
         async list(filters?: InstitutionFilters) {
             try {
                 console.log('🏛️ Fetching institutions from:', process.env.NEXT_PUBLIC_API_URL || 'http://fastapi.localhost');
+                
+                const queryParams: any = {
+                    skip: filters?.skip || 0,
+                    limit: filters?.limit || 20,
+                };
+
+                // Add optional filters
+                if (filters?.search_term) queryParams.search_term = filters.search_term;
+                if (filters?.search) queryParams.search_term = filters.search;
+                if (filters?.institution_type) queryParams.institution_type = filters.institution_type;
+                if (filters?.location) queryParams.location = filters.location;
+
                 const response = await api.GET('/api/v1/institution', {
                     params: {
-                        query: {
-                            skip: filters?.skip,
-                            limit: filters?.limit || 20,
-                            search_term: filters?.search_term,
-                        }
+                        query: queryParams
                     }
                 });
 
@@ -612,6 +621,7 @@ export const publicAPI = {
                 const items = extractItems<InstitutionRead>(response);
                 console.log('📦 Institutions response:', {
                     count: items.length,
+                    filters: queryParams,
                     sampleData: items[0],
                     hasExamsCount: items[0] && 'exams_count' in items[0],
                     hasFacultiesCount: items[0] && 'faculties_count' in items[0],
@@ -637,48 +647,11 @@ export const publicAPI = {
 
         /**
          * Search institutions with advanced filters
+         * Alias for list() - uses the same endpoint with filters
          */
         async search(filters: InstitutionFilters) {
-            try {
-                const searchParams: any = {
-                    skip: filters.skip || 0,
-                    limit: filters.limit || 20,
-                };
-
-                if (filters.search) searchParams.q = filters.search;
-                if (filters.institution_type) searchParams.institution_type = filters.institution_type;
-                if (filters.location) searchParams.location = filters.location;
-
-                console.log('🔍 Searching institutions:', searchParams);
-
-                const response = await api.GET('/api/v1/institution/search/advanced', {
-                    params: {
-                        query: searchParams
-                    }
-                });
-
-                const items = extractItems<InstitutionRead>(response);
-                console.log('📦 Search results:', {
-                    count: items.length,
-                    filters: searchParams,
-                    sampleData: items[0],
-                });
-
-                return {
-                    data: items,
-                    total: extractTotal(response),
-                    pagination: extractPagination(response),
-                    error: response.error,
-                };
-            } catch (error) {
-                console.error('Error searching institutions:', error);
-                return {
-                    data: [],
-                    total: 0,
-                    pagination: { page: 1, size: 10, pages: 0, total: 0 },
-                    error: error as any,
-                };
-            }
+            // Use the same list endpoint with filters
+            return this.list(filters);
         },
 
         /**

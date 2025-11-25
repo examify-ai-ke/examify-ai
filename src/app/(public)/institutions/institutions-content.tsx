@@ -44,18 +44,14 @@ export default function InstitutionsPageContent() {
   const { data, isLoading } = useQuery({
     queryKey: ['institutions', searchQuery, institutionType, institutionCategory, sortBy, currentPage, pageSize],
     queryFn: async () => {
-      // Use search if we have filters, otherwise use list
-      const result = searchQuery || institutionType !== 'all'
-        ? await publicAPI.institutions.search({
-            skip: (currentPage - 1) * pageSize,
-            limit: pageSize,
-            search: searchQuery || undefined,
-            institution_type: institutionType !== 'all' ? institutionType as any : undefined,
-          })
-        : await publicAPI.institutions.list({
-            skip: (currentPage - 1) * pageSize,
-            limit: pageSize,
-          });
+      // Call list endpoint with filters - it handles all filtering
+      const result = await publicAPI.institutions.list({
+        skip: (currentPage - 1) * pageSize,
+        limit: pageSize,
+        search: searchQuery || undefined,
+        // Convert institution type to uppercase for API (enum values are "Public", "Private", "Other")
+        institution_type: institutionType !== 'all' ? (institutionType as any) : undefined,
+      });
       
       if (result.error) {
         throw new Error('Failed to fetch institutions');

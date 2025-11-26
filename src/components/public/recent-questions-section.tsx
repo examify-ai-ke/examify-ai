@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import EditorRenderer from '@/components/ui/editor-renderer';
 import type { QuestionRead } from './types';
 
 interface RecentQuestionsSectionProps {
@@ -13,42 +15,6 @@ interface RecentQuestionsSectionProps {
   onPageChange?: (page: number) => void;
   isLoading?: boolean;
   showHeading?: boolean;
-}
-
-/**
- * Helper to extract plain text from question text schema
- * The text field contains EditorJS format with blocks
- */
-function extractQuestionText(questionText: unknown): string {
-  if (!questionText) {
-    return '';
-  }
-
-  // If it's a string, return it directly
-  if (typeof questionText === 'string') {
-    return questionText;
-  }
-
-  // Handle EditorJS format with blocks
-  if (questionText && typeof questionText === 'object') {
-    const textObj = questionText as any;
-    
-    // Check for blocks array (EditorJS format)
-    if (textObj.blocks && Array.isArray(textObj.blocks)) {
-      return textObj.blocks
-        .map((block: any) => {
-          // Handle different block types
-          if (block?.data?.text) return block.data.text;
-          if (block?.data?.level !== undefined && block?.data?.content) return block.data.content;
-          return '';
-        })
-        .filter(Boolean)
-        .join(' ')
-        .trim();
-    }
-  }
-
-  return '';
 }
 
 /**
@@ -142,8 +108,6 @@ export function RecentQuestionsSection({
         <div className="space-y-4">
           {questions.map((question) => {
             const isExpanded = expandedId === question.id;
-            // Extract text from the EditorJS format
-            const mainText = extractQuestionText(question.text);
 
             // Get data from question level (direct properties on QuestionRead)
             const institution =
@@ -178,6 +142,11 @@ export function RecentQuestionsSection({
               question.exam_paper?.identifying_name ||
               'Unknown Exam Paper';
 
+            const exam_paper_slug = question.exam_paper?.slug;
+            
+            // Check if question has answers
+            const hasAnswers = (question.answers_count || 0) > 0;
+
             return (
               <div key={question.id} className="group">
                 <button onClick={() => toggleExpand(question.id)} className="w-full text-left">
@@ -207,6 +176,12 @@ export function RecentQuestionsSection({
                               {module}
                             </span>
                           )}
+                          {hasAnswers && (
+                            <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-green-100 text-green-700 text-xs font-bold">
+                              <CheckCircle2 className="w-3 h-3" />
+                              Has Answer
+                            </span>
+                          )}
                         </div>
 
                         {/* Question Number Badge */}
@@ -219,9 +194,14 @@ export function RecentQuestionsSection({
                           </span>
                         </div>
 
-                        <h3 className="text-foreground mb-3 line-clamp-3">
-                          {mainText || 'No question text available'}
-                        </h3>
+                        {/* Question Content - Rendered with EditorRenderer */}
+                        <div className="text-foreground mb-3 line-clamp-3">
+                          {question.text && typeof question.text === 'object' && question.text.blocks ? (
+                            <EditorRenderer data={question.text} className="line-clamp-3" />
+                          ) : (
+                            <p>No question text available</p>
+                          )}
+                        </div>
 
                         {/* First Row: Marks, Sub-questions, Year */}
                         <div className="flex flex-wrap items-center gap-4 mb-2">
@@ -241,10 +221,20 @@ export function RecentQuestionsSection({
                           </div>
                         </div>
 
-                        {/* Second Row: Exam Paper */}
+                        {/* Second Row: Exam Paper - Clickable Link */}
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium text-muted-foreground">Exam Paper:</span>
-                          <span className="text-base font-medium text-foreground">{exam_paper_name}</span>
+                          {exam_paper_slug ? (
+                            <Link
+                              href={`/exampapers/${exam_paper_slug}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-base font-medium text-primary hover:text-primary/80 hover:underline transition-colors"
+                            >
+                              {exam_paper_name}
+                            </Link>
+                          ) : (
+                            <span className="text-base font-medium text-foreground">{exam_paper_name}</span>
+                          )}
                         </div>
                       </div>
 
@@ -262,7 +252,7 @@ export function RecentQuestionsSection({
                 {isExpanded && childrenCount > 0 && (
                   <div className="mt-2 ml-4 space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
                     {sortSubQuestions(question.children || []).map((subQuestion: any) => {
-                      const subText = extractQuestionText(subQuestion.text);
+                      const subHasAnswers = (subQuestion.answers_count || 0) > 0;
                       return (
                         <div
                           key={subQuestion.id}
@@ -273,11 +263,24 @@ export function RecentQuestionsSection({
                               ({subQuestion.question_number || '?'})
                             </span>
                             <div className="flex-1">
-                              <p className="text-xl text-foreground">{subText || 'No text available'}</p>
+                              {/* Sub-question Content - Rendered with EditorRenderer */}
+                              <div className="text-foreground mb-2">
+                                {subQuestion.text && typeof subQuestion.text === 'object' && subQuestion.text.blocks ? (
+                                  <EditorRenderer data={subQuestion.text} />
+                                ) : (
+                                  <p>No text available</p>
+                                )}
+                              </div>
                               <div className="mt-2 flex items-center gap-4">
                                 <span className="text-sm font-medium text-muted-foreground">
                                   Marks: <span className="text-primary">{subQuestion.marks || 0}</span>
                                 </span>
+                                {subHasAnswers && (
+                                  <span className="inline-flex items-center gap-1 text-xs text-green-600">
+                                    <CheckCircle2 className="w-3 h-3" />
+                                    Has Answer
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>

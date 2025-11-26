@@ -7413,6 +7413,7 @@ export interface components {
             id: string;
             /** Name */
             name: string;
+            logo?: components["schemas"]["IImageMediaRead"] | null;
         };
         /** InstitutionReadForFaculty */
         InstitutionReadForFaculty: {

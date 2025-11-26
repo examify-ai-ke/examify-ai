@@ -23,6 +23,7 @@ export interface AvailableFilters {
   institutions: FilterOption[];
   courses: FilterOption[];
   modules: FilterOption[];
+  programmes: FilterOption[];
   years: FilterOption[];
   tags: FilterOption[];
   durationRange: { min: number; max: number };
@@ -41,141 +42,9 @@ export interface UseAvailableFiltersReturn {
 }
 
 /**
- * Extract unique years from exam papers
- */
-function extractYears(papers: any[]): FilterOption[] {
-  const yearSet = new Set<string>();
-  
-  papers.forEach(paper => {
-    if (paper.year_of_exam) {
-      yearSet.add(paper.year_of_exam.toString());
-    }
-  });
-  
-  // Sort years in descending order (most recent first)
-  return Array.from(yearSet)
-    .sort((a, b) => parseInt(b) - parseInt(a))
-    .map(year => ({
-      value: year,
-      label: year,
-    }));
-}
-
-/**
- * Extract unique modules from exam papers
- */
-function extractModules(papers: any[]): FilterOption[] {
-  const moduleMap = new Map<string, { name: string; count: number }>();
-  
-  papers.forEach(paper => {
-    if (paper.modules && Array.isArray(paper.modules)) {
-      paper.modules.forEach((module: any) => {
-        if (module.id && module.name) {
-          const existing = moduleMap.get(module.id);
-          if (existing) {
-            existing.count++;
-          } else {
-            moduleMap.set(module.id, { name: module.name, count: 1 });
-          }
-        }
-      });
-    }
-  });
-  
-  // Sort modules alphabetically by name
-  return Array.from(moduleMap.entries())
-    .sort((a, b) => a[1].name.localeCompare(b[1].name))
-    .map(([id, { name, count }]) => ({
-      value: id,
-      label: name,
-      count,
-    }));
-}
-
-/**
- * Extract unique tags from exam papers
- */
-function extractTags(papers: any[]): FilterOption[] {
-  const tagMap = new Map<string, number>();
-  
-  papers.forEach(paper => {
-    if (paper.tags && Array.isArray(paper.tags)) {
-      paper.tags.forEach((tag: string) => {
-        tagMap.set(tag, (tagMap.get(tag) || 0) + 1);
-      });
-    }
-  });
-  
-  // Sort tags alphabetically
-  return Array.from(tagMap.entries())
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([tag, count]) => ({
-      value: tag,
-      label: tag,
-      count,
-    }));
-}
-
-/**
- * Calculate duration range from exam papers
- */
-function calculateDurationRange(papers: any[]): { min: number; max: number } {
-  let min = Infinity;
-  let max = -Infinity;
-  
-  papers.forEach(paper => {
-    if (paper.duration !== undefined && paper.duration !== null) {
-      min = Math.min(min, paper.duration);
-      max = Math.max(max, paper.duration);
-    }
-  });
-  
-  // Return sensible defaults if no valid durations found
-  if (min === Infinity || max === -Infinity) {
-    return { min: 0, max: 300 };
-  }
-  
-  return { min, max };
-}
-
-/**
- * Calculate date range from exam papers
- */
-function calculateDateRange(papers: any[]): { min: string; max: string } {
-  let minDate: Date | null = null;
-  let maxDate: Date | null = null;
-  
-  papers.forEach(paper => {
-    if (paper.exam_date) {
-      const date = new Date(paper.exam_date);
-      if (!minDate || date < minDate) {
-        minDate = date;
-      }
-      if (!maxDate || date > maxDate) {
-        maxDate = date;
-      }
-    }
-  });
-  
-  // Return sensible defaults if no valid dates found
-  if (!minDate || !maxDate) {
-    const now = new Date();
-    const fiveYearsAgo = new Date(now.getFullYear() - 5, 0, 1);
-    return {
-      min: fiveYearsAgo.toISOString().split('T')[0],
-      max: now.toISOString().split('T')[0],
-    };
-  }
-  
-  return {
-    min: minDate.toISOString().split('T')[0],
-    max: maxDate.toISOString().split('T')[0],
-  };
-}
-
-/**
  * Custom hook for fetching available filter options
- * Fetches institutions, courses, years, tags, and ranges for filtering
+ * Fetches institutions, courses, modules for filtering
+ * Note: Years, tags, and ranges are derived from the main exam papers query
  */
 export function useAvailableFilters(): UseAvailableFiltersReturn {
   // Fetch institutions
@@ -251,33 +120,70 @@ export function useAvailableFilters(): UseAvailableFiltersReturn {
     retry: 2,
   });
   
-  // Fetch exam papers to extract years, tags, and ranges
+  // Fetch modules
   const {
-    data: papersData,
-    isLoading: papersLoading,
-    isError: papersError,
-    error: papersErrorObj,
+    data: modulesData,
+    isLoading: modulesLoading,
+    isError: modulesError,
+    error: modulesErrorObj,
   } = useQuery({
-    queryKey: ['availableFilters', 'papers'],
+    queryKey: ['availableFilters', 'modules'],
     queryFn: async () => {
       try {
-        // Fetch a sample of papers to get comprehensive filter data
-        // Backend has a max limit of 100
-        const result = await publicAPI.examPapers.list({ limit: 100 });
+        const result = await publicAPI.modules.list({ limit: 100 });
         
         if (result.error) {
-          console.error('Papers API error:', result.error);
-          throw new Error(`Failed to fetch exam papers: ${JSON.stringify(result.error)}`);
+          console.error('Modules API error:', result.error);
+          throw new Error(`Failed to fetch modules: ${JSON.stringify(result.error)}`);
         }
         
         if (!result.data || !Array.isArray(result.data)) {
-          console.warn('Papers API returned unexpected data:', result);
+          console.warn('Modules API returned unexpected data:', result);
           return [];
         }
         
-        return result.data;
+        return result.data.map(module => ({
+          value: module.id || '',
+          label: module.name || '',
+        }));
       } catch (error) {
-        console.error('Error in papers query:', error);
+        console.error('Error in modules query:', error);
+        throw error;
+      }
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
+    retry: 2,
+  });
+  
+  // Fetch programmes
+  const {
+    data: programmesData,
+    isLoading: programmesLoading,
+    isError: programmesError,
+    error: programmesErrorObj,
+  } = useQuery({
+    queryKey: ['availableFilters', 'programmes'],
+    queryFn: async () => {
+      try {
+        const result = await publicAPI.programmes.list({ limit: 100 });
+        
+        if (result.error) {
+          console.error('Programmes API error:', result.error);
+          throw new Error(`Failed to fetch programmes: ${JSON.stringify(result.error)}`);
+        }
+        
+        if (!result.data || !Array.isArray(result.data)) {
+          console.warn('Programmes API returned unexpected data:', result);
+          return [];
+        }
+        
+        return result.data.map(programme => ({
+          value: programme.id || '',
+          label: programme.name || '',
+        }));
+      } catch (error) {
+        console.error('Error in programmes query:', error);
         throw error;
       }
     },
@@ -287,21 +193,26 @@ export function useAvailableFilters(): UseAvailableFiltersReturn {
   });
   
   // Combine loading states
-  const isLoading = institutionsLoading || coursesLoading || papersLoading;
-  const isError = institutionsError || coursesError || papersError;
-  const error = institutionsErrorObj || coursesErrorObj || papersErrorObj;
+  const isLoading = institutionsLoading || coursesLoading || modulesLoading || programmesLoading;
+  const isError = institutionsError || coursesError || modulesError || programmesError;
+  const error = institutionsErrorObj || coursesErrorObj || modulesErrorObj || programmesErrorObj;
   
   // Process data when all queries are successful
+  // Note: Years, tags, duration/date ranges should be provided by backend or derived from search results
   const data: AvailableFilters | undefined = 
-    institutionsData && coursesData && papersData
+    institutionsData && coursesData && modulesData && programmesData
       ? {
           institutions: institutionsData,
           courses: coursesData,
-          modules: extractModules(papersData),
-          years: extractYears(papersData),
-          tags: extractTags(papersData),
-          durationRange: calculateDurationRange(papersData),
-          dateRange: calculateDateRange(papersData),
+          modules: modulesData,
+          programmes: programmesData,
+          years: [], // TODO: Backend should provide available years endpoint
+          tags: [], // TODO: Backend should provide available tags endpoint
+          durationRange: { min: 0, max: 300 }, // Default range
+          dateRange: { 
+            min: new Date(new Date().getFullYear() - 10, 0, 1).toISOString().split('T')[0],
+            max: new Date().toISOString().split('T')[0]
+          }, // Default 10 year range
         }
       : undefined;
   

@@ -9,12 +9,12 @@ import { MobileFilterDrawer } from './mobile-filter-drawer';
 import { ExamPaperCard } from './exam-paper-card';
 import { Pagination } from './pagination';
 import { ExamPapersGridSkeleton, ExamPapersListSkeleton } from '@/components/ui/skeleton-loaders';
-import { Loader2 } from 'lucide-react';
 
 type ViewMode = 'grid' | 'list';
 
 export function BrowsePageContent() {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   
   // Fetch available filter options
   const { 
@@ -133,16 +133,13 @@ export function BrowsePageContent() {
           {/* Search and Sort Bar */}
           <div className="mb-6">
             <div className="flex gap-3 items-start">
-              {/* Mobile Filter Button */}
-              {!filtersLoading && (
-                <MobileFilterDrawer
-                  filters={availableFilters}
-                  activeFilters={filters}
-                  onFilterChange={setFilters}
-                  onClearFilters={clearFilters}
-                  isLoading={papersLoading}
-                />
-              )}
+              {/* Mobile Filter Button - Trigger only */}
+              <button
+                onClick={() => setIsMobileFilterOpen(true)}
+                className="lg:hidden px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Filters
+              </button>
               
               {/* Search and Sort */}
               <div className="flex-1">
@@ -259,6 +256,19 @@ export function BrowsePageContent() {
           )}
         </main>
       </div>
+
+      {/* Mobile Filter Drawer */}
+      {availableFilters && (
+        <MobileFilterDrawer
+          isOpen={isMobileFilterOpen}
+          onClose={() => setIsMobileFilterOpen(false)}
+          onApplyFilters={setFilters}
+          onClearFilters={clearFilters}
+          filters={availableFilters}
+          activeFilters={filters}
+          isLoading={papersLoading}
+        />
+      )}
     </div>
   );
 }

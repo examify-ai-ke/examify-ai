@@ -20,35 +20,12 @@ import type { components } from '@/types/generated/api'
 
 type QuestionRead = components['schemas']['QuestionRead']
 
-// Question form schema
+// Question form schema - text validation is lenient here, we validate manually in onSubmit
 const questionFormSchema = z.object({
     text: z.custom<OutputData>(
         data => {
-            console.log('🔍 Validating question text:', data);
-            
-            if (!data) {
-                console.log('❌ No data');
-                return false;
-            }
-            
-            const blocks = (data as OutputData).blocks;
-            if (!blocks || !Array.isArray(blocks)) {
-                console.log('❌ No blocks or not an array');
-                return false;
-            }
-            
-            console.log('📦 Blocks:', blocks);
-            
-            // Check if there's at least one block with content
-            const hasContent = blocks.some(block => {
-                const text = block.data?.text;
-                const hasText = text && typeof text === 'string' && text.trim().length > 0;
-                console.log('Block:', block.type, 'has text:', hasText, 'text:', text);
-                return hasText;
-            });
-            
-            console.log('✅ Has content:', hasContent);
-            return hasContent;
+            // Always return true here - we'll validate manually in onSubmit after getting fresh editor data
+            return true;
         },
         'Question text cannot be empty'
     ),
@@ -79,6 +56,10 @@ export function QuestionForm({ questionSetId, examPaperId, question, onSuccess, 
     const [isSubmitting, setIsSubmitting] = useState(false)
     const isEditing = !!question
     const editorRef = React.useRef<any>(null)
+    // Store editor data separately from form to avoid re-render issues
+    const [editorData, setEditorData] = useState<OutputData>(
+        question?.text || { time: Date.now(), blocks: [], version: '2.22.2' }
+    )
     
     // Debug logging
     useEffect(() => {
@@ -96,6 +77,7 @@ export function QuestionForm({ questionSetId, examPaperId, question, onSuccess, 
     const form = useForm<QuestionFormData>({
         resolver: zodResolver(questionFormSchema),
         mode: 'onSubmit', // Only validate on submit, not on change
+        reValidateMode: 'onSubmit', // Don't revalidate on change after first submit
         defaultValues: question ? {
             text: question.text || { time: Date.now(), blocks: [], version: '2.22.2' },
             marks: question.marks || 1,
@@ -153,8 +135,10 @@ export function QuestionForm({ questionSetId, examPaperId, question, onSuccess, 
     useEffect(() => {
         if (question) {
             console.log('📝 Populating form with question data:', question);
+            const questionText = question.text || { time: Date.now(), blocks: [], version: '2.22.2' };
+            setEditorData(questionText);
             const formData = {
-                text: question.text || { time: Date.now(), blocks: [], version: '2.22.2' },
+                text: questionText,
                 marks: question.marks || 1,
                 numbering_style: (question.numbering_style || 'roman') as 'roman' | 'alpha' | 'numerical',
                 question_number: question.question_number || '1',
@@ -166,6 +150,7 @@ export function QuestionForm({ questionSetId, examPaperId, question, onSuccess, 
             form.reset(formData);
         } else {
             console.log('📝 No question data, using defaults');
+            setEditorData({ time: Date.now(), blocks: [], version: '2.22.2' });
         }
     }, [question?.id])
 
@@ -174,26 +159,49 @@ export function QuestionForm({ questionSetId, examPaperId, question, onSuccess, 
             setIsSubmitting(true)
             
             console.log('🚀 Form submitted with data:', data);
-            console.log('📝 Text data:', data.text);
-            console.log('📦 Blocks:', data.text?.blocks);
             
-            // Try to get fresh data from the editor if available
-            let editorData = data.text;
+            // ALWAYS get fresh data from the editor before validation
+            let finalEditorData = editorData;
             if (editorRef.current) {
                 try {
                     console.log('🔄 Getting fresh data from editor...');
                     const freshData = await editorRef.current.save();
                     console.log('✅ Fresh editor data:', freshData);
-                    editorData = freshData;
-                    // Update the form value with fresh data
-                    form.setValue('text', freshData);
+                    finalEditorData = freshData;
+                    
+                    // Validate the fresh data has content
+                    const hasContent = freshData.blocks && freshData.blocks.length > 0 && 
+                        freshData.blocks.some((block: any) => {
+                            const text = block.data?.text;
+                            return text && typeof text === 'string' && text.trim().length > 0;
+                        });
+                    
+                    if (!hasContent) {
+                        addNotification({
+                            type: 'error',
+                            title: 'Validation Error',
+                            message: 'Question text cannot be empty. Please enter some content.'
+                        });
+                        setIsSubmitting(false);
+                        return;
+                    }
+                    
+                    // Update our local state but NOT the form field
+                    setEditorData(freshData);
                 } catch (error) {
                     console.error('❌ Error getting editor data:', error);
+                    addNotification({
+                        type: 'error',
+                        title: 'Error',
+                        message: 'Failed to save editor content. Please try again.'
+                    });
+                    setIsSubmitting(false);
+                    return;
                 }
             }
 
             const questionPayload = {
-                text: { ...editorData, time: editorData.time || Date.now() },
+                text: { ...finalEditorData, time: finalEditorData.time || Date.now() },
                 marks: data.marks,
                 numbering_style: data.numbering_style,
                 question_number: data.question_number,
@@ -208,7 +216,7 @@ export function QuestionForm({ questionSetId, examPaperId, question, onSuccess, 
             } else {
                 if (data.question_type === 'sub') {
                     response = await adminAPI.questions.createSubQuestion({
-                        text: { ...data.text, time: data.text.time || Date.now() },
+                        text: { ...finalEditorData, time: finalEditorData.time || Date.now() },
                         marks: data.marks,
                         numbering_style: data.numbering_style,
                         question_number: data.question_number,
@@ -461,37 +469,28 @@ export function QuestionForm({ questionSetId, examPaperId, question, onSuccess, 
                         </div>
 
                         {/* Question Text Editor - Full Width */}
-                        <FormField
-                            control={form.control}
-                            name="text"
-                            render={({ field }) => (
-                                <FormItem className="w-full">
-                                    <FormLabel className="text-base font-semibold">Question Text</FormLabel>
-                                    <FormDescription className="text-sm text-gray-600 mb-2">
-                                        Use the rich text editor below to write your question. Click inside to start typing. 
-                                        Use the toolbar that appears to format text, add lists, tables, code blocks, and more.
-                                    </FormDescription>
-                                    <FormControl>
-                                        <div className="w-full rounded-md border-2 border-input bg-white hover:border-primary/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                                            <div className="w-full min-h-[200px] max-h-[300px] overflow-y-auto p-4">
-                                                <Editor
-                                                    data={field.value}
-                                                    onChange={(data) => {
-                                                        console.log('📝 Editor onChange called with:', data);
-                                                        field.onChange(data);
-                                                    }}
-                                                    editorRef={editorRef}
-                                                />
-                                            </div>
-                                        </div>
-                                    </FormControl>
-                                    <FormDescription className="text-xs text-gray-500 mt-1">
-                                        💡 Tip: Press Tab for formatting options, or use "/" to see available blocks
-                                    </FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                        <div className="w-full">
+                            <FormLabel className="text-base font-semibold">Question Text</FormLabel>
+                            <FormDescription className="text-sm text-gray-600 mb-2">
+                                Use the rich text editor below to write your question. Click inside to start typing. 
+                                Use the toolbar that appears to format text, add lists, tables, code blocks, and more.
+                            </FormDescription>
+                            <div className="w-full rounded-md border-2 border-input bg-white hover:border-primary/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+                                <div className="w-full min-h-[200px] max-h-[300px] overflow-y-auto p-4">
+                                    <Editor
+                                        data={editorData}
+                                        onChange={(data) => {
+                                            console.log('📝 Editor onChange called with:', data);
+                                            setEditorData(data);
+                                        }}
+                                        editorRef={editorRef}
+                                    />
+                                </div>
+                            </div>
+                            <FormDescription className="text-xs text-gray-500 mt-1">
+                                💡 Tip: Press Tab for formatting options, or use "/" to see available blocks
+                            </FormDescription>
+                        </div>
 
 
                         {/* Form Actions */}

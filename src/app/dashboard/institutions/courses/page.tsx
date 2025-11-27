@@ -291,18 +291,28 @@ const CoursesPage: React.FC<CoursesPageProps> = () => {
         }
     };
 
-    // Load data on component mount and when filters/pagination change
+    // Load filter options independently on mount
+    useEffect(() => {
+        loadProgrammes();
+    }, []);
+
+    useEffect(() => {
+        loadFaculties();
+    }, []);
+
+    useEffect(() => {
+        loadInstitutions();
+    }, []);
+
+    // Load stats independently on mount
+    useEffect(() => {
+        loadStats();
+    }, []);
+
+    // Load courses when filters/pagination change
     useEffect(() => {
         loadCourses();
     }, [currentPage, searchTerm, selectedProgramme, selectedFaculty, selectedInstitution, pageSize]);
-
-    // Load filter options and stats on mount
-    useEffect(() => {
-        loadProgrammes();
-        loadFaculties();
-        loadInstitutions();
-        loadStats();
-    }, []);
 
     // Handle search
     const handleSearch = (value: string) => {
@@ -480,22 +490,22 @@ const CoursesPage: React.FC<CoursesPageProps> = () => {
     // Filtered and transformed courses for table
     const transformedCourses = (Array.isArray(courses) ? courses : []).map(transformCourseForTable);
 
-    if (loading && courses.length === 0) {
-        return (
-            <div className="container mx-auto py-6">
-                <AdminBreadcrumb
-                    items={[
-                        { label: 'Dashboard', href: '/dashboard' },
-                        { label: 'Institutions', href: '/dashboard/institutions' },
-                        { label: 'Courses', href: '/dashboard/institutions/courses' }
-                    ]}
-                />
-                <div className="flex items-center justify-center h-64">
-                    <LoadingSpinner />
+    // Skeleton loader component for table rows
+    const TableSkeleton = () => (
+        <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg">
+                    <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
+                        <div className="h-3 bg-gray-200 rounded animate-pulse w-1/2"></div>
+                    </div>
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
+                    <div className="h-8 w-8 bg-gray-200 rounded animate-pulse"></div>
                 </div>
-            </div>
-        );
-    }
+            ))}
+        </div>
+    );
 
     return (
         <div className="container mx-auto py-6">
@@ -737,9 +747,11 @@ const CoursesPage: React.FC<CoursesPageProps> = () => {
             </Card>
 
             {/* Courses Table */}
-            {transformedCourses.length > 0 ? (
-                <Card>
-                    <CardContent className="pt-6">
+            <Card>
+                <CardContent className="pt-6">
+                    {loading && courses.length === 0 ? (
+                        <TableSkeleton />
+                    ) : transformedCourses.length > 0 ? (
                         <DataTable
                             columns={columns}
                             data={transformedCourses}
@@ -757,21 +769,21 @@ const CoursesPage: React.FC<CoursesPageProps> = () => {
                             emptyMessage="No courses found. Try adjusting your search criteria."
                             loading={loading}
                         />
-                    </CardContent>
-                </Card>
-            ) : (
-                <EmptyState
-                    icon={BookOpen}
-                    title="No courses found"
-                    description="Get started by creating your first course."
-                    action={
-                        <Button onClick={() => router.push('/dashboard/institutions/courses/create')}>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add Course
-                        </Button>
-                    }
-                />
-            )}
+                    ) : (
+                        <EmptyState
+                            icon={BookOpen}
+                            title="No courses found"
+                            description="Get started by creating your first course."
+                            action={
+                                <Button onClick={() => router.push('/dashboard/institutions/courses/create')}>
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Add Course
+                                </Button>
+                            }
+                        />
+                    )}
+                </CardContent>
+            </Card>
         </div>
     );
 };

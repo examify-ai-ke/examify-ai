@@ -266,8 +266,8 @@ export const CourseForm: React.FC<CourseFormProps> = ({
                     Faculty (Optional)
                 </Label>
                 <Select
-                    value={selectedFacultyId || ''}
-                    onValueChange={(value) => setValue('faculty_id', value || null, { shouldDirty: true })}
+                    value={selectedFacultyId || 'none'}
+                    onValueChange={(value) => setValue('faculty_id', value === 'none' ? null : value, { shouldDirty: true })}
                     disabled={loading || loadingFaculties}
                 >
                     <SelectTrigger>
@@ -284,7 +284,7 @@ export const CourseForm: React.FC<CourseFormProps> = ({
                             </SelectItem>
                         ) : (
                             <>
-                                <SelectItem value="">None</SelectItem>
+                                <SelectItem value="none">None</SelectItem>
                                 {faculties.map((faculty) => (
                                     <SelectItem key={faculty.id} value={faculty.id}>
                                         {faculty.name}

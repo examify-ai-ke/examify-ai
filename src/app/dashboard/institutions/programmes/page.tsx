@@ -67,7 +67,7 @@ export default function ProgrammesPage() {
         averageCourses: 0,
     });
 
-    // Load departments for filter
+    // Load departments for filter independently
     useEffect(() => {
         const loadDepartments = async () => {
             try {
@@ -282,13 +282,26 @@ export default function ProgrammesPage() {
         },
     ];
 
-    if (loading && programmes.length === 0) {
-        return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <LoadingSpinner size="lg" />
-            </div>
-        );
-    }
+    // Skeleton loader for table
+    const TableSkeleton = () => (
+        <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg">
+                    <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
+                        <div className="h-3 bg-gray-200 rounded animate-pulse w-1/2"></div>
+                    </div>
+                    <div className="h-6 w-16 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-6 w-16 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="flex gap-2">
+                        <div className="h-8 w-16 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="h-8 w-16 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="h-8 w-16 bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
 
     return (
         <div className="space-y-6">
@@ -451,7 +464,9 @@ export default function ProgrammesPage() {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    {!loading && programmes.length === 0 && !searchQuery ? (
+                    {loading && programmes.length === 0 ? (
+                        <TableSkeleton />
+                    ) : !loading && programmes.length === 0 && !searchQuery ? (
                         <div className="py-12">
                             <EmptyState
                                 icon={GraduationCap}

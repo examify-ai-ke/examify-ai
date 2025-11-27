@@ -141,16 +141,20 @@ export default function ModulesPage() {
         }
     }, [currentPage, pageSize, searchQuery, selectedCourse, selectedUnitCode, addNotification]);
 
-    // Initial load
+    // Load stats independently
     useEffect(() => {
         loadStats();
+    }, [loadStats]);
+
+    // Load courses independently
+    useEffect(() => {
         loadCourses();
-    }, []);
+    }, [loadCourses]);
 
     // Reload modules when filters or pagination change
     useEffect(() => {
         loadModules();
-    }, [currentPage, pageSize, searchQuery, selectedCourse, selectedUnitCode]);
+    }, [loadModules]);
 
     // Handle page size change
     const handlePageSizeChange = (newSize: number) => {
@@ -286,13 +290,27 @@ export default function ModulesPage() {
         },
     ];
 
-    if (loading && modules.length === 0) {
-        return (
-            <div className="flex items-center justify-center h-[calc(100vh-200px)]">
-                <LoadingSpinner size="lg" />
-            </div>
-        );
-    }
+    // Skeleton loader for table
+    const TableSkeleton = () => (
+        <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg">
+                    <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
+                        <div className="h-3 bg-gray-200 rounded animate-pulse w-1/2"></div>
+                    </div>
+                    <div className="h-6 w-20 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-6 w-20 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="flex gap-2">
+                        <div className="h-8 w-16 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="h-8 w-16 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="h-8 w-16 bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
 
     return (
         <div className="space-y-6">
@@ -482,7 +500,9 @@ export default function ModulesPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    {modules.length === 0 ? (
+                    {loading && modules.length === 0 ? (
+                        <TableSkeleton />
+                    ) : modules.length === 0 ? (
                         <EmptyState
                             title="No modules found"
                             description={
@@ -509,6 +529,7 @@ export default function ModulesPage() {
                                 onPageChange: setCurrentPage,
                                 onPageSizeChange: handlePageSizeChange,
                             }}
+                            loading={loading}
                         />
                     )}
                 </CardContent>

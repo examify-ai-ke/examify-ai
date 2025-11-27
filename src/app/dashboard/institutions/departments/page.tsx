@@ -363,17 +363,25 @@ export default function DepartmentsPage() {
         setCurrentPage(0); // Reset to first page when changing page size
     };
 
-    // Load data on mount and when filters, page, or page size changes
+    // Load stats independently
+    useEffect(() => {
+        loadStats();
+    }, []);
+
+    // Load faculties independently
+    useEffect(() => {
+        loadFaculties();
+    }, []);
+
+    // Load institutions independently
+    useEffect(() => {
+        loadInstitutions();
+    }, []);
+
+    // Load departments when filters, page, or page size changes
     useEffect(() => {
         loadDepartments();
     }, [currentPage, filters, pageSize]);
-
-    // Load initial data
-    useEffect(() => {
-        loadStats();
-        loadFaculties();
-        loadInstitutions();
-    }, []);
 
     // Define table columns
     const columns = [
@@ -427,6 +435,25 @@ export default function DepartmentsPage() {
     ];
 
     const transformedDepartments = (Array.isArray(departments) ? departments : []).map(transformDepartmentForTable);
+
+    // Skeleton loader for table
+    const TableSkeleton = () => (
+        <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg">
+                    <div className="h-8 w-8 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
+                        <div className="h-3 bg-gray-200 rounded animate-pulse w-1/2"></div>
+                    </div>
+                    <div className="h-6 w-24 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-6 w-24 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-6 w-24 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-8 w-8 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+            ))}
+        </div>
+    );
 
     return (
         <div className="space-y-6 p-6">
@@ -594,25 +621,29 @@ export default function DepartmentsPage() {
 
             {/* Data Table */}
             <Card>
-                <LoadingOverlay isLoading={loading}>
-                    <DataTable
-                        data={transformedDepartments}
-                        columns={columns}
-                        title={`${totalItems} Departments`}
-                        searchable={false}
-                        filterable={false}
-                        pagination={{
-                            currentPage,
-                            totalPages,
-                            totalItems,
-                            pageSize,
-                            onPageChange: setCurrentPage,
-                            onPageSizeChange: handlePageSizeChange,
-                        }}
-                        emptyMessage="No departments found. Try adjusting your search criteria."
-                        loading={loading}
-                    />
-                </LoadingOverlay>
+                <CardContent className="pt-6">
+                    {loading && departments.length === 0 ? (
+                        <TableSkeleton />
+                    ) : (
+                        <DataTable
+                            data={transformedDepartments}
+                            columns={columns}
+                            title={`${totalItems} Departments`}
+                            searchable={false}
+                            filterable={false}
+                            pagination={{
+                                currentPage,
+                                totalPages,
+                                totalItems,
+                                pageSize,
+                                onPageChange: setCurrentPage,
+                                onPageSizeChange: handlePageSizeChange,
+                            }}
+                            emptyMessage="No departments found. Try adjusting your search criteria."
+                            loading={loading}
+                        />
+                    )}
+                </CardContent>
             </Card>
 
             {/* Create Department Modal */}

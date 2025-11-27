@@ -406,16 +406,20 @@ export default function FacultiesPage() {
         setCurrentPage(0); // Reset to first page when changing page size
     };
 
-    // Load data on mount and when filters, page, or page size changes
+    // Load stats independently
+    useEffect(() => {
+        loadRemainingStats();
+    }, []);
+
+    // Load institutions independently
+    useEffect(() => {
+        loadInstitutions();
+    }, []);
+
+    // Load faculties when filters, page, or page size changes
     useEffect(() => {
         loadFaculties();
     }, [currentPage, filters, pageSize]);
-
-    // Load initial data
-    useEffect(() => {
-        loadRemainingStats();
-        loadInstitutions();
-    }, []);
 
     // Define table columns
     const columns = [
@@ -469,6 +473,24 @@ export default function FacultiesPage() {
     ];
 
     const transformedFaculties = (Array.isArray(faculties) ? faculties : []).map(transformFacultyForTable);
+
+    // Skeleton loader for table
+    const TableSkeleton = () => (
+        <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg">
+                    <div className="h-8 w-8 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
+                        <div className="h-3 bg-gray-200 rounded animate-pulse w-1/2"></div>
+                    </div>
+                    <div className="h-6 w-24 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-6 w-24 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-8 w-8 bg-gray-200 rounded animate-pulse"></div>
+                </div>
+            ))}
+        </div>
+    );
 
     return (
         <div className="space-y-6 p-6">
@@ -638,25 +660,29 @@ export default function FacultiesPage() {
 
             {/* Data Table */}
             <Card>
-                <LoadingOverlay isLoading={loading}>
-                    <DataTable
-                        data={transformedFaculties}
-                        columns={columns}
-                        title={`${totalItems} Faculties`}
-                        searchable={false}
-                        filterable={false}
-                        pagination={{
-                            currentPage,
-                            totalPages,
-                            totalItems,
-                            pageSize,
-                            onPageChange: setCurrentPage,
-                            onPageSizeChange: handlePageSizeChange,
-                        }}
-                        emptyMessage="No faculties found. Try adjusting your search criteria."
-                        loading={loading}
-                    />
-                </LoadingOverlay>
+                <CardContent className="pt-6">
+                    {loading && faculties.length === 0 ? (
+                        <TableSkeleton />
+                    ) : (
+                        <DataTable
+                            data={transformedFaculties}
+                            columns={columns}
+                            title={`${totalItems} Faculties`}
+                            searchable={false}
+                            filterable={false}
+                            pagination={{
+                                currentPage,
+                                totalPages,
+                                totalItems,
+                                pageSize,
+                                onPageChange: setCurrentPage,
+                                onPageSizeChange: handlePageSizeChange,
+                            }}
+                            emptyMessage="No faculties found. Try adjusting your search criteria."
+                            loading={loading}
+                        />
+                    )}
+                </CardContent>
             </Card>
 
             {/* Create Faculty Modal */}

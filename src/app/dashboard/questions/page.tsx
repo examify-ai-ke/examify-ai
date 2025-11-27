@@ -136,99 +136,177 @@ export default function AllQuestionsPage() {
     const [modules, setModules] = useState<any[]>([]);
     const [programmes, setProgrammes] = useState<any[]>([]);
     const [loadingHierarchy, setLoadingHierarchy] = useState(false);
+    const [statsLoading, setStatsLoading] = useState(false);
 
-    // Load academic hierarchy data for filters
-    const loadHierarchyData = async () => {
-        try {
-            setLoadingHierarchy(true);
-            const [institutionsResponse, coursesResponse, modulesResponse, programmesResponse] = await Promise.all([
-                adminAPI.institutions.list({ limit: 100 }),
-                adminAPI.courses.list({ limit: 100 }),
-                adminAPI.modules.list({ limit: 100 }),
-                adminAPI.programmes.list({ limit: 100 })
-            ]);
-
-            setInstitutions(institutionsResponse.data?.data?.items || []);
-            setCourses(coursesResponse.data?.data?.items || []);
-            setModules(modulesResponse.data?.data?.items || []);
-            setProgrammes(programmesResponse.data?.data?.items || []);
-        } catch (error) {
-            console.error('Error loading hierarchy data:', error);
-        } finally {
-            setLoadingHierarchy(false);
-        }
-    };
-
-    // Initial load (guarded to avoid React StrictMode double-fetch in dev)
+    // Load academic hierarchy data for filters independently
     useEffect(() => {
-        if (!hasInitializedRef.current) {
-            hasInitializedRef.current = true;
-            void loadQuestions();
-            void loadHierarchyData();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+        const loadHierarchyData = async () => {
+            try {
+                setLoadingHierarchy(true);
+                const [institutionsResponse, coursesResponse, modulesResponse, programmesResponse] = await Promise.all([
+                    adminAPI.institutions.list({ limit: 100 }),
+                    adminAPI.courses.list({ limit: 100 }),
+                    adminAPI.modules.list({ limit: 100 }),
+                    adminAPI.programmes.list({ limit: 100 })
+                ]);
+
+                setInstitutions(institutionsResponse.data?.data?.items || []);
+                setCourses(coursesResponse.data?.data?.items || []);
+                setModules(modulesResponse.data?.data?.items || []);
+                setProgrammes(programmesResponse.data?.data?.items || []);
+            } catch (error) {
+                console.error('Error loading hierarchy data:', error);
+            } finally {
+                setLoadingHierarchy(false);
+            }
+        };
+
+        loadHierarchyData();
     }, []);
+
+    // Load stats independently
+    useEffect(() => {
+        const loadStats = async () => {
+            try {
+                setStatsLoading(true);
+                console.log('Loading stats...');
+                
+                // Get a reasonable sample for stats calculation
+                const statsResponse = await adminAPI.questions.list({
+                    skip: 0,
+                    limit: 100, // Reduced from 1000 for better performance
+                    include_children: true,
+                });
+
+                console.log('Stats response:', statsResponse);
+
+                if (statsResponse.data?.data) {
+                    const responseData = statsResponse.data.data;
+                    const questionsData = responseData.items || [];
+                    const totalFromAPI = responseData.total || 0;
+
+                    console.log('Questions data for stats:', questionsData.length, 'Total from API:', totalFromAPI);
+
+                    const totalSubQuestions = questionsData.reduce((sum: any, q: any) => sum + (q.children?.length || 0), 0);
+                    const questionsWithAnswers = questionsData.filter((q: any) => q.answers && q.answers.length > 0).length;
+                    const totalMarks = questionsData.reduce((sum: any, q: any) => {
+                        const mainMarks = q.marks || 0;
+                        const subMarks = (q.children || []).reduce((subSum: any, sub: any) => subSum + (sub.marks || 0), 0);
+                        return sum + mainMarks + subMarks;
+                    }, 0);
+                    const totalQuestionCount = questionsData.length + totalSubQuestions;
+                    const averageMarks = totalQuestionCount > 0 ? totalMarks / totalQuestionCount : 0;
+
+                    const sevenDaysAgo = new Date();
+                    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                    const recentQuestions = questionsData.filter((q: any) => new Date(q.created_at) > sevenDaysAgo).length;
+
+                    const orphanQuestions = questionsData.filter((q: any) => !q.question_set_id && !q.exam_paper_id).length;
+
+                    const calculatedStats = {
+                        totalQuestions: totalFromAPI, // Use total from API for accurate count
+                        mainQuestions: questionsData.length,
+                        subQuestions: totalSubQuestions,
+                        questionsWithAnswers,
+                        totalMarks,
+                        averageMarks: Math.round(averageMarks * 10) / 10,
+                        recentQuestions,
+                        orphanQuestions,
+                    };
+
+                    console.log('Calculated stats:', calculatedStats);
+                    setStats(calculatedStats);
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                addNotification({
+                    type: 'error',
+                    title: 'Failed to load statistics',
+                    message: 'Could not load question statistics. Please refresh the page.',
+                });
+            } finally {
+                setStatsLoading(false);
+            }
+        };
+
+        loadStats();
+    }, [addNotification]);
+
+    // Check if any filters are active
+    const hasActiveFilters = () => {
+        return !!(
+            filters.search ||
+            filters.question_type ||
+            filters.marks_range ||
+            filters.exam_paper_id ||
+            filters.question_set_id ||
+            filters.institution_id ||
+            filters.course_id ||
+            filters.module_id ||
+            filters.programme_id ||
+            filters.numbering_style ||
+            (filters.has_answers && filters.has_answers !== 'all')
+        );
+    };
 
     // Load questions data
     const loadQuestions = async () => {
         try {
             setLoading(true);
-            console.log('Loading questions with comprehensive filtering from backend API...');
+            
+            const useSearchEndpoint = hasActiveFilters();
+            console.log(`Loading questions using ${useSearchEndpoint ? 'search' : 'list'} endpoint...`);
 
-            // Build search parameters
-            const searchParams: any = {
-                question_type: filters.question_type || 'main',
-                include_children: true, // Include sub-questions
-                skip: currentPage * pageSize,
-                limit: pageSize,
-                highlight: true, // Enable search highlighting
-            };
+            let questionsResponse;
 
-            // Add search query if provided
-            if (filters.search && filters.search.trim() !== '') {
-                searchParams.q = filters.search.trim();
-            }
+            if (useSearchEndpoint) {
+                // Use search endpoint when filters are active
+                const searchParams: any = {
+                    question_type: filters.question_type || 'main',
+                    include_children: true,
+                    skip: currentPage * pageSize,
+                    limit: pageSize,
+                    highlight: true,
+                };
 
-            // Add filters
-            if (filters.exam_paper_id) {
-                searchParams.exam_paper_id = filters.exam_paper_id;
-            }
-            if (filters.question_set_id) {
-                searchParams.question_set_id = filters.question_set_id;
-            }
-            if (filters.institution_id) {
-                searchParams.institution_id = filters.institution_id;
-            }
-            if (filters.course_id) {
-                searchParams.course_id = filters.course_id;
-            }
-            if (filters.module_id) {
-                searchParams.module_id = filters.module_id;
-            }
-            if (filters.programme_id) {
-                searchParams.programme_id = filters.programme_id;
-            }
-            if (filters.numbering_style) {
-                searchParams.numbering_style = filters.numbering_style;
-            }
-            if (filters.has_answers && filters.has_answers !== 'all') {
-                searchParams.has_answers = filters.has_answers === 'yes';
-            }
+                // Add search query if provided
+                if (filters.search && filters.search.trim() !== '') {
+                    searchParams.q = filters.search.trim();
+                }
 
-            // Add marks range filter
-            if (filters.marks_range) {
-                const marksMin = getMarksRangeMin(filters.marks_range);
-                const marksMax = getMarksRangeMax(filters.marks_range);
-                if (marksMin !== undefined) searchParams.marks_min = marksMin;
-                if (marksMax !== undefined) searchParams.marks_max = marksMax;
+                // Add filters
+                if (filters.exam_paper_id) searchParams.exam_paper_id = filters.exam_paper_id;
+                if (filters.question_set_id) searchParams.question_set_id = filters.question_set_id;
+                if (filters.institution_id) searchParams.institution_id = filters.institution_id;
+                if (filters.course_id) searchParams.course_id = filters.course_id;
+                if (filters.module_id) searchParams.module_id = filters.module_id;
+                if (filters.programme_id) searchParams.programme_id = filters.programme_id;
+                if (filters.numbering_style) searchParams.numbering_style = filters.numbering_style;
+                if (filters.has_answers && filters.has_answers !== 'all') {
+                    searchParams.has_answers = filters.has_answers === 'yes';
+                }
+
+                // Add marks range filter
+                if (filters.marks_range) {
+                    const marksMin = getMarksRangeMin(filters.marks_range);
+                    const marksMax = getMarksRangeMax(filters.marks_range);
+                    if (marksMin !== undefined) searchParams.marks_min = marksMin;
+                    if (marksMax !== undefined) searchParams.marks_max = marksMax;
+                }
+
+                // Add sorting
+                searchParams.sort_by = filters.sort_by || 'relevance';
+                searchParams.sort_order = filters.sort_order || 'desc';
+
+                questionsResponse = await adminAPI.questions.search(searchParams);
+            } else {
+                // Use list endpoint for initial load (no filters)
+                questionsResponse = await adminAPI.questions.list({
+                    skip: currentPage * pageSize,
+                    limit: pageSize,
+                    include_children: true,
+                });
             }
-
-            // Add sorting
-            searchParams.sort_by = filters.sort_by || 'relevance';
-            searchParams.sort_order = filters.sort_order || 'desc';
-
-            // Use search endpoint for all queries (more powerful than list)
-            const questionsResponse = await adminAPI.questions.search(searchParams);
 
             console.log('Questions API response:', questionsResponse);
 
@@ -240,36 +318,6 @@ export default function AllQuestionsPage() {
                 setQuestions(questionsData);
                 setTotalItems(responseData.total || 0);
                 setTotalPages(Math.ceil((responseData.total || 0) / pageSize));
-
-                // Calculate stats from loaded data
-                const totalSubQuestions = questionsData.reduce((sum: any, q: any) => sum + (q.children?.length || 0), 0);
-                const questionsWithAnswers = questionsData.filter((q: any) => q.answers && q.answers.length > 0).length;
-                const totalMarks = questionsData.reduce((sum: any, q: any) => {
-                    const mainMarks = q.marks || 0;
-                    const subMarks = (q.children || []).reduce((subSum: any, sub: any) => subSum + (sub.marks || 0), 0);
-                    return sum + mainMarks + subMarks;
-                }, 0);
-                const totalQuestionCount = questionsData.length + totalSubQuestions;
-                const averageMarks = totalQuestionCount > 0 ? totalMarks / totalQuestionCount : 0;
-
-                // For recent questions, count those created in the last 7 days
-                const sevenDaysAgo = new Date();
-                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-                const recentQuestions = questionsData.filter((q: any) => new Date(q.created_at) > sevenDaysAgo).length;
-
-                // Orphan questions are main questions without question_set_id or exam_paper_id
-                const orphanQuestions = questionsData.filter((q: any) => !q.question_set_id && !q.exam_paper_id).length;
-
-                setStats({
-                    totalQuestions: totalQuestionCount,
-                    mainQuestions: questionsData.length,
-                    subQuestions: totalSubQuestions,
-                    questionsWithAnswers,
-                    totalMarks,
-                    averageMarks: Math.round(averageMarks * 10) / 10,
-                    recentQuestions,
-                    orphanQuestions,
-                });
 
                 setApiStatus('connected');
             }
@@ -517,9 +565,8 @@ export default function AllQuestionsPage() {
         }
     };
 
-    // Load when filters/page change (skip if not initialized yet)
+    // Load questions when filters/page change
     useEffect(() => {
-        if (!hasInitializedRef.current) return;
         void loadQuestions();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentPage, filters, pageSize]);
@@ -701,10 +748,16 @@ export default function AllQuestionsPage() {
                         <HelpCircle className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats.totalQuestions.toLocaleString()}</div>
-                        <p className="text-xs text-muted-foreground">
-                            {stats.mainQuestions.toLocaleString()} main, {stats.subQuestions.toLocaleString()} sub
-                        </p>
+                        {statsLoading ? (
+                            <LoadingSpinner className="h-8 w-8" />
+                        ) : (
+                            <>
+                                <div className="text-2xl font-bold">{stats.totalQuestions.toLocaleString()}</div>
+                                <p className="text-xs text-muted-foreground">
+                                    {stats.mainQuestions.toLocaleString()} main, {stats.subQuestions.toLocaleString()} sub
+                                </p>
+                            </>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -714,10 +767,16 @@ export default function AllQuestionsPage() {
                         <CheckCircle className="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats.questionsWithAnswers.toLocaleString()}</div>
-                        <p className="text-xs text-muted-foreground">
-                            {((stats.questionsWithAnswers / stats.totalQuestions) * 100).toFixed(1)}% coverage
-                        </p>
+                        {statsLoading ? (
+                            <LoadingSpinner className="h-8 w-8" />
+                        ) : (
+                            <>
+                                <div className="text-2xl font-bold">{stats.questionsWithAnswers.toLocaleString()}</div>
+                                <p className="text-xs text-muted-foreground">
+                                    {stats.totalQuestions > 0 ? ((stats.questionsWithAnswers / stats.totalQuestions) * 100).toFixed(1) : 0}% coverage
+                                </p>
+                            </>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -727,10 +786,16 @@ export default function AllQuestionsPage() {
                         <Star className="h-4 w-4 text-yellow-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats.totalMarks.toLocaleString()}</div>
-                        <p className="text-xs text-muted-foreground">
-                            Avg {stats.averageMarks} per question
-                        </p>
+                        {statsLoading ? (
+                            <LoadingSpinner className="h-8 w-8" />
+                        ) : (
+                            <>
+                                <div className="text-2xl font-bold">{stats.totalMarks.toLocaleString()}</div>
+                                <p className="text-xs text-muted-foreground">
+                                    Avg {stats.averageMarks} per question
+                                </p>
+                            </>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -740,8 +805,14 @@ export default function AllQuestionsPage() {
                         <Clock className="h-4 w-4 text-blue-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats.recentQuestions}</div>
-                        <p className="text-xs text-muted-foreground">Added this week</p>
+                        {statsLoading ? (
+                            <LoadingSpinner className="h-8 w-8" />
+                        ) : (
+                            <>
+                                <div className="text-2xl font-bold">{stats.recentQuestions}</div>
+                                <p className="text-xs text-muted-foreground">Added this week</p>
+                            </>
+                        )}
                     </CardContent>
                 </Card>
             </div>

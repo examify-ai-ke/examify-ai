@@ -241,6 +241,23 @@ const adminAPI = {
             });
         },
 
+        async uploadLogo(institutionId: string, formData: FormData) {
+            return api.POST('/api/v1/institution/{institution_id}/logo', {
+                params: {
+                    path: { institution_id: institutionId }
+                },
+                body: formData as any
+            });
+        },
+
+        async removeLogo(institutionId: string) {
+            return api.DELETE('/api/v1/institution/{institution_id}/logo', {
+                params: {
+                    path: { institution_id: institutionId }
+                }
+            });
+        },
+
         async getOrderedByCreatedAt(params?: { page?: number; size?: number; order?: 'ascendent' | 'descendent' }) {
             return api.GET('/api/v1/institution/get_by_created_at', {
                 params: {

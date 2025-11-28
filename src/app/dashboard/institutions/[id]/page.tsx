@@ -19,6 +19,8 @@ import {
     TrendingUp,
     Shield,
     Star,
+    Edit,
+    Trash2,
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -75,6 +77,16 @@ export default function InstitutionDetailPage() {
     const { addNotification } = useUIStore();
     const [institution, setInstitution] = useState<InstitutionRead | null>(null);
     const [loading, setLoading] = useState(true);
+    const [userRole, setUserRole] = useState<string>('');
+
+    // Get user role for permissions
+    useEffect(() => {
+        const user = localStorage.getItem('user');
+        if (user) {
+            const userData = JSON.parse(user);
+            setUserRole(userData.role?.name || userData.role || '');
+        }
+    }, []);
 
     useEffect(() => {
         const loadInstitution = async () => {
@@ -211,6 +223,17 @@ export default function InstitutionDetailPage() {
                                             <ExternalLink className="h-4 w-4" />
                                             KUCCPS Portal
                                         </a>
+                                    </Button>
+                                )}
+                                {(userRole === 'admin' || userRole === 'Admin' || userRole === 'manager' || userRole === 'Manager') && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => router.push(`/dashboard/institutions/${institution.id}/edit`)}
+                                        className="border-white/30 text-white hover:bg-white/20"
+                                    >
+                                        <Edit className="h-4 w-4 mr-2" />
+                                        Edit Institution
                                     </Button>
                                 )}
                             </div>

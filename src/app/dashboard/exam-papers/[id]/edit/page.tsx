@@ -59,6 +59,8 @@ import { QuestionList } from '@/components/features/question-list'
 import { parseQuestionSetsResponse, sanitizeQuestionSetData } from '@/lib/api-response-utils'
 import { executeAPICall, handleAPIError, apiPerformanceMonitor } from '@/lib/api-error-handler'
 import { HierarchicalQuestions } from '@/components/ui/hierarchical-questions'
+import { QuestionSetList, QuestionDialog } from '@/components/questions'
+import type { QuestionSetWithQuestions } from '@/components/questions'
 type QuestionRead = components['schemas']['QuestionRead'] & {
     // Add missing properties for UI compatibility
     question_text?: string
@@ -414,7 +416,9 @@ export default function EditExamPaperPage() {
     const [instructions, setInstructions] = useState<InstructionRead[]>([])
     const [questions, setQuestions] = useState<QuestionRead[]>([])
     const [availableQuestions, setAvailableQuestions] = useState<QuestionRead[]>([])
-    const [questionSets, setQuestionSets] = useState<QuestionSetRead[]>([])
+    // Using any[] because the API returns QuestionSetReadWithQuestions which has nested questions
+    // but the QuestionSetRead type doesn't include the questions property
+    const [questionSets, setQuestionSets] = useState<any[]>([])
     const [availableQuestionSets, setAvailableQuestionSets] = useState<QuestionSetRead[]>([])
     const [questionSetQuestions, setQuestionSetQuestions] = useState<QuestionRead[]>([])
     const [loadingQuestions, setLoadingQuestions] = useState(false)
@@ -569,20 +573,61 @@ export default function EditExamPaperPage() {
 
                     if (!questionSetsResponse.error && questionSetsResponse.data) {
                         const questionSetsData = (questionSetsResponse.data as any).data || []
-                        setQuestionSets(questionSetsData as QuestionSetRead[])
+                        
+                        console.log('📋 [EDIT PAGE] Raw question sets data from API:', {
+                            count: questionSetsData.length,
+                            firstSet: questionSetsData[0] ? {
+                                id: questionSetsData[0].id,
+                                title: questionSetsData[0].title,
+                                questionsCount: questionSetsData[0].questions?.length || 0,
+                                firstQuestion: questionSetsData[0].questions?.[0] ? {
+                                    id: questionSetsData[0].questions[0].id,
+                                    number: questionSetsData[0].questions[0].question_number,
+                                    hasChildren: !!questionSetsData[0].questions[0].children,
+                                    childrenCount: questionSetsData[0].questions[0].children?.length || 0,
+                                    childrenSample: questionSetsData[0].questions[0].children?.[0] ? {
+                                        id: questionSetsData[0].questions[0].children[0].id,
+                                        number: questionSetsData[0].questions[0].children[0].question_number,
+                                        parent_id: questionSetsData[0].questions[0].children[0].parent_id
+                                    } : null
+                                } : null
+                            } : null
+                        })
 
-                        // Extract all questions (main and sub) from the nested structure
+                        // Set question sets directly - they already have nested children structure from API
+                        setQuestionSets(questionSetsData as QuestionSetRead[])
+                        
+                        // Extract all questions (main and sub) for the flat questions array used elsewhere
+                        // This is kept for backward compatibility with other parts of the page
                         const allQuestions: QuestionRead[] = []
                         questionSetsData.forEach((qs: any) => {
                             if (qs.questions && Array.isArray(qs.questions)) {
                                 qs.questions.forEach((q: any) => {
-                                    allQuestions.push(q)
-                                    // Also add children if they exist
+                                    // Add main question with question_set_id
+                                    const mainQ = {
+                                        ...q,
+                                        question_set_id: qs.id
+                                    }
+                                    allQuestions.push(mainQ)
+                                    
+                                    // Also add children as separate items for backward compatibility
                                     if (q.children && Array.isArray(q.children)) {
-                                        allQuestions.push(...q.children)
+                                        q.children.forEach((child: any) => {
+                                            allQuestions.push({
+                                                ...child,
+                                                parent_id: q.id,
+                                                question_set_id: qs.id
+                                            })
+                                        })
                                     }
                                 })
                             }
+                        })
+
+                        console.log('📋 [EDIT PAGE] Processed questions:', {
+                            totalQuestions: allQuestions.length,
+                            mainQuestions: allQuestions.filter(q => !q.parent_id).length,
+                            subQuestions: allQuestions.filter(q => q.parent_id).length
                         })
 
                         setQuestionSetQuestions(allQuestions)
@@ -1829,18 +1874,28 @@ export default function EditExamPaperPage() {
                                             </p>
                                         </div>
                                     ) : questionSets.length > 0 ? (
-                                        <HierarchicalQuestions
-                                            questionSets={questionSets}
-                                            questions={questionSetQuestions}
+                                        <QuestionSetList
+                                            questionSets={questionSets as QuestionSetWithQuestions[]}
+                                            isLoading={false}
                                             onEditQuestion={handleEditQuestion}
-                                            onDeleteQuestion={handleDeleteQuestion}
-                                            onViewQuestion={handleViewQuestion}
+                                            onDeleteQuestion={(questionId: string) => handleDeleteQuestion(questionId)}
                                             onAddSubQuestion={handleAddSubQuestion}
+                                            onEditQuestionSet={(qs: QuestionSetWithQuestions) => {
+                                                // For now, just show a notification - full edit would need a separate dialog
+                                                addNotification({
+                                                    type: 'info',
+                                                    title: 'Edit Question Set',
+                                                    message: `Editing question set: ${qs.title || 'Untitled'}`
+                                                })
+                                            }}
                                             onDeleteQuestionSet={handleRemoveQuestionSet}
+                                            onAddQuestion={(questionSetId: string) => {
+                                                setNewQuestionSetId(questionSetId)
+                                                setIsSubQuestion(false)
+                                                setShowAddQuestionDialog(true)
+                                            }}
                                             onAnswersChange={reloadQuestionSets}
-                                            showActions={true}
                                             defaultExpanded={false}
-                                            emptyMessage="No question sets found for this exam paper."
                                         />
                                     ) : (
                                         <div className="text-center py-8 text-gray-500">
@@ -1866,53 +1921,7 @@ export default function EditExamPaperPage() {
                                 </CardContent>
                             </Card>
 
-                            {/* Questions Management */}
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center justify-between">
-                                        <div className="flex items-center">
-                                            <ListChecks className="mr-2 h-5 w-5" />
-                                            Questions ({questions.length})
-                                        </div>
-                                        <Badge variant="secondary" className="ml-2">
-                                            Total: {totalMarks} marks
-                                        </Badge>
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Individual questions from question sets and question bank. Questions from sets are automatically included here. You can also add individual questions or reorder them as needed.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    {questions.length > 0 ? (
-                                        <div className="space-y-2">
-                                            {questions.map((question, index) => (
-                                                <QuestionItem
-                                                    key={question.id}
-                                                    question={question}
-                                                    index={index}
-                                                    onRemove={handleRemoveQuestion}
-                                                    onMoveUp={handleMoveQuestionUp}
-                                                    onMoveDown={handleMoveQuestionDown}
-                                                    isFirst={index === 0}
-                                                    isLast={index === questions.length - 1}
-                                                />
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="text-center py-8 text-gray-500">
-                                            <p className="text-sm">No Questions added yet</p>
-                                        </div>
-                                    )}
 
-                                    <Button type="button" variant="outline" className="w-full" onClick={() => {
-                                        setIsSubQuestion(false)
-                                        setShowAddQuestionDialog(true)
-                                    }}>
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        Add Question
-                                    </Button>
-                                </CardContent>
-                            </Card>
                         </div>
 
                         {/* Sidebar */}

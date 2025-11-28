@@ -44,13 +44,13 @@ type QuestionSetRead = components['schemas']['QuestionSetRead'];
 
 // Props interfaces
 interface QuestionSetDisplayProps {
-    questionSet: QuestionSetRead;
+    questionSet: QuestionSetWithQuestions;  // Accept question set with nested questions
     questions: QuestionRead[];
     onEditQuestion?: (question: QuestionRead) => void;
     onDeleteQuestion?: (questionId: string) => void;
     onViewQuestion?: (questionId: string) => void;
     onAddSubQuestion?: (parentId: string) => void;
-    onEditQuestionSet?: (questionSet: QuestionSetRead) => void;
+    onEditQuestionSet?: (questionSet: QuestionSetWithQuestions) => void;
     onDeleteQuestionSet?: (questionSetId: string) => void;
     showActions?: boolean;
     defaultExpanded?: boolean;
@@ -78,14 +78,23 @@ interface SubQuestionDisplayProps {
     onAnswersChange?: () => void;
 }
 
+// QuestionSetWithQuestions type to represent the API response with nested questions
+interface QuestionSetWithQuestions {
+    id: string;
+    title?: string | null;
+    slug?: string | null;
+    questions?: any[];  // Nested questions from API
+    questions_count?: number | null;
+}
+
 interface HierarchicalQuestionsProps {
-    questionSets: QuestionSetRead[];
+    questionSets: QuestionSetWithQuestions[];  // Accept question sets with nested questions
     questions: QuestionRead[];
     onEditQuestion?: (question: QuestionRead) => void;
     onDeleteQuestion?: (questionId: string) => void;
     onViewQuestion?: (questionId: string) => void;
     onAddSubQuestion?: (parentId: string) => void;
-    onEditQuestionSet?: (questionSet: QuestionSetRead) => void;
+    onEditQuestionSet?: (questionSet: QuestionSetWithQuestions) => void;
     onDeleteQuestionSet?: (questionSetId: string) => void;
     onAddQuestion?: (questionSetId?: string) => void;
     showActions?: boolean;
@@ -1002,9 +1011,56 @@ const QuestionSetDisplay: React.FC<QuestionSetDisplayProps> = ({
 }) => {
     const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
-    // Filter questions for this question set
-    const setQuestions = questions.filter(q => q.question_set_id === questionSet.id);
-    const mainQuestions = setQuestions.filter(q => !q.parent_id);
+    // Use questions directly from the question set if available
+    // The API returns them already nested with children property
+    const mainQuestions = questionSet.questions || [];
+    
+    // Debug logging to understand the data structure
+    console.log('📋 [QuestionSetDisplay] Data received:', {
+        questionSetId: questionSet.id,
+        questionSetTitle: questionSet.title,
+        hasQuestionsProperty: 'questions' in questionSet,
+        questionsFromSet: mainQuestions.length,
+        questionsFromProps: questions.length,
+        rawQuestionSet: questionSet
+    });
+    
+    // For backward compatibility, also support the flat questions array
+    let setQuestions: QuestionRead[] = [];
+    let effectiveMainQuestions = mainQuestions;
+    
+    if (mainQuestions.length === 0 && questions.length > 0) {
+        // Fallback to filtering from flat array if nested structure not available
+        setQuestions = questions.filter(q => q.question_set_id === questionSet.id);
+        effectiveMainQuestions = setQuestions.filter(q => !q.parent_id);
+        console.warn('📋 [QuestionSetDisplay] Using fallback flat questions array, found:', setQuestions.length);
+    } else {
+        // Build flat array from nested structure for consistency
+        setQuestions = [...mainQuestions];
+        mainQuestions.forEach((q: any) => {
+            if (q.children && Array.isArray(q.children)) {
+                setQuestions.push(...q.children);
+            }
+        });
+    }
+
+    // Debug logging
+    console.log('📋 [QuestionSetDisplay] Processed:', {
+        questionSetId: questionSet.id,
+        effectiveMainQuestionsCount: effectiveMainQuestions.length,
+        totalQuestionsInSet: setQuestions.length,
+        subQuestionsCount: setQuestions.filter((q: any) => q.parent_id).length,
+        sampleMainQuestion: effectiveMainQuestions[0] ? {
+            id: effectiveMainQuestions[0].id,
+            number: effectiveMainQuestions[0].question_number,
+            hasChildren: !!effectiveMainQuestions[0].children,
+            childrenCount: effectiveMainQuestions[0].children?.length || 0,
+            childrenSample: effectiveMainQuestions[0].children?.[0] ? {
+                id: effectiveMainQuestions[0].children[0].id,
+                number: effectiveMainQuestions[0].children[0].question_number
+            } : null
+        } : null
+    });
 
     // Calculate total marks
     const totalMarks = setQuestions.reduce((sum, q) => sum + (q.marks || 0), 0);
@@ -1041,7 +1097,7 @@ const QuestionSetDisplay: React.FC<QuestionSetDisplayProps> = ({
                             </CardTitle>
                             <div className="flex items-center space-x-4 mt-1">
                                 <Badge variant="outline" className="text-xs border-purple-300 text-purple-700">
-                                    {mainQuestions.length} main question{mainQuestions.length !== 1 ? 's' : ''}
+                                    {effectiveMainQuestions.length} main question{effectiveMainQuestions.length !== 1 ? 's' : ''}
                                 </Badge>
                                 <Badge variant="outline" className="text-xs border-purple-300 text-purple-700">
                                     {setQuestions.length} total question{setQuestions.length !== 1 ? 's' : ''}
@@ -1093,13 +1149,25 @@ const QuestionSetDisplay: React.FC<QuestionSetDisplayProps> = ({
 
             {isExpanded && (
                 <CardContent className="pt-0 bg-purple-50/30">
-                    {mainQuestions.length > 0 ? (
+                    {effectiveMainQuestions.length > 0 ? (
                         <div className="space-y-4">
-                            {mainQuestions.map((mainQuestion) => {
-                                // Try to get sub-questions from children property first, then fall back to filtering
-                                const subQuestions = mainQuestion.children && mainQuestion.children.length > 0
+                            {effectiveMainQuestions.map((mainQuestion: any) => {
+                                // Use children property directly from the API response
+                                // This is the primary source of sub-questions
+                                // Also try filtering from setQuestions as fallback
+                                let subQuestions = mainQuestion.children && mainQuestion.children.length > 0
                                     ? mainQuestion.children
-                                    : setQuestions.filter(q => q.parent_id === mainQuestion.id);
+                                    : setQuestions.filter((q: any) => q.parent_id === mainQuestion.id);
+
+                                console.log('📋 [MainQuestion]', {
+                                    mainQuestionId: mainQuestion.id,
+                                    mainQuestionNumber: mainQuestion.question_number,
+                                    hasChildrenProp: !!mainQuestion.children,
+                                    childrenFromProp: mainQuestion.children?.length || 0,
+                                    childrenFromFilter: setQuestions.filter((q: any) => q.parent_id === mainQuestion.id).length,
+                                    finalSubQuestionsCount: subQuestions.length,
+                                    subQuestionIds: subQuestions.map((sq: any) => sq.id)
+                                });
 
                                 return (
                                     <MainQuestionDisplay

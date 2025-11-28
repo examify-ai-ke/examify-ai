@@ -50,7 +50,8 @@ export function ExamPaperCard({
 
   const year = paper.year_of_exam;
   const duration = paper.exam_duration;
-  const questionCount = paper.question_sets?.reduce((sum, qs) => sum + (qs.questions_count || 0), 0) || 0;
+  // Use the questions_count field from the API (added by backend)
+  const questionCount = (paper as any).questions_count || 0;
 
   const modules = paper.modules || [];
   const tags = Array.isArray(paper.tags) ? paper.tags : [];
@@ -76,9 +77,9 @@ export function ExamPaperCard({
         <div className="flex flex-col sm:flex-row">
           {/* Institution Logo */}
           <div className="sm:w-32 sm:shrink-0 p-6 flex items-center justify-center bg-gray-50">
-            {institution?.logo ? (
+            {institution?.logo?.media ? (
               <img
-                src={institution.logo?.media?.path || '/placeholder.svg'}
+                src={institution.logo?.media?.link || '/placeholder.svg'}
                 alt={institution.logo?.media?.title || 'Institution logo'}
                 width={80}
                 height={80}

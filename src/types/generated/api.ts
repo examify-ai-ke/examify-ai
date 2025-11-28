@@ -4651,6 +4651,11 @@ export interface components {
              * @default []
              */
             question_sets: components["schemas"]["QuestionSetReadForExamPaperRead"][] | null;
+            /**
+             * Questions Count
+             * @default 0
+             */
+            questions_count: number;
             /** Identifying Name */
             identifying_name: string | null;
         };
@@ -8926,7 +8931,7 @@ export interface components {
         app__schemas__exam_paper_schema__MainQuestionReadForQuestionSet: {
             text: components["schemas"]["QuestionTextSchema"] | null;
             /** Marks */
-            marks?: number | null;
+            marks: number | null;
             numbering_style: components["schemas"]["NumberingStyleEnum"];
             /** Question Number */
             question_number: string;
@@ -8937,11 +8942,18 @@ export interface components {
             id: string;
             /** Slug */
             slug?: string | null;
+            /** Exam Paper Id */
+            exam_paper_id?: string | null;
             /**
              * Children
              * @default []
              */
             children: components["schemas"]["SubQuestionReadSimple"][] | null;
+            /**
+             * Answers
+             * @default []
+             */
+            answers: components["schemas"]["AnswerReadForQuestion"][] | null;
         };
         /** MainQuestionReadForQuestionSet */
         app__schemas__question_schema__MainQuestionReadForQuestionSet: {

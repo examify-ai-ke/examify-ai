@@ -595,7 +595,7 @@ export default function AllInstitutionsPage() {
                                     <div className="flex items-center gap-3">
                                         {institution.logo ? (
                                             <img
-                                                src={institution.logo.media?.path || '/placeholder.svg'}
+                                                src={institution.logo.media?.link || '/placeholder.svg'}
                                                 alt={institution.logo.media?.title || 'Institution logo'}
                                                 className="w-12 h-12 object-contain rounded"
                                             />

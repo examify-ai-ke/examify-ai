@@ -101,7 +101,7 @@ export default function InstitutionProfilePage() {
   const totalPapers = papersData?.total || (institution as any).exams_count || 0;
   const facultiesCount = (institution as any).faculties_count || 0;
   const campusesCount = (institution as any).campuses_count || 0;
-
+  console.log(institution.logo.media);
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Hero Section */}
@@ -122,7 +122,7 @@ export default function InstitutionProfilePage() {
               <div className="bg-white rounded-2xl p-4 shadow-xl">
                 {institution.logo.media ? (
                   <Image
-                    src={institution.logo.media?.path|| '/placeholder.svg'}
+                    src={institution.logo.media?.link|| '/placeholder.svg'}
                     alt={institution.logo.media?.title || 'Institution logo'}
                     width={160}
                     height={160}

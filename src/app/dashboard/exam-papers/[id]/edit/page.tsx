@@ -49,6 +49,12 @@ import { parseQuestionSetsResponse } from '@/lib/api-response-utils'
 import { executeAPICall, handleAPIError } from '@/lib/api-error-handler'
 import { QuestionSetList } from '@/components/questions'
 import type { QuestionSetWithQuestions } from '@/components/questions'
+import { 
+    BasicInformationSkeleton, 
+    InstitutionCourseSkeleton, 
+    QuestionSetsSkeleton, 
+    SidebarSkeleton 
+} from '@/components/skeletons/exam-paper-edit-skeleton'
 type QuestionRead = components['schemas']['QuestionRead'] & {
     // Add missing properties for UI compatibility
     question_text?: string
@@ -88,6 +94,11 @@ export default function EditExamPaperPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [isSaving, setIsSaving] = useState(false)
     const [examPaper, setExamPaper] = useState<ExamPaperRead | null>(null)
+    
+    // Individual loading states for better UX
+    const [loadingBasicInfo, setLoadingBasicInfo] = useState(true)
+    const [loadingInstitutionCourse, setLoadingInstitutionCourse] = useState(true)
+    const [loadingSidebar, setLoadingSidebar] = useState(true)
     const [titles, setTitles] = useState<ExamTitleRead[]>([])
     const [descriptions, setDescriptions] = useState<ExamDescriptionRead[]>([])
     const [institutions, setInstitutions] = useState<InstitutionRead[]>([])
@@ -203,11 +214,15 @@ export default function EditExamPaperPage() {
         return () => subscription.unsubscribe()
     }, [form])
 
-    // Load exam paper data from real API
+    // Load exam paper data from real API - split into sections for better UX
     useEffect(() => {
         const loadExamPaper = async () => {
             try {
                 setIsLoading(true)
+                setLoadingBasicInfo(true)
+                setLoadingInstitutionCourse(true)
+                setLoadingSidebar(true)
+                setQuestionSetsLoading(true)
 
                 const token = getAuthToken()
                 if (!token) {
@@ -220,10 +235,11 @@ export default function EditExamPaperPage() {
                     return
                 }
 
-                // Load exam paper, titles, descriptions, courses, instructions, and questions from real API
-                // Note: institutions are loaded via the search useEffect
-                const [paperResponse, titlesResponse, descriptionsResponse, coursesResponse, instructionsResponse, questionsResponse] = await Promise.all([
-                    adminAPI.examPapers.getById(params.id as string),
+                // Load exam paper first
+                const paperResponse = await adminAPI.examPapers.getById(params.id as string)
+                
+                // Load other data in parallel for better performance
+                const [titlesResponse, descriptionsResponse, coursesResponse, instructionsResponse, questionsResponse] = await Promise.all([
                     adminAPI.examTitles.list({ limit: 100, skip: 0 }),
                     adminAPI.examDescriptions.list({ limit: 100, skip: 0 }),
                     adminAPI.courses.list({ limit: 100, skip: 0 }),
@@ -310,9 +326,13 @@ export default function EditExamPaperPage() {
                         })
 
                         setQuestionSetQuestions(allQuestions)
+                        // Question sets are loaded
+                        setQuestionSetsLoading(false)
                     } else {
                         setQuestionSets([])
                         setQuestionSetQuestions([])
+                        // Question sets loading complete (even if empty)
+                        setQuestionSetsLoading(false)
                     }
 
                     // If there's a selected institution, add it to the institutions list
@@ -412,6 +432,9 @@ export default function EditExamPaperPage() {
                     setLastSaved(new Date())
                     setHasUnsavedChanges(false)
                 }
+                
+                // Basic info is loaded (titles, descriptions, year, duration, date)
+                setLoadingBasicInfo(false)
 
                 if (!coursesResponse.error && coursesResponse.data) {
                     console.log('Courses response:', coursesResponse.data)
@@ -422,6 +445,9 @@ export default function EditExamPaperPage() {
                     console.warn('Failed to load courses:', coursesResponse.error)
                     setCourses([])
                 }
+                
+                // Institution & Course section is loaded
+                setLoadingInstitutionCourse(false)
 
                 if (!instructionsResponse.error && instructionsResponse.data) {
                     console.log('Instructions response:', instructionsResponse.data)
@@ -432,6 +458,9 @@ export default function EditExamPaperPage() {
                     console.warn('Failed to load instructions:', instructionsResponse.error)
                     setInstructions([])
                 }
+                
+                // Sidebar is loaded (tags, instructions, summary)
+                setLoadingSidebar(false)
 
                 // Load available question sets using the helper function
                 if (!questionsResponse.error && questionsResponse.data) {
@@ -1253,6 +1282,9 @@ export default function EditExamPaperPage() {
                         {/* Main Content */}
                         <div className="lg:col-span-2 space-y-6">
                             {/* Basic Information */}
+                            {loadingBasicInfo ? (
+                                <BasicInformationSkeleton />
+                            ) : (
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="flex items-center">
@@ -1393,8 +1425,12 @@ export default function EditExamPaperPage() {
                                     />
                                 </CardContent>
                             </Card>
+                            )}
 
                             {/* Institution and Course */}
+                            {loadingInstitutionCourse ? (
+                                <InstitutionCourseSkeleton />
+                            ) : (
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="flex items-center">
@@ -1529,8 +1565,12 @@ export default function EditExamPaperPage() {
                                     </div>
                                 </CardContent>
                             </Card>
+                            )}
 
                             {/* Question Sets Management */}
+                            {questionSetsLoading || loadingQuestions ? (
+                                <QuestionSetsSkeleton />
+                            ) : (
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <div>
@@ -1548,19 +1588,7 @@ export default function EditExamPaperPage() {
                                     </Button>
                                 </div>
 
-                                {questionSetsLoading || loadingQuestions ? (
-                                    <div className="text-center py-8">
-                                        <LoadingSpinner className="mx-auto mb-4" />
-                                        <h4 className="text-lg font-medium mb-2">
-                                            {questionSetsLoading ? 'Loading question sets...' : 'Loading questions...'}
-                                        </h4>
-                                        <p className="text-sm text-gray-500">
-                                            {questionSetsLoading
-                                                ? 'Please wait while we load the question sets for this exam paper.'
-                                                : 'Please wait while we load the questions for each question set.'}
-                                        </p>
-                                    </div>
-                                ) : questionSets.length > 0 ? (
+                                {questionSets.length > 0 ? (
                                     <QuestionSetList
                                         questionSets={questionSets as QuestionSetWithQuestions[]}
                                         isLoading={false}
@@ -1598,11 +1626,15 @@ export default function EditExamPaperPage() {
                                     </Card>
                                 )}
                             </div>
+                            )}
 
 
                         </div>
 
                         {/* Sidebar */}
+                        {loadingSidebar ? (
+                            <SidebarSkeleton />
+                        ) : (
                         <div className="space-y-6">
                             {/* Tags */}
                             <Card>
@@ -1746,6 +1778,7 @@ export default function EditExamPaperPage() {
                                 </CardContent>
                             </Card>
                         </div>
+                        )}
                     </div>
                 </form>
             </Form>

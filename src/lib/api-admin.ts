@@ -242,12 +242,46 @@ const adminAPI = {
         },
 
         async uploadLogo(institutionId: string, formData: FormData) {
-            return api.POST('/api/v1/institution/{institution_id}/logo', {
-                params: {
-                    path: { institution_id: institutionId }
-                },
-                body: formData as any
-            });
+            try {
+                // Get auth token
+                const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+                
+                // Get base URL
+                const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://fastapi.localhost';
+
+                // Use direct fetch for FormData upload (openapi-fetch doesn't handle multipart/form-data correctly)
+                const response = await fetch(`${baseUrl}/api/v1/institution/${institutionId}/logo`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        // Don't set Content-Type - let browser set it with boundary
+                    },
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    return {
+                        data: undefined,
+                        error: errorData,
+                        response: response as any
+                    };
+                }
+
+                const data = await response.json();
+                return {
+                    data,
+                    error: undefined,
+                    response: response as any
+                };
+            } catch (error) {
+                console.error('Institution logo upload error:', error);
+                return {
+                    data: undefined,
+                    error: error,
+                    response: undefined as any
+                };
+            }
         },
 
         async removeLogo(institutionId: string) {
@@ -593,16 +627,49 @@ const adminAPI = {
         },
 
         async uploadImage(facultyId: string, imageFile: File) {
-            const formData = new FormData();
-            formData.append('faculty_image', imageFile);
+            try {
+                const formData = new FormData();
+                formData.append('faculty_image', imageFile);
 
-            return api.POST('/api/v1/faculty/{faculty_id}/image', {
-                params: {
-                    path: { faculty_id: facultyId }
-                },
-                // OpenAPI typing expects a JSON shape; cast FormData
-                body: formData as any
-            });
+                // Get auth token
+                const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+                
+                // Get base URL
+                const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://fastapi.localhost';
+
+                // Use direct fetch for FormData upload
+                const response = await fetch(`${baseUrl}/api/v1/faculty/${facultyId}/image`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        // Don't set Content-Type - let browser set it with boundary
+                    },
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    return {
+                        data: undefined,
+                        error: errorData,
+                        response: response as any
+                    };
+                }
+
+                const data = await response.json();
+                return {
+                    data,
+                    error: undefined,
+                    response: response as any
+                };
+            } catch (error) {
+                console.error('Faculty image upload error:', error);
+                return {
+                    data: undefined,
+                    error: error,
+                    response: undefined as any
+                };
+            }
         },
 
         async getOrderedByCreatedAt(params?: { page?: number; size?: number; order?: 'ascendent' | 'descendent' }) {
@@ -786,15 +853,49 @@ const adminAPI = {
         },
 
         async uploadImage(departmentId: string, imageFile: File) {
-            const formData = new FormData();
-            formData.append('department_image', imageFile);
+            try {
+                const formData = new FormData();
+                formData.append('department_image', imageFile);
 
-            return api.POST('/api/v1/department/{department_id}/image', {
-                params: {
-                    path: { department_id: departmentId }
-                },
-                body: formData as any
-            });
+                // Get auth token
+                const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+                
+                // Get base URL
+                const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://fastapi.localhost';
+
+                // Use direct fetch for FormData upload
+                const response = await fetch(`${baseUrl}/api/v1/department/${departmentId}/image`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        // Don't set Content-Type - let browser set it with boundary
+                    },
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    return {
+                        data: undefined,
+                        error: errorData,
+                        response: response as any
+                    };
+                }
+
+                const data = await response.json();
+                return {
+                    data,
+                    error: undefined,
+                    response: response as any
+                };
+            } catch (error) {
+                console.error('Department image upload error:', error);
+                return {
+                    data: undefined,
+                    error: error,
+                    response: undefined as any
+                };
+            }
         },
 
         async getOrderedByCreatedAt(params?: { page?: number; size?: number; order?: 'ascendent' | 'descendent' }) {
@@ -955,15 +1056,49 @@ const adminAPI = {
         },
 
         async uploadImage(programmeId: string, imageFile: File) {
-            const formData = new FormData();
-            formData.append('programme_image', imageFile);
+            try {
+                const formData = new FormData();
+                formData.append('programme_image', imageFile);
 
-            return api.POST('/api/v1/programme/{programme_id}/image', {
-                params: {
-                    path: { programme_id: programmeId }
-                },
-                body: formData as any
-            });
+                // Get auth token
+                const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+                
+                // Get base URL
+                const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://fastapi.localhost';
+
+                // Use direct fetch for FormData upload
+                const response = await fetch(`${baseUrl}/api/v1/programme/${programmeId}/image`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        // Don't set Content-Type - let browser set it with boundary
+                    },
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    return {
+                        data: undefined,
+                        error: errorData,
+                        response: response as any
+                    };
+                }
+
+                const data = await response.json();
+                return {
+                    data,
+                    error: undefined,
+                    response: response as any
+                };
+            } catch (error) {
+                console.error('Programme image upload error:', error);
+                return {
+                    data: undefined,
+                    error: error,
+                    response: undefined as any
+                };
+            }
         },
 
         async getOrderedByCreatedAt(params?: { page?: number; size?: number; order?: 'ascendent' | 'descendent' }) {
@@ -1094,15 +1229,49 @@ const adminAPI = {
         },
 
         async uploadImage(courseId: string, imageFile: File) {
-            const formData = new FormData();
-            formData.append('course_image', imageFile);
+            try {
+                const formData = new FormData();
+                formData.append('course_image', imageFile);
 
-            return api.POST('/api/v1/course/{course_id}/image', {
-                params: {
-                    path: { course_id: courseId }
-                },
-                body: formData as any
-            });
+                // Get auth token
+                const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+                
+                // Get base URL
+                const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://fastapi.localhost';
+
+                // Use direct fetch for FormData upload
+                const response = await fetch(`${baseUrl}/api/v1/course/${courseId}/image`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        // Don't set Content-Type - let browser set it with boundary
+                    },
+                    body: formData,
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    return {
+                        data: undefined,
+                        error: errorData,
+                        response: response as any
+                    };
+                }
+
+                const data = await response.json();
+                return {
+                    data,
+                    error: undefined,
+                    response: response as any
+                };
+            } catch (error) {
+                console.error('Course image upload error:', error);
+                return {
+                    data: undefined,
+                    error: error,
+                    response: undefined as any
+                };
+            }
         },
 
         async getOrderedByCreatedAt(params?: { page?: number; size?: number; order?: 'ascendent' | 'descendent' }) {

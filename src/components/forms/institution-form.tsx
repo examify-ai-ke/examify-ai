@@ -40,7 +40,7 @@ const institutionFormSchema = z.object({
         .refine((val) => !val || val.length <= 1000, {
             message: 'Description must not exceed 1000 characters'
         }),
-    category: z.enum(['University', 'College', 'TVET', 'Other']),
+    category: z.enum(['University', 'College', 'TVET', 'TVC', 'TTI', 'Other']),
     key: z.string()
         .optional()
         .refine((val) => !val || val.length <= 10, {
@@ -347,6 +347,8 @@ export function InstitutionForm({
                                         <SelectItem value="University">University</SelectItem>
                                         <SelectItem value="College">College</SelectItem>
                                         <SelectItem value="TVET">TVET</SelectItem>
+                                        <SelectItem value="TVC">TVC</SelectItem>
+                                        <SelectItem value="TTI">TTI</SelectItem>
                                         <SelectItem value="Other">Other</SelectItem>
                                     </SelectContent>
                                 </Select>

@@ -1,3 +1,4 @@
+
 'use client'
 
 import React, { useEffect, useState, useCallback } from 'react'
@@ -57,7 +58,7 @@ const institutionEditSchema = z.object({
         .refine((val) => !val || val.length <= 1000, {
             message: 'Description must not exceed 1000 characters'
         }),
-    category: z.enum(['University', 'College', 'Tvet', 'Tvc', 'Tti', 'Other']),
+    category: z.enum(['University', 'College', 'TVET', 'TVC', 'TTI', 'Other']),
     key: z.string()
         .optional()
         .refine((val) => !val || val.length <= 10, {
@@ -70,6 +71,7 @@ const institutionEditSchema = z.object({
         }),
     institution_type: z.enum(['Public', 'Private', 'Other']).nullable(),
     full_profile: z.string()
+        .nullable()
         .optional()
         .refine((val) => !val || val.startsWith('http'), {
             message: 'Website URL must start with http:// or https://'
@@ -148,13 +150,16 @@ export default function EditInstitutionPage() {
                     return
                 }
 
+                console.log('🔄 Loading institution with ID:', params.id)
                 const response = await adminAPI.institutions.getById(params.id as string)
+                console.log('📋 Institution response:', response)
 
                 if (!response.error && response.data) {
                     const institutionData = (response.data as any).data || response.data
+                    console.log('🏫 Institution data:', institutionData)
                     setInstitution(institutionData as InstitutionRead)
 
-                    // Set form values
+                    // Set form values - fix the full_profile field mapping
                     form.reset({
                         name: institutionData.name || '',
                         description: institutionData.description || '',
@@ -162,15 +167,15 @@ export default function EditInstitutionPage() {
                         key: institutionData.key || '',
                         location: institutionData.location || '',
                         institution_type: institutionData.institution_type || 'Public',
-                        full_profile: institutionData.full_profile || '',
+                        full_profile: institutionData.address?.website || institutionData.full_profile || '',
                         parent_ministry: institutionData.parent_ministry || '',
                         kuccps_institution_url: institutionData.kuccps_institution_url || '',
                         tags: institutionData.tags?.join(', ') || '',
                     })
 
                     // Set logo preview if exists
-                    if (institutionData.logo?.media?.path) {
-                        setLogoPreview(institutionData.logo.media.path)
+                    if (institutionData.logo?.media?.link) {
+                        setLogoPreview(institutionData.logo.media.link)
                     } else if (institutionData.logo?.url) {
                         setLogoPreview(institutionData.logo.url)
                     }
@@ -178,16 +183,36 @@ export default function EditInstitutionPage() {
                     setLastSaved(new Date())
                     setHasUnsavedChanges(false)
                 } else {
-                    const errorMessage = (response.error as any)?.detail?.[0]?.msg ||
-                        (typeof response.error === 'string' ? response.error : 'Failed to load institution')
+                    const errorData = response as any
+                    const errorMessage = errorData.error && typeof errorData.error === 'object'
+                        ? errorData.error?.detail?.[0]?.msg || 'Failed to load institution'
+                        : typeof errorData.error === 'string'
+                        ? errorData.error
+                        : 'Failed to load institution'
                     throw new Error(errorMessage)
                 }
             } catch (error) {
-                console.error('Error loading institution:', error)
+                console.error('❌ Error loading institution:', error)
+                console.error('Error details:', {
+                    message: error instanceof Error ? error.message : 'Unknown error',
+                    stack: error instanceof Error ? error.stack : 'No stack trace',
+                    params: params,
+                    institutionId: params.id
+                })
+                
+                let errorMessage = 'Failed to load institution data'
+                if (error instanceof Error) {
+                    errorMessage = error.message
+                } else if (typeof error === 'string') {
+                    errorMessage = error
+                } else if (error && typeof error === 'object' && 'message' in error) {
+                    errorMessage = (error as any).message
+                }
+                
                 addNotification({
                     type: 'error',
                     title: 'Load Error',
-                    message: error instanceof Error ? error.message : 'Failed to load institution data',
+                    message: errorMessage,
                 })
                 router.push('/dashboard/institutions')
             } finally {
@@ -200,8 +225,8 @@ export default function EditInstitutionPage() {
         }
     }, [params.id, router, addNotification, form])
 
-    // Handle logo file selection
-    const handleLogoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    // Handle logo file selection and immediate upload
+    const handleLogoSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0]
         if (file) {
             // Validate file type
@@ -226,28 +251,40 @@ export default function EditInstitutionPage() {
                 return
             }
 
-            setLogoFile(file)
-            setHasUnsavedChanges(true)
-            
-            // Create preview
+            // Create preview immediately
             const reader = new FileReader()
             reader.onload = (e) => {
                 setLogoPreview(e.target?.result as string)
             }
             reader.readAsDataURL(file)
+
+            // Upload logo immediately
+            await uploadLogo(file)
         }
     }
 
-    // Handle logo upload
-    const handleLogoUpload = async () => {
-        if (!logoFile || !institution) return
+    // Upload logo function - uses separate endpoint from institution update
+    const uploadLogo = async (file: File) => {
+        if (!institution) return
 
         setUploadingLogo(true)
         try {
+            console.log('🔄 Uploading logo for institution:', institution.id)
+            console.log('📁 File details:', {
+                name: file.name,
+                type: file.type,
+                size: file.size
+            })
+            
             const formData = new FormData()
-            formData.append('logo', logoFile)
+            formData.append('institution_logo', file) // Field name from API schema
+            // Optional fields - only add if needed
+            // formData.append('title', `Logo for ${institution.name}`)
+            // formData.append('description', 'Official institution logo')
 
+            console.log('📤 FormData contents:', Array.from(formData.entries()))
             const response = await adminAPI.institutions.uploadLogo(institution.id, formData)
+            console.log('📋 Logo upload response:', response)
 
             if (!response.error && response.data) {
                 addNotification({
@@ -258,28 +295,63 @@ export default function EditInstitutionPage() {
                 setLogoFile(null)
                 setLastSaved(new Date())
                 setHasUnsavedChanges(false)
+                
+                // Update the institution data to reflect the new logo
+                if (response.data && typeof response.data === 'object' && 'data' in response.data) {
+                    const updatedInstitution = (response.data as any).data
+                    if (updatedInstitution.logo?.media?.path) {
+                        setLogoPreview(updatedInstitution.logo.media.path)
+                    }
+                }
             } else {
-                const errorMessage = (response.error as any)?.detail?.[0]?.msg || 'Failed to upload logo'
+                const errorData = response as any
+                const errorMessage = errorData.error && typeof errorData.error === 'object'
+                    ? errorData.error?.detail?.[0]?.msg || 'Failed to upload logo'
+                    : typeof errorData.error === 'string'
+                    ? errorData.error
+                    : 'Failed to upload logo'
                 throw new Error(errorMessage)
             }
         } catch (error) {
-            console.error('Error uploading logo:', error)
+            console.error('❌ Error uploading logo:', error)
+            console.error('Logo upload error details:', {
+                message: error instanceof Error ? error.message : 'Unknown error',
+                stack: error instanceof Error ? error.stack : 'No stack trace',
+                institutionId: institution?.id
+            })
+            
+            let errorMessage = 'Failed to upload logo'
+            if (error instanceof Error) {
+                errorMessage = error.message
+            } else if (typeof error === 'string') {
+                errorMessage = error
+            } else if (error && typeof error === 'object' && 'message' in error) {
+                errorMessage = (error as any).message
+            }
+            
             addNotification({
                 type: 'error',
                 title: 'Upload Error',
-                message: error instanceof Error ? error.message : 'Failed to upload logo',
+                message: errorMessage,
             })
+            
+            // Reset preview on error
+            setLogoPreview(institution.logo?.media?.path || null)
         } finally {
             setUploadingLogo(false)
         }
     }
+
+
 
     // Handle logo removal
     const handleLogoRemove = async () => {
         if (!institution) return
 
         try {
+            console.log('🔄 Removing logo for institution:', institution.id)
             const response = await adminAPI.institutions.removeLogo(institution.id)
+            console.log('📋 Logo removal response:', response)
 
             if (!response.error && response.data) {
                 setLogoPreview(null)
@@ -292,15 +364,35 @@ export default function EditInstitutionPage() {
                 setLastSaved(new Date())
                 setHasUnsavedChanges(false)
             } else {
-                const errorMessage = (response.error as any)?.detail?.[0]?.msg || 'Failed to remove logo'
+                const errorData = response as any
+                const errorMessage = errorData.error && typeof errorData.error === 'object'
+                    ? errorData.error?.detail?.[0]?.msg || 'Failed to remove logo'
+                    : typeof errorData.error === 'string'
+                    ? errorData.error
+                    : 'Failed to remove logo'
                 throw new Error(errorMessage)
             }
         } catch (error) {
-            console.error('Error removing logo:', error)
+            console.error('❌ Error removing logo:', error)
+            console.error('Logo removal error details:', {
+                message: error instanceof Error ? error.message : 'Unknown error',
+                stack: error instanceof Error ? error.stack : 'No stack trace',
+                institutionId: institution?.id
+            })
+            
+            let errorMessage = 'Failed to remove logo'
+            if (error instanceof Error) {
+                errorMessage = error.message
+            } else if (typeof error === 'string') {
+                errorMessage = error
+            } else if (error && typeof error === 'object' && 'message' in error) {
+                errorMessage = (error as any).message
+            }
+            
             addNotification({
                 type: 'error',
                 title: 'Remove Error',
-                message: error instanceof Error ? error.message : 'Failed to remove logo',
+                message: errorMessage,
             })
         }
     }
@@ -311,6 +403,8 @@ export default function EditInstitutionPage() {
 
         setIsSaving(true)
         try {
+            console.log('🔄 Updating institution with data:', data)
+            
             // Prepare update data
             const updateData: InstitutionUpdate = {
                 name: data.name,
@@ -323,16 +417,18 @@ export default function EditInstitutionPage() {
                 parent_ministry: data.parent_ministry || null,
                 kuccps_institution_url: data.kuccps_institution_url || null,
                 tags: data.tags ? data.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
+                // Handle address update for website
+                address: institution?.address ? {
+                    ...institution.address,
+                    website: data.full_profile || null
+                } : undefined
             }
 
+            console.log('📤 Sending update data:', updateData)
             const response = await adminAPI.institutions.update(institution.id, updateData)
+            console.log('📋 Update response:', response)
 
             if (!response.error && response.data) {
-                // Upload logo if a new file was selected
-                if (logoFile) {
-                    await handleLogoUpload()
-                }
-
                 addNotification({
                     type: 'success',
                     title: 'Institution Updated',
@@ -344,16 +440,35 @@ export default function EditInstitutionPage() {
                 // Redirect to institutions list
                 router.push('/dashboard/institutions')
             } else {
-                const errorMessage = (response.error as any)?.detail?.[0]?.msg ||
-                    (typeof response.error === 'string' ? response.error : 'Failed to update institution')
+                const errorData = response as any
+                const errorMessage = errorData.error && typeof errorData.error === 'object'
+                    ? errorData.error?.detail?.[0]?.msg || 'Failed to update institution'
+                    : typeof errorData.error === 'string'
+                    ? errorData.error
+                    : 'Failed to update institution'
                 throw new Error(errorMessage)
             }
         } catch (error) {
-            console.error('Error updating institution:', error)
+            console.error('❌ Error updating institution:', error)
+            console.error('Update error details:', {
+                message: error instanceof Error ? error.message : 'Unknown error',
+                stack: error instanceof Error ? error.stack : 'No stack trace',
+                institutionId: institution?.id
+            })
+            
+            let errorMessage = 'Failed to update institution'
+            if (error instanceof Error) {
+                errorMessage = error.message
+            } else if (typeof error === 'string') {
+                errorMessage = error
+            } else if (error && typeof error === 'object' && 'message' in error) {
+                errorMessage = (error as any).message
+            }
+            
             addNotification({
                 type: 'error',
                 title: 'Update Error',
-                message: error instanceof Error ? error.message : 'Failed to update institution',
+                message: errorMessage,
             })
         } finally {
             setIsSaving(false)
@@ -591,9 +706,9 @@ export default function EditInstitutionPage() {
                                                 <SelectContent>
                                                     <SelectItem value="University">University</SelectItem>
                                                     <SelectItem value="College">College</SelectItem>
-                                                    <SelectItem value="Tvet">TVET</SelectItem>
-                                                    <SelectItem value="Tvc">TVC</SelectItem>
-                                                    <SelectItem value="Tti">TTI</SelectItem>
+                                                    <SelectItem value="TVET">TVET</SelectItem>
+                                                    <SelectItem value="TVC">TVC</SelectItem>
+                                                    <SelectItem value="TTI">TTI</SelectItem>
                                                     <SelectItem value="Other">Other</SelectItem>
                                                 </SelectContent>
                                             </Select>
@@ -678,9 +793,10 @@ export default function EditInstitutionPage() {
                                     <FormItem>
                                         <FormLabel>Website URL</FormLabel>
                                         <FormControl>
-                                            <Input 
-                                                placeholder="https://www.example.com" 
-                                                {...field} 
+                                            <Input
+                                                placeholder="https://www.example.com"
+                                                {...field}
+                                                value={field.value || ''}
                                             />
                                         </FormControl>
                                         <FormDescription>

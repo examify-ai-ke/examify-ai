@@ -123,7 +123,9 @@ export default function PublicQuestionsContent() {
   }, [institutions, courses, modules, programmes]);
 
   // Extract questions, total, and pagination from the data
-  const questions = questionsData?.data || [];
+  const allQuestions = questionsData?.data || [];
+  // Filter out sub-questions - they should only appear nested under their parent
+  const questions = allQuestions.filter((q: any) => !q.parent_id);
   const totalItems = questionsData?.total || 0;
   const totalPages = Math.ceil(totalItems / pageSize);
 

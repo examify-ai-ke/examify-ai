@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { hasPermission, hasAnyRole, canAccessAdmin, canManageContent, type UserRole } from '@/lib/permissions';
+import { hasPermission, checkUserPermission, hasAnyRole, canAccessAdmin, canManageContent, type UserRole } from '@/lib/permissions';
 import { AccessDenied, AdminAccessDenied, ManagerAccessDenied, ContentManagerAccessDenied } from '@/components/ui/access-denied';
 import type { UserPermissions } from '@/lib/permissions';
 
@@ -39,7 +39,7 @@ export function PermissionGuard({
     } else if (requireContentManager) {
         hasAccess = canManageContent(user);
     } else if (requiredPermission) {
-        hasAccess = hasPermission(user, requiredPermission);
+        hasAccess = checkUserPermission(user, requiredPermission);
     } else if (requiredRole) {
         hasAccess = hasAnyRole(user, [requiredRole]);
     } else if (requiredRoles) {
@@ -95,7 +95,7 @@ export function usePermissions() {
 
     return {
         user,
-        hasPermission: (permission: keyof UserPermissions) => hasPermission(user, permission),
+        hasPermission: (permission: keyof UserPermissions) => checkUserPermission(user, permission),
         hasRole: (role: UserRole) => hasAnyRole(user, [role]),
         hasAnyRole: (roles: UserRole[]) => hasAnyRole(user, roles),
         canAccessAdmin: () => canAccessAdmin(user),

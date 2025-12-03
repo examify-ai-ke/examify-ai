@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { usePermissions } from '@/components/ui/permission-guard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -123,7 +122,6 @@ interface ExamPaper {
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { canManageContent, canAccessAdmin, hasPermission } = usePermissions();
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredPapers, setFilteredPapers] = useState<ExamPaper[]>(mockRecentPapers);
 
@@ -310,37 +308,33 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {canManageContent() && (
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-green-100 rounded-lg">
-                  <Plus className="h-6 w-6 text-green-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">Add New Paper</h3>
-                  <p className="text-sm text-muted-foreground">Contribute to the collection</p>
-                </div>
+        <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-green-100 rounded-lg">
+                <Plus className="h-6 w-6 text-green-600" />
               </div>
-            </CardContent>
-          </Card>
-        )}
+              <div>
+                <h3 className="font-semibold">Add New Paper</h3>
+                <p className="text-sm text-muted-foreground">Contribute to the collection</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-        {hasPermission('canManageInstitutions') && (
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-purple-100 rounded-lg">
-                  <Building className="h-6 w-6 text-purple-600" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">Manage Institutions</h3>
-                  <p className="text-sm text-muted-foreground">Update institution data</p>
-                </div>
+        <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-purple-100 rounded-lg">
+                <Building className="h-6 w-6 text-purple-600" />
               </div>
-            </CardContent>
-          </Card>
-        )}
+              <div>
+                <h3 className="font-semibold">Manage Institutions</h3>
+                <p className="text-sm text-muted-foreground">Update institution data</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

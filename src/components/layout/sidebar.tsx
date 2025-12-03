@@ -38,9 +38,7 @@ import {
   MapPin,
   HelpCircle,
   CheckCircle,
-  Upload,
-  Library,
-  Layers
+  Upload
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -58,49 +56,51 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  // Main Navigation
   {
     title: 'Dashboard',
     href: '/dashboard',
-    icon: Home,
+    icon: LayoutDashboard,
   },
-  
-  // Content Management (Primary)
   {
     title: 'Exam Papers',
     href: '/dashboard/exam-papers',
     icon: BookOpen,
     children: [
       {
-        title: 'Browse All',
+        title: 'Browse Exam Papers',
         href: '/dashboard/exam-papers',
         icon: Search,
       },
       {
-        title: 'Recent',
+        title: 'My Favorites',
+        href: '/dashboard/exam-papers/favorites',
+        icon: FileText,
+      },
+      {
+        title: 'Recent Exam Papers',
         href: '/dashboard/exam-papers/recent',
         icon: TrendingUp,
       },
       {
-        title: 'Create New',
+        title: 'Manage Exam Papers',
+        href: '/dashboard/exam-papers/manage',
+        icon: FolderOpen,
+        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+      },
+      {
+        title: 'Create Exam Paper',
         href: '/dashboard/exam-papers/create',
         icon: Plus,
         roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
       },
       {
-        title: 'Manage',
-        href: '/dashboard/exam-papers/manage',
-        icon: Settings,
-        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
-      },
-      {
-        title: 'Drafts',
+        title: 'Draft Exam Papers',
         href: '/dashboard/exam-papers/drafts',
         icon: Edit,
         roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
       },
       {
-        title: 'Archived',
+        title: 'Archived Exam Papers',
         href: '/dashboard/exam-papers/archived',
         icon: Archive,
         roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
@@ -108,55 +108,21 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    title: 'Questions',
-    href: '/dashboard/questions',
-    icon: HelpCircle,
-    roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
-    children: [
-      {
-        title: 'Browse All',
-        href: '/dashboard/questions',
-        icon: Search,
-        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
-      },
-      {
-        title: 'Manage',
-        href: '/dashboard/questions/manage',
-        icon: Settings,
-        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
-      },
-      {
-        title: 'Question Sets',
-        href: '/dashboard/questions/sets',
-        icon: FolderOpen,
-        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
-      },
-      {
-        title: 'Answers',
-        href: '/dashboard/questions/answers',
-        icon: CheckCircle,
-        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
-      },
-      {
-        title: 'Import',
-        href: '/dashboard/questions/import',
-        icon: Upload,
-        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
-      },
-    ],
-  },
-
-  // Academic Structure
-  {
     title: 'Institutions',
     href: '/dashboard/institutions',
     icon: Building,
     roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
     children: [
       {
-        title: 'Overview',
+        title: 'All Institutions',
         href: '/dashboard/institutions',
-        icon: LayoutDashboard,
+        icon: Building,
+        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+      },
+      {
+        title: 'Manage Institutions',
+        href: '/dashboard/institutions/manage',
+        icon: Settings,
         roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
       },
       {
@@ -172,34 +138,51 @@ const navItems: NavItem[] = [
         roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
       },
       {
-        title: 'Programmes',
-        href: '/dashboard/institutions/programmes',
-        icon: Layers,
-        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
-      },
-      {
         title: 'Courses',
         href: '/dashboard/institutions/courses',
         icon: GraduationCap,
         roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
       },
+    ],
+  },
+  {
+    title: 'Questions Bank',
+    href: '/dashboard/questions',
+    icon: HelpCircle,
+    roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+    children: [
       {
-        title: 'Modules',
-        href: '/dashboard/institutions/modules',
-        icon: Library,
+        title: 'All Questions',
+        href: '/dashboard/questions',
+        icon: HelpCircle,
+        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+      },
+      {
+        title: 'Manage Questions',
+        href: '/dashboard/questions/manage',
+        icon: Settings,
+        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+      },
+      {
+        title: 'Question Sets',
+        href: '/dashboard/questions/sets',
+        icon: FolderOpen,
+        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+      },
+      {
+        title: 'Answers Management',
+        href: '/dashboard/questions/answers',
+        icon: CheckCircle,
+        roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
+      },
+      {
+        title: 'Import Questions',
+        href: '/dashboard/questions/import',
+        icon: Upload,
         roles: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
       },
     ],
   },
-
-  // Personal
-  {
-    title: 'My Progress',
-    href: '/dashboard/progress',
-    icon: TrendingUp,
-  },
-
-  // Administration (Bottom)
   {
     title: 'Administration',
     href: '/dashboard/admin',
@@ -213,15 +196,21 @@ const navItems: NavItem[] = [
         roles: [USER_ROLES.ADMIN],
       },
       {
-        title: 'Users',
+        title: 'User Management',
         href: '/dashboard/admin/users',
         icon: Users,
         roles: [USER_ROLES.ADMIN],
       },
       {
-        title: 'Roles',
+        title: 'Role Management',
         href: '/dashboard/admin/roles',
         icon: Shield,
+        roles: [USER_ROLES.ADMIN],
+      },
+      {
+        title: 'System Settings',
+        href: '/dashboard/admin/settings',
+        icon: Settings,
         roles: [USER_ROLES.ADMIN],
       },
       {
@@ -231,18 +220,22 @@ const navItems: NavItem[] = [
         roles: [USER_ROLES.ADMIN],
       },
       {
-        title: 'Settings',
-        href: '/dashboard/admin/settings',
-        icon: Settings,
-        roles: [USER_ROLES.ADMIN],
-      },
-      {
-        title: 'Data',
+        title: 'Data Management',
         href: '/dashboard/admin/data',
         icon: Database,
         roles: [USER_ROLES.ADMIN],
       },
     ],
+  },
+  {
+    title: 'My Progress',
+    href: '/dashboard/progress',
+    icon: TrendingUp,
+  },
+  {
+    title: 'Profile',
+    href: '/dashboard/profile',
+    icon: User,
   },
 ];
 
@@ -328,24 +321,13 @@ export function Sidebar({
       className
     )}>
       {/* Header with Logo */}
-      <div className="flex items-center justify-between px-4 py-5 border-b border-gray-700/50 flex-shrink-0 bg-gradient-to-r from-gray-900 to-gray-800">
+      <div className="flex items-center justify-between p-4 border-b border-gray-700 flex-shrink-0">
         {!isCollapsed && (
-          <Link href="/dashboard" className="flex items-center space-x-3 group">
-            <div className="p-2.5 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg shadow-blue-500/30 group-hover:shadow-blue-500/50 transition-all duration-200">
-              <BookOpen className="h-5 w-5 text-white" />
+          <Link href="/dashboard" className="flex items-center space-x-2">
+            <div className="p-2 bg-blue-600 rounded-lg">
+              <GraduationCap className="h-6 w-6 text-white" />
             </div>
-            <div className="flex flex-col">
-              <span className="font-bold text-lg text-white tracking-tight">ExamPapel</span>
-              <span className="text-xs text-gray-400 font-medium">Exam Management</span>
-            </div>
-          </Link>
-        )}
-
-        {isCollapsed && !isMobileOpen && (
-          <Link href="/dashboard" className="flex items-center justify-center">
-            <div className="p-2.5 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg shadow-blue-500/30">
-              <BookOpen className="h-5 w-5 text-white" />
-            </div>
+            <span className="font-bold text-xl text-white">ExamPrep</span>
           </Link>
         )}
 
@@ -355,7 +337,7 @@ export function Sidebar({
             variant="ghost"
             size="sm"
             onClick={onMobileClose}
-            className="md:hidden text-white hover:bg-gray-700 ml-auto"
+            className="md:hidden text-white hover:bg-gray-800"
           >
             <X className="h-5 w-5" />
           </Button>
@@ -367,7 +349,7 @@ export function Sidebar({
             variant="ghost"
             size="sm"
             onClick={toggleCollapsed}
-            className="hidden md:flex h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700/50 ml-auto transition-all duration-200"
+            className="hidden md:flex h-8 w-8 p-0 text-white hover:bg-gray-800"
           >
             {isCollapsed ? (
               <ChevronRight className="h-4 w-4" />
@@ -379,25 +361,15 @@ export function Sidebar({
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
-        {filteredNavItems.map((item, index) => {
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        {filteredNavItems.map((item) => {
           const Icon = item.icon;
           const hasChildren = item.children && item.children.length > 0;
           const isItemActive = isActive(item.href);
           const isItemExpanded = isExpanded(item.href);
-          
-          // Add section separator before "My Progress" and "Administration"
-          const showSeparator = !isCollapsed && (
-            item.title === 'My Progress' || 
-            item.title === 'Administration'
-          );
 
           return (
             <div key={item.href}>
-              {showSeparator && (
-                <div className="my-3 border-t border-gray-700/50" />
-              )}
-              
               <Link
                 href={hasChildren ? '#' : item.href}
                 onClick={hasChildren ? (e) => {
@@ -405,26 +377,21 @@ export function Sidebar({
                   toggleExpanded(item.href);
                 } : undefined}
                 className={cn(
-                  'flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 cursor-pointer',
+                  'flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                   isItemActive
-                    ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-600/30'
-                    : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800/50',
-                  isCollapsed && 'justify-center px-2',
-                  !isCollapsed && 'group'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-300 hover:bg-gray-800 hover:text-white',
+                  isCollapsed && 'justify-center'
                 )}
-                title={isCollapsed ? item.title : undefined}
               >
-                <Icon className={cn(
-                  'h-5 w-5 flex-shrink-0 transition-colors duration-200',
-                  isItemActive ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'
-                )} />
+                <Icon className="h-4 w-4" />
                 {!isCollapsed && (
                   <>
-                    <span className="flex-1">{item.title}</span>
+                    <span>{item.title}</span>
                     {hasChildren && (
                       <ChevronRight
                         className={cn(
-                          'h-4 w-4 transition-transform duration-200 text-gray-500 group-hover:text-gray-300',
+                          'ml-auto h-4 w-4 transition-transform',
                           isItemExpanded && 'rotate-90'
                         )}
                       />
@@ -435,7 +402,7 @@ export function Sidebar({
 
               {/* Children */}
               {hasChildren && !isCollapsed && isItemExpanded && (
-                <div className="ml-3 mt-1.5 space-y-0.5 border-l-2 border-gray-700/50 pl-3">
+                <div className="ml-6 mt-2 space-y-1">
                   {item.children!
                     .filter(child => {
                       if (!child.roles) return true;
@@ -450,16 +417,13 @@ export function Sidebar({
                           key={child.href}
                           href={child.href}
                           className={cn(
-                            'flex items-center space-x-2.5 rounded-md px-3 py-2 text-sm transition-all duration-200 group',
+                            'flex items-center space-x-3 rounded-lg px-3 py-2 text-sm transition-colors',
                             isChildActive
-                              ? 'bg-blue-600/20 text-blue-300 font-medium border-l-2 border-blue-400 -ml-[2px] pl-[10px]'
-                              : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/30'
+                              ? 'bg-blue-600/20 text-blue-300'
+                              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
                           )}
                         >
-                          <ChildIcon className={cn(
-                            'h-4 w-4 flex-shrink-0 transition-colors duration-200',
-                            isChildActive ? 'text-blue-300' : 'text-gray-600 group-hover:text-gray-400'
-                          )} />
+                          <ChildIcon className="h-4 w-4" />
                           <span>{child.title}</span>
                         </Link>
                       );
@@ -472,12 +436,12 @@ export function Sidebar({
       </nav>
 
       {/* Bottom section with logout */}
-      <div className="p-4 border-t border-gray-700/50 flex-shrink-0 bg-gradient-to-r from-gray-900 to-gray-800">
+      <div className="p-4 border-t border-gray-700 flex-shrink-0">
         <Button
           variant="ghost"
           onClick={handleLogoutClick}
           className={cn(
-            'w-full text-gray-400 hover:text-white hover:bg-red-600/20 transition-all duration-200 font-medium',
+            'w-full text-gray-300 hover:bg-gray-800 hover:text-white',
             isCollapsed && 'justify-center'
           )}
         >

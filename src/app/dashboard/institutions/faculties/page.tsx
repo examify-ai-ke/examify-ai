@@ -107,15 +107,27 @@ export default function FacultiesPage() {
         try {
             setLoading(true);
 
-            // Use the new search endpoint which supports institution_id filtering
-            const response = await adminAPI.faculties.search({
-                q: filters.search,
-                institution_id: filters.institution_id,
-                sort_by: 'name',
-                sort_order: 'asc',
-                skip: currentPage * pageSize,
-                limit: pageSize,
-            });
+            // Use search endpoint when filters are applied, otherwise use list endpoint
+            let response;
+            if (filters.search || filters.institution_id) {
+                // Use search endpoint for filtering
+                response = await adminAPI.faculties.search({
+                    q: filters.search,
+                    institution_id: filters.institution_id,
+                    sort_by: 'name',
+                    sort_order: 'asc',
+                    skip: currentPage * pageSize,
+                    limit: pageSize,
+                });
+            } else {
+                // Use list endpoint for initial load
+                response = await adminAPI.faculties.list({
+                    skip: currentPage * pageSize,
+                    limit: pageSize,
+                    search: filters.search,
+                    institution_id: filters.institution_id,
+                });
+            }
 
             if (response.data?.data) {
                 const responseData = response.data.data;
@@ -174,34 +186,39 @@ export default function FacultiesPage() {
     const loadRemainingStats = async () => {
         try {
             setStatsLoading(true);
-            console.log('Loading remaining statistics...');
+            console.log('Loading statistics from Stats API...');
 
-            // Use the clean API method instead of direct API calls
-            const response = await adminAPI.faculties.getPartialStats();
+            // Use the Stats API endpoint
+            const response = await adminAPI.stats.getDetailed();
 
             if (response.data) {
                 setStats(prev => {
                     const totalFaculties = prev.totalFaculties; // Keep the faculty count from main search
+                    const statsData = response.data;
+                    
+                    // Extract values from the detailed statistics response
+                    const totalDepartments = statsData.totalDepartments || statsData.departments_count || 0;
+                    const totalInstitutions = statsData.totalInstitutions || statsData.institutions_count || 0;
                     const averageDepartments = totalFaculties > 0 ?
-                        Number((response.data.totalDepartments / totalFaculties).toFixed(1)) : 0;
+                        Number((totalDepartments / totalFaculties).toFixed(1)) : 0;
 
-                    console.log('Updated statistics:', {
+                    console.log('Updated statistics from Stats API:', {
                         totalFaculties,
-                        totalDepartments: response.data.totalDepartments,
-                        totalInstitutions: response.data.totalInstitutions,
+                        totalDepartments,
+                        totalInstitutions,
                         averageDepartments,
                     });
 
                     return {
                         totalFaculties,
-                        totalDepartments: response.data.totalDepartments,
-                        totalInstitutions: response.data.totalInstitutions,
+                        totalDepartments,
+                        totalInstitutions,
                         averageDepartments,
                     };
                 });
             }
         } catch (error) {
-            console.error('Error loading remaining statistics:', error);
+            console.error('Error loading statistics from Stats API:', error);
         } finally {
             setStatsLoading(false);
         }
@@ -433,14 +450,14 @@ export default function FacultiesPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                         <div className="font-medium text-gray-900 mb-1">{item.displayName}</div>
-                        <div className="text-sm text-gray-600 line-clamp-2">
+                        <div className="text-sm text-gray-600 line-clamp-1">
                             {item.description || 'No description available'}
                         </div>
                     </div>
                 </div>
             ),
             sortable: true,
-            width: '30%',
+            width: '25%',
         },
         {
             key: 'institutionsDisplay' as keyof FacultyTableData,

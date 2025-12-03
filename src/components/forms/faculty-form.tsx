@@ -30,8 +30,7 @@ type FacultyUpdate = components['schemas']['FacultyUpdate'];
 const facultyFormSchema = z.object({
     name: z.string()
         .min(2, 'Faculty name must be at least 2 characters')
-        .max(100, 'Faculty name must not exceed 100 characters')
-        .regex(/^[a-zA-Z0-9\s\-&'().]+$/, 'Faculty name contains invalid characters'),
+        .max(100, 'Faculty name must not exceed 100 characters'),        
     description: z.string()
         .nullable()
         .optional()

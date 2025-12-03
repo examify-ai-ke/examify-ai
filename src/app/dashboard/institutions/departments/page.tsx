@@ -110,16 +110,26 @@ export default function DepartmentsPage() {
         try {
             setLoading(true);
 
-            // Use the new search endpoint which supports faculty_id and institution_id filtering
-            const response = await adminAPI.departments.search({
-                q: filters.search,
-                faculty_id: filters.faculty_id,
-                institution_id: filters.institution_id,
-                sort_by: 'name',
-                sort_order: 'asc',
-                skip: currentPage * pageSize,
-                limit: pageSize,
-            });
+            // Use list endpoint for initial load without filters, search endpoint for filtering
+            let response;
+            if (filters.search || filters.faculty_id || filters.institution_id) {
+                // Use search endpoint when filters are applied
+                response = await adminAPI.departments.search({
+                    q: filters.search,
+                    faculty_id: filters.faculty_id,
+                    institution_id: filters.institution_id,
+                    sort_by: 'name',
+                    sort_order: 'asc',
+                    skip: currentPage * pageSize,
+                    limit: pageSize,
+                });
+            } else {
+                // Use list endpoint for initial load
+                response = await adminAPI.departments.list({
+                    skip: currentPage * pageSize,
+                    limit: pageSize,
+                });
+            }
 
             if (response.data?.data) {
                 const responseData = response.data.data;
@@ -223,8 +233,13 @@ export default function DepartmentsPage() {
                 title: 'Department deleted',
                 message: `${department.name} has been deleted successfully.`,
             });
-            loadDepartments();
-            loadStats();
+            
+            // Reset to first page after deletion
+            setCurrentPage(0);
+            
+            // Reload data
+            await loadDepartments();
+            await loadStats();
         } catch (error: any) {
             console.error('Error deleting department:', error);
             addNotification({
@@ -232,16 +247,31 @@ export default function DepartmentsPage() {
                 title: 'Failed to delete department',
                 message: error.message || 'Please try again later.',
             });
+        } finally {
+            setDeletingDepartment(null);
         }
-        setDeletingDepartment(null);
     };
 
     // Handle form success
-    const handleFormSuccess = () => {
-        setShowCreateModal(false);
-        setEditingDepartment(null);
-        loadDepartments();
-        loadStats();
+    const handleFormSuccess = async () => {
+        try {
+            setShowCreateModal(false);
+            setEditingDepartment(null);
+            
+            // Reset to first page
+            setCurrentPage(0);
+            
+            // Reload data
+            await loadDepartments();
+            await loadStats();
+        } catch (error) {
+            console.error('Error reloading data after form success:', error);
+            addNotification({
+                type: 'error',
+                title: 'Failed to reload data',
+                message: 'Please refresh the page to see the latest changes.',
+            });
+        }
     };
 
     // Transform department data for table display

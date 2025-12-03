@@ -176,16 +176,27 @@ const CoursesPage: React.FC<CoursesPageProps> = () => {
     const loadCourses = async () => {
         try {
             setLoading(true);
-            // Use the new search endpoint which supports multiple filtering options
-            const response = await adminAPI.courses.search({
-                q: searchTerm || undefined,
-                programme_id: selectedProgramme || undefined,
-                institution_id: selectedInstitution || undefined,
-                sort_by: 'name',
-                sort_order: 'asc',
-                skip: currentPage * pageSize,
-                limit: pageSize,
-            });
+            
+            // Use list endpoint for initial load without filters, search endpoint for filtering
+            let response;
+            if (searchTerm || selectedProgramme || selectedFaculty || selectedInstitution) {
+                // Use search endpoint when filters are applied
+                response = await adminAPI.courses.search({
+                    q: searchTerm || undefined,
+                    programme_id: selectedProgramme || undefined,
+                    institution_id: selectedInstitution || undefined,
+                    sort_by: 'name',
+                    sort_order: 'asc',
+                    skip: currentPage * pageSize,
+                    limit: pageSize,
+                });
+            } else {
+                // Use list endpoint for initial load
+                response = await adminAPI.courses.list({
+                    skip: currentPage * pageSize,
+                    limit: pageSize,
+                });
+            }
 
             if (response.data && response.data.data) {
                 const responseData = response.data.data;
@@ -274,18 +285,25 @@ const CoursesPage: React.FC<CoursesPageProps> = () => {
     const loadStats = async () => {
         try {
             setStatsLoading(true);
-            console.log('Loading course statistics...');
+            console.log('Loading statistics from Stats API...');
 
-            const response = await adminAPI.courses.getStats();
+            // Use the Stats API endpoint
+            const response = await adminAPI.stats.getDetailed();
 
             if (response.data) {
-                console.log('Setting course stats:', response.data);
-                setStats(response.data);
+                console.log('Setting stats from Stats API:', response.data);
+                setStats({
+                    totalCourses: response.data.totalCourses || response.data.courses_count || 0,
+                    totalProgrammes: response.data.totalProgrammes || response.data.programmes_count || 0,
+                    totalModules: response.data.totalModules || response.data.modules_count || 0,
+                    totalExamPapers: response.data.totalExamPapers || response.data.exam_papers_count || 0,
+                    averageModules: response.data.averageModules || 0,
+                });
             } else {
-                console.warn('No course statistics data received');
+                console.warn('No statistics data received');
             }
         } catch (error) {
-            console.error('Error loading course statistics:', error);
+            console.error('Error loading statistics from Stats API:', error);
         } finally {
             setStatsLoading(false);
         }

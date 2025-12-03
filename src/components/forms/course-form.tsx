@@ -29,9 +29,9 @@ type CourseUpdate = components['schemas']['CourseUpdate'];
 const courseSchema = z.object({
     name: z.string().min(3, 'Course name must be at least 3 characters').max(200, 'Course name is too long'),
     description: z.string().optional().nullable(),
-    course_acronym: z.string().min(2, 'Course acronym must be at least 2 characters').max(20, 'Course acronym is too long'),
-    programme_id: z.string().uuid('Please select a programme'),
-    faculty_id: z.string().uuid('Please select a faculty').optional().nullable(),
+    course_acronym: z.union([z.string().min(2, 'Course acronym must be at least 2 characters').max(20, 'Course acronym is too long'), z.literal('')]).optional().nullable(),
+    programme_id: z.string().min(1, 'Please select a programme'),
+    faculty_id: z.union([z.string().uuid('Invalid faculty'), z.literal('')]).optional().nullable(),
 });
 
 type CourseFormData = z.infer<typeof courseSchema>;
@@ -211,7 +211,7 @@ export const CourseForm: React.FC<CourseFormProps> = ({
             {/* Course Acronym */}
             <div className="space-y-2">
                 <Label htmlFor="course_acronym">
-                    Course Code/Acronym <span className="text-red-500">*</span>
+                    Course Code/Acronym (Optional)
                 </Label>
                 <Input
                     id="course_acronym"

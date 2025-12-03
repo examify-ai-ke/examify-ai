@@ -248,8 +248,13 @@ export default function FacultiesPage() {
                 title: 'Faculty deleted',
                 message: `${faculty.name} has been deleted successfully.`,
             });
-            loadFaculties();
-            loadRemainingStats(); // Fixed: was calling loadStats which doesn't exist anymore
+            
+            // Reset to first page after deletion
+            setCurrentPage(0);
+            
+            // Reload data
+            await loadFaculties();
+            await loadRemainingStats();
         } catch (error: any) {
             console.error('Error deleting faculty:', error);
             addNotification({
@@ -257,8 +262,9 @@ export default function FacultiesPage() {
                 title: 'Failed to delete faculty',
                 message: error.message || 'Please try again later.',
             });
+        } finally {
+            setDeletingFaculty(null);
         }
-        setDeletingFaculty(null);
     };
 
     // Handle form success
@@ -268,8 +274,8 @@ export default function FacultiesPage() {
             setShowCreateModal(false);
             setEditingFaculty(null);
 
-            // Show loading state
-            setLoading(true);
+            // Reset to first page
+            setCurrentPage(0);
 
             // Reload data
             await loadFaculties();
@@ -281,8 +287,6 @@ export default function FacultiesPage() {
                 title: 'Failed to reload data',
                 message: 'Please refresh the page to see the latest changes.',
             });
-        } finally {
-            setLoading(false);
         }
     };
 

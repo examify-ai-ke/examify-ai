@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Loader2 } from 'lucide-react';
 import { adminAPI } from '@/lib/api-admin';
+import { getErrorMessage } from '@/lib/api';
 import { useUIStore } from '@/stores/ui';
 import type { components } from '@/types/generated/api';
 import { Button } from '@/components/ui/button';
@@ -53,6 +54,7 @@ export const CourseForm: React.FC<CourseFormProps> = ({
 }) => {
     const { addNotification } = useUIStore();
     const [loading, setLoading] = useState(false);
+    const [formError, setFormError] = useState<string | null>(null);
     const [programmes, setProgrammes] = useState<Array<{ id: string; name: string }>>([]);
     const [loadingProgrammes, setLoadingProgrammes] = useState(true);
     const [faculties, setFaculties] = useState<Array<{ id: string; name: string }>>([]);
@@ -134,6 +136,7 @@ export const CourseForm: React.FC<CourseFormProps> = ({
 
     const onSubmit = async (data: CourseFormData) => {
         try {
+            setFormError(null);
             setLoading(true);
 
             if (mode === 'create') {
@@ -180,10 +183,47 @@ export const CourseForm: React.FC<CourseFormProps> = ({
             }
         } catch (error: any) {
             console.error('Error saving course:', error);
+            
+            // Extract error message using utility function
+            const rawErrorMessage = getErrorMessage(error);
+            let errorMessage = 'Please try again later.';
+            
+            // Check for duplicate course name error
+            if (rawErrorMessage.includes('duplicate key value violates unique constraint "Course_name_key"') ||
+                rawErrorMessage.includes('Key (name)') ||
+                rawErrorMessage.includes('already exists') ||
+                (rawErrorMessage.includes('Duplicate entry') && rawErrorMessage.includes('name'))) {
+                errorMessage = 'A course with this name already exists. Please use a different name.';
+            }
+            // Check for duplicate course acronym error
+            else if (rawErrorMessage.includes('duplicate key value violates unique constraint "Course_course_acronym_key"') ||
+                     (rawErrorMessage.includes('course_acronym') && rawErrorMessage.includes('duplicate'))) {
+                errorMessage = 'A course with this acronym already exists. Please use a different acronym.';
+            }
+            // Check for other integrity errors
+            else if (rawErrorMessage.includes('IntegrityError') || 
+                     rawErrorMessage.includes('duplicate key') ||
+                     rawErrorMessage.includes('Duplicate entry')) {
+                errorMessage = 'This course already exists in the database. Please check the course details and try again.';
+            }
+            // Check for validation errors
+            else if (rawErrorMessage.includes('ValidationError') ||
+                     rawErrorMessage.includes('Invalid') ||
+                     rawErrorMessage.includes('validation')) {
+                errorMessage = 'Invalid course data. Please check all fields and try again.';
+            }
+            // Use the original error message if it's meaningful
+            else if (rawErrorMessage && rawErrorMessage !== 'Failed to fetch' && rawErrorMessage.length > 5) {
+                errorMessage = rawErrorMessage;
+            }
+            
+            // Set form error to display in the form
+            setFormError(errorMessage);
+            
             addNotification({
                 type: 'error',
                 title: `Failed to ${mode === 'create' ? 'create' : 'update'} course`,
-                message: error.message || 'Please try again later.',
+                message: errorMessage,
             });
         } finally {
             setLoading(false);
@@ -192,6 +232,18 @@ export const CourseForm: React.FC<CourseFormProps> = ({
 
     const FormContent = (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {/* Error Alert */}
+            {formError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+                    <div className="flex gap-3">
+                        <div className="flex-1">
+                            <h3 className="font-semibold text-red-900">Error</h3>
+                            <p className="text-sm text-red-800 mt-1">{formError}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
             {/* Course Name */}
             <div className="space-y-2">
                 <Label htmlFor="name">

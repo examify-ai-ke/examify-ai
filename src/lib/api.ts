@@ -121,3 +121,29 @@ export const getAuthToken = (): string | null => {
 };
 
 export default api;
+
+/**
+ * Utility function to extract error message from API error response
+ * Handles various error response formats from the backend
+ */
+export const getErrorMessage = (error: any): string => {
+  // Try various error message sources
+  if (error?.error?.detail) {
+    return error.error.detail;
+  }
+  if (error?.detail) {
+    return error.detail;
+  }
+  if (error?.message && error.message !== 'Failed to fetch') {
+    return error.message;
+  }
+  if (error?.error && typeof error.error === 'string') {
+    return error.error;
+  }
+  if (typeof error === 'string') {
+    return error;
+  }
+  
+  // Last resort - return generic message
+  return 'An error occurred. Please try again.';
+};

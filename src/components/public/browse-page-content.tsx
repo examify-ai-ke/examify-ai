@@ -55,19 +55,6 @@ export function BrowsePageContent() {
 
   const isLoading = papersLoading || filtersLoading;
 
-  // Debug logging to help identify pagination issues
-  console.log('🔍 Pagination Debug Info:', {
-    papersCount: papers.length,
-    total,
-    currentPage,
-    totalPages,
-    pageSize: filters.pageSize || 20,
-    isLoading: papersLoading,
-    isError,
-    shouldShowPagination: totalPages > 1,
-    hasData: papers.length > 0,
-  });
-
   const handleSearchChange = (query: string) => {
     setFilters({ query });
   };

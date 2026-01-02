@@ -177,6 +177,7 @@ export function ExamPaperDetailsContent({ slug }: ExamPaperDetailsContentProps) 
                     <span>{paper.exam_duration} minutes</span>
                   </div>
                 )}
+                
               </div>
 
               {/* Tags */}

@@ -34,21 +34,20 @@ export function QuestionCard({ question, questionNumber }: QuestionCardProps) {
     }));
   };
 
-  // Render question text as heading (handle JSON format)
+  // Render question text using EditorRenderer (handle JSON format)
   const renderQuestionText = (text: any, isMainQuestion: boolean = true) => {
-    const HeadingTag = isMainQuestion ? 'h3' : 'h4';
-    const headingClass = isMainQuestion
-      ? 'text-3xl font-normal text-gray-1000 mb-3'
-      : 'text-2xl font-light text-gray-800 mb-2';
+    const containerClass = isMainQuestion
+      ? 'text-lg font-medium text-gray-900 mb-3'
+      : 'text-base font-normal text-gray-800 mb-2';
 
     // Handle null or undefined
     if (text === null || text === undefined) {
       return <p className="text-gray-400 italic">No question text available</p>;
     }
 
-    // Handle string format - render as heading
+    // Handle string format - render as plain text
     if (typeof text === 'string') {
-      return <HeadingTag className={headingClass}>{text}</HeadingTag>;
+      return <div className={containerClass}>{text}</div>;
     }
 
     // Handle object format
@@ -59,32 +58,16 @@ export function QuestionCard({ question, questionNumber }: QuestionCardProps) {
           return <p className="text-gray-400 italic">No question text available</p>;
         }
 
-        // Extract text from all blocks and render as heading
-        const textContent = text.blocks
-          .map((block: any) => {
-            if (block.type === 'paragraph') {
-              return block.data?.text || '';
-            }
-            if (block.type === 'header') {
-              return block.data?.text || '';
-            }
-            if (block.type === 'list') {
-              return block.data?.items?.join(', ') || '';
-            }
-            return block.text || block.data?.text || '';
-          })
-          .filter(Boolean)
-          .join(' ');
-
-        if (textContent) {
-          return <HeadingTag className={headingClass}>{textContent}</HeadingTag>;
-        }
-
-        return <p className="text-gray-400 italic">No question text available</p>;
+        // Use EditorRenderer to properly render formatted content
+        return (
+          <div className={containerClass}>
+            <EditorRenderer data={text} />
+          </div>
+        );
       }
 
-      // Fallback: render as heading with JSON string
-      return <HeadingTag className={headingClass}>{JSON.stringify(text)}</HeadingTag>;
+      // Fallback: render as plain text with JSON string
+      return <div className={containerClass}>{JSON.stringify(text)}</div>;
     }
 
     // Fallback for unexpected types

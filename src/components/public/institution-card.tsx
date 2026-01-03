@@ -1,7 +1,6 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,9 +24,9 @@ export function InstitutionCard({ institution, className = '' }: InstitutionCard
         <div className="flex flex-col items-center text-center space-y-4">
           {/* Institution Logo/Icon */}
           <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
-            {institution.logo?.media ? (
+            {institution.logo?.media?.link ? (
               <img
-                src={institution.logo?.media?.link || '/placeholder.svg'}
+                src={institution.logo.media.link}
                 alt={institution.name || 'Institution logo'}
                 width={64}
                 height={64}

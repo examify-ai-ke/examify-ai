@@ -566,6 +566,9 @@ export default function EditExamPaperPage() {
         try {
             setIsSaving(true)
 
+            // Preserve existing module_ids from the current exam paper
+            const existingModuleIds = examPaper?.modules?.map(m => m.id) || [];
+
             const updateData: ExamPaperUpdate = {
                 title_id: data.title_id || null,
                 description_id: data.description_id || null,
@@ -575,7 +578,7 @@ export default function EditExamPaperPage() {
                 exam_duration: data.exam_duration || null,
                 tags: data.tags || null,
                 instruction_ids: data.instruction_ids || [],
-                module_ids: [],
+                module_ids: existingModuleIds, // Preserve existing modules
             }
 
             console.log('Updating exam paper with data:', updateData)

@@ -101,7 +101,7 @@ export default function InstitutionProfilePage() {
   const totalPapers = papersData?.total || (institution as any).exams_count || 0;
   const facultiesCount = (institution as any).faculties_count || 0;
   const campusesCount = (institution as any).campuses_count || 0;
-  console.log(institution.logo.media);
+  // console.log(institution?.logo?.media);
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Hero Section */}
@@ -120,14 +120,14 @@ export default function InstitutionProfilePage() {
             {/* Institution Logo */}
             <div className="shrink-0">
               <div className="bg-white rounded-2xl p-4 shadow-xl">
-                {institution.logo.media ? (
-                  <Image
-                    src={institution.logo.media?.link|| '/placeholder.svg'}
-                    alt={institution.logo.media?.title || 'Institution logo'}
-                    width={160}
-                    height={160}
-                    className="object-contain rounded-lg"
-                  />
+                {institution?.logo?.media ? (
+                <img
+                src={institution.logo?.media?.link || '/placeholder.svg'}
+                alt={institution.logo?.media?.title || 'Institution logo'}
+                width={80}
+                height={80}
+                className="object-contain"
+              />
                 ) : (
                   <div className="w-40 h-40 rounded-lg bg-gradient-to-br from-blue-100 to-teal-100 flex items-center justify-center">
                     <Building2 className="h-20 w-20 text-teal-600" />

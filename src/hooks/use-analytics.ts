@@ -1,117 +1,57 @@
-'use client';
+import { useEffect } from 'react';
+import { analytics } from '@/lib/analytics';
+import { useAuthStore } from '@/stores/auth';
 
-import { useCallback } from 'react';
-import { posthog } from '@/lib/posthog';
+/**
+ * Hook to automatically identify users when they log in
+ */
+export function useAnalyticsIdentify() {
+  const { user, isAuthenticated } = useAuthStore();
 
-export interface AnalyticsEvent {
-  // Exam Paper Events
-  exam_paper_viewed: {
-    paper_id: string;
-    paper_title: string;
-    institution?: string;
-    course?: string;
-    year?: string;
-  };
-  exam_paper_downloaded: {
-    paper_id: string;
-    paper_title: string;
-  };
-  exam_paper_shared: {
-    paper_id: string;
-    paper_title: string;
-    share_method?: string;
-  };
-
-  // Question Events
-  question_viewed: {
-    question_id: string;
-    question_number: string;
-    paper_id?: string;
-    has_sub_questions: boolean;
-  };
-  question_expanded: {
-    question_id: string;
-    question_number: string;
-    sub_questions_count: number;
-  };
-  answer_viewed: {
-    answer_id: string;
-    question_id: string;
-    answer_index: number;
-  };
-  answer_liked: {
-    answer_id: string;
-    question_id: string;
-  };
-  answer_disliked: {
-    answer_id: string;
-    question_id: string;
-  };
-
-  // Search & Browse Events
-  search_performed: {
-    query: string;
-    filters?: Record<string, any>;
-    results_count: number;
-  };
-  filter_applied: {
-    filter_type: string;
-    filter_value: string;
-  };
-  institution_viewed: {
-    institution_id: string;
-    institution_name: string;
-  };
-  course_viewed: {
-    course_id: string;
-    course_name: string;
-  };
-
-  // User Engagement
-  page_time_spent: {
-    page: string;
-    duration_seconds: number;
-  };
-  scroll_depth: {
-    page: string;
-    depth_percentage: number;
-  };
-
-  // Auth Events
-  user_signed_up: {
-    method: string;
-  };
-  user_logged_in: {
-    method: string;
-  };
-  user_logged_out: Record<string, never>;
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      analytics.identify(user.id, {
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        created_at: user.createdAt,
+      });
+    } else {
+      // Reset analytics on logout
+      analytics.reset();
+    }
+  }, [isAuthenticated, user]);
 }
 
-export function useAnalytics() {
-  const trackEvent = useCallback(<K extends keyof AnalyticsEvent>(
-    eventName: K,
-    properties: AnalyticsEvent[K]
-  ) => {
-    if (typeof window !== 'undefined' && posthog) {
-      posthog.capture(eventName, properties);
-    }
-  }, []);
+/**
+ * Hook to track component mount/unmount
+ */
+export function useAnalyticsPageView(pageName: string, metadata?: Record<string, any>) {
+  useEffect(() => {
+    analytics.track('page_viewed', {
+      page_name: pageName,
+      ...metadata,
+    });
+  }, [pageName, metadata]);
+}
 
-  const identifyUser = useCallback((userId: string, traits?: Record<string, any>) => {
-    if (typeof window !== 'undefined' && posthog) {
-      posthog.identify(userId, traits);
-    }
-  }, []);
-
-  const resetUser = useCallback(() => {
-    if (typeof window !== 'undefined' && posthog) {
-      posthog.reset();
-    }
-  }, []);
+/**
+ * Hook to track feature usage
+ */
+export function useAnalyticsFeature(featureName: string) {
+  useEffect(() => {
+    analytics.track('feature_mounted', {
+      feature_name: featureName,
+    });
+  }, [featureName]);
 
   return {
-    trackEvent,
-    identifyUser,
-    resetUser,
+    trackFeatureUse: (action: string, metadata?: Record<string, any>) => {
+      analytics.track('feature_action', {
+        feature_name: featureName,
+        action,
+        ...metadata,
+      });
+    },
   };
 }

@@ -1,4 +1,4 @@
-# Documentation Index - Profile Page Implementation
+# Documentation Index - Exampapel Frontend
 
 ## 📚 Complete Documentation Guide
 
@@ -7,6 +7,13 @@ This index helps you find the right documentation for your needs.
 ---
 
 ## 🎯 Quick Navigation
+
+### I want to set up analytics
+👉 Start here: **docs/ANALYTICS_QUICK_START.md**
+- Get PostHog API key
+- Configure environment
+- Start tracking events
+- View analytics
 
 ### I'm a Common User - How do I update my profile?
 👉 Start here: **COMMON_USER_PROFILE_UPDATE_GUIDE.md**
@@ -39,6 +46,14 @@ This index helps you find the right documentation for your needs.
 ---
 
 ## 📖 Documentation by Category
+
+### Setup & Configuration
+| Document | Purpose | Audience |
+|----------|---------|----------|
+| **docs/ANALYTICS_QUICK_START.md** | PostHog analytics setup | Developers |
+| **docs/ANALYTICS_SETUP.md** | Complete analytics guide | Developers |
+| **BACKEND_CONNECTION_GUIDE.md** | Backend integration | Developers |
+| **DEVELOPMENT.md** | Development setup | Developers |
 
 ### User Guides (For End Users)
 | Document | Purpose | Audience |

@@ -7,6 +7,7 @@ import { Loader2, Calendar, Clock, Building2, BookOpen, Tag, ArrowLeft, Download
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { QuestionCard } from './question-card';
+import { PDFPreviewModal } from '@/components/pdf/pdf-preview-modal';
 
 
 interface ExamPaperDetailsContentProps {
@@ -23,6 +24,7 @@ export function ExamPaperDetailsContent({ slug }: ExamPaperDetailsContentProps) 
   const [isLoadingRelated, setIsLoadingRelated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [questionsError, setQuestionsError] = useState<string | null>(null);
+  const [showPDFModal, setShowPDFModal] = useState(false);
 
   useEffect(() => {
     async function fetchPaper() {
@@ -300,7 +302,12 @@ export function ExamPaperDetailsContent({ slug }: ExamPaperDetailsContentProps) 
                 <Share2 className="h-4 w-4 mr-2" />
                 Share
               </Button>
-              <Button variant="outline" size="sm" className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:text-white">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="bg-white/10 text-white border-white/30 hover:bg-white/20 hover:text-white"
+                onClick={() => setShowPDFModal(true)}
+              >
                 <Download className="h-4 w-4 mr-2" />
                 Download
               </Button>
@@ -308,6 +315,13 @@ export function ExamPaperDetailsContent({ slug }: ExamPaperDetailsContentProps) 
           </div>
         </div>
       </div>
+
+      {/* PDF Preview Modal */}
+      <PDFPreviewModal
+        isOpen={showPDFModal}
+        onClose={() => setShowPDFModal(false)}
+        examPaperData={{ ...paper, question_sets: questionSets }}
+      />
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">

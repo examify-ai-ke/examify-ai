@@ -12,7 +12,8 @@ export const PDFExamPaper: React.FC<PDFExamPaperProps> = ({ data }) => {
   return (
     <div
       id="exam-paper-pdf"
-      className="w-full max-w-4xl mx-auto bg-white p-8 md:p-16 shadow-lg print:shadow-none font-serif"
+      className="w-full max-w-4xl mx-auto bg-white p-8 md:p-16 shadow-lg print:shadow-none font-serif relative"
+      style={{ backgroundColor: '#ffffff', color: '#000000' }}
     >
       <header className="text-center border-b-4 border-black pb-4 mb-8">
         {/* Institution Logo */}
@@ -63,11 +64,26 @@ export const PDFExamPaper: React.FC<PDFExamPaperProps> = ({ data }) => {
         </ul>
       </section>
 
-      <main className="space-y-8">
+      <main className="space-y-8 mb-16">
         {data.question_sets.map((questionSet) => (
           <PDFQuestionSet key={questionSet.id} questionSet={questionSet} />
         ))}
       </main>
+
+      {/* Footer with Credits */}
+      <footer className="mt-12 pt-4 border-t-2 border-gray-300 text-center text-sm text-gray-600">
+        <p className="mb-1">
+          Generated from <strong>ExamPapel</strong> - Revise Smarter With Real Exams.
+        </p>
+        <p className="text-xs">
+          <a href="https://exampapel.com" className="text-blue-600 hover:underline">
+            https://exampapel.com
+          </a>
+        </p>
+        <p className="text-xs mt-2 text-gray-500">
+          © {new Date().getFullYear()} ExamPapel. All rights reserved.
+        </p>
+      </footer>
     </div>
   );
 };

@@ -257,8 +257,8 @@ export function ExamPaperDetailsContent({ slug }: ExamPaperDetailsContentProps) 
             {/* Instructions */}
             {paper.instructions && Array.isArray(paper.instructions) && paper.instructions.length > 0 && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-                <h2 className="text-lg font-semibold text-blue-900 mb-3">Instructions</h2>
-                <p className="text-blue-800">
+                <h2 className="text-lg font-semibold text-blue-900 mb-4">Instructions</h2>
+                <ul className="space-y-2">
                   {paper.instructions.map((instruction: any, index: number) => {
                     // Extract instruction text - API returns it in the 'name' field
                     const instructionText = instruction.name ||
@@ -270,13 +270,15 @@ export function ExamPaperDetailsContent({ slug }: ExamPaperDetailsContentProps) 
                     if (!instructionText) return null;
 
                     return (
-                      <span key={instruction.id || index}>
-                        {index > 0 && <span className="mx-2">•</span>}
-                        {instructionText}
-                      </span>
+                      <li key={instruction.id || index} className="flex items-start gap-3 text-blue-800">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-200 text-blue-900 flex items-center justify-center text-xs font-semibold mt-0.5">
+                          {index + 1}
+                        </span>
+                        <span className="flex-1 leading-relaxed">{instructionText}</span>
+                      </li>
                     );
                   })}
-                </p>
+                </ul>
               </div>
             )}
 

@@ -17,8 +17,10 @@ export function ExamPaperDetailsContent({ slug }: ExamPaperDetailsContentProps) 
   const router = useRouter();
   const [paper, setPaper] = useState<any>(null);
   const [questionSets, setQuestionSets] = useState<any[]>([]);
+  const [relatedPapers, setRelatedPapers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
+  const [isLoadingRelated, setIsLoadingRelated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [questionsError, setQuestionsError] = useState<string | null>(null);
 
@@ -86,6 +88,37 @@ export function ExamPaperDetailsContent({ slug }: ExamPaperDetailsContentProps) 
 
     fetchPaper();
   }, [slug]);
+
+  // Fetch related exam papers
+  useEffect(() => {
+    async function fetchRelatedPapers() {
+      if (!paper || !paper.institution?.id) return;
+
+      setIsLoadingRelated(true);
+      try {
+        // Fetch papers from the same institution, excluding current paper
+        const result = await publicAPI.examPapers.list({
+          skip: 0,
+          limit: 5,
+          institution_id: paper.institution.id,
+        });
+
+        if (result.data) {
+          // Filter out current paper and limit to 5
+          const filtered = result.data
+            .filter((p: any) => p.id !== paper.id)
+            .slice(0, 5);
+          setRelatedPapers(filtered);
+        }
+      } catch (err) {
+        console.error('Error fetching related papers:', err);
+      } finally {
+        setIsLoadingRelated(false);
+      }
+    }
+
+    fetchRelatedPapers();
+  }, [paper]);
 
   if (isLoading) {
     return (
@@ -220,10 +253,11 @@ export function ExamPaperDetailsContent({ slug }: ExamPaperDetailsContentProps) 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar */}
           <aside className="lg:col-span-1">
-            <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Exam Details</h3>
+            <div className="sticky top-6 space-y-6">
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="font-semibold text-gray-900 mb-4">Exam Details</h3>
 
-              <div className="space-y-4 text-sm">
+                <div className="space-y-4 text-sm">
                 {paper.modules && paper.modules.length > 0 && (
                   <div>
                     <p className="text-gray-500 mb-2">Modules</p>
@@ -249,6 +283,85 @@ export function ExamPaperDetailsContent({ slug }: ExamPaperDetailsContentProps) 
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Related Exam Papers */}
+            {relatedPapers.length > 0 && (
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="font-semibold text-gray-900 mb-4">Related Exam Papers</h3>
+                <div className="space-y-3">
+                  {relatedPapers.map((relatedPaper: any) => (
+                    <button
+                      key={relatedPaper.id}
+                      onClick={() => router.push(`/exampapers/${relatedPaper.slug}`)}
+                      className="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-teal-500 hover:bg-teal-50/50 transition-all group"
+                    >
+                      <p className="text-sm font-medium text-gray-900 group-hover:text-teal-700 line-clamp-2 mb-2">
+                        {relatedPaper.identifying_name || relatedPaper.title?.name || 'Exam Paper'}
+                      </p>
+                      
+                      {/* Badges for Course and Module */}
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {relatedPaper.course?.course_acronym && (
+                          <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 hover:bg-blue-200">
+                            {relatedPaper.course.course_acronym}
+                          </Badge>
+                        )}
+                        {relatedPaper.modules && relatedPaper.modules.length > 0 && relatedPaper.modules[0].unit_code && (
+                          <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 hover:bg-purple-200">
+                            {relatedPaper.modules[0].unit_code}
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Metadata */}
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        {relatedPaper.year_of_exam && (
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {relatedPaper.year_of_exam}
+                          </span>
+                        )}
+                        {relatedPaper.exam_duration && (
+                          <span className="flex items-center gap-1">
+                            • <Clock className="h-3 w-3" />
+                            {relatedPaper.exam_duration}m
+                          </span>
+                        )}
+                        {relatedPaper.questions_count > 0 && (
+                          <span>• {relatedPaper.questions_count} Q</span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                {relatedPapers.length >= 5 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/exampapers?institution_id=${paper.institution?.id}`)}
+                    className="w-full mt-3"
+                  >
+                    View All
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* Loading state for related papers */}
+            {isLoadingRelated && (
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 className="font-semibold text-gray-900 mb-4">Related Exam Papers</h3>
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="p-3 rounded-lg border border-gray-200 animate-pulse">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             </div>
           </aside>
 

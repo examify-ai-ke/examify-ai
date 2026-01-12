@@ -73,7 +73,9 @@ export default function ProfilePage() {
     const [isSaving, setIsSaving] = useState(false);
     const [showPasswordDialog, setShowPasswordDialog] = useState(false);
     const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+    const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
     const autoSaveTimeoutRef = useRef<NodeJS.Timeout>();
+    const fileInputRef = useRef<HTMLInputElement>(null);
     
     const [formData, setFormData] = useState<IUserUpdate>({
         first_name: user?.first_name || '',
@@ -100,6 +102,10 @@ export default function ProfilePage() {
     // Update form data when user changes
     useEffect(() => {
         if (user) {
+            console.log('👤 User data:', user);
+            console.log('🖼️ User image:', user.image);
+            console.log('📸 Avatar URL (path):', user.image?.media?.path);
+            console.log('🔗 Avatar URL (link - double encoded):', user.image?.media?.link);
             setFormData({
                 first_name: user.first_name || '',
                 last_name: user.last_name || '',
@@ -309,6 +315,102 @@ export default function ProfilePage() {
         setIsEditing(false);
     };
 
+    const handleAvatarClick = () => {
+        if (isEditing && fileInputRef.current) {
+            fileInputRef.current.click();
+        }
+    };
+
+    const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            addNotification({
+                type: 'error',
+                title: 'Invalid File',
+                message: 'Please select an image file.',
+            });
+            return;
+        }
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            addNotification({
+                type: 'error',
+                title: 'File Too Large',
+                message: 'Image must be less than 5MB.',
+            });
+            return;
+        }
+
+        setIsUploadingAvatar(true);
+        try {
+            const formData = new FormData();
+            formData.append('image_file', file);
+
+            // Get auth token
+            const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+            
+            // Get base URL
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://fastapi.localhost';
+
+            // Use direct fetch for FormData upload
+            const response = await fetch(`${baseUrl}/api/v1/user/image`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    // Don't set Content-Type - let browser set it with boundary
+                },
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ detail: 'Failed to upload profile picture' }));
+                const errorMessage = typeof errorData.detail === 'string'
+                    ? errorData.detail
+                    : 'Failed to upload profile picture';
+                
+                addNotification({
+                    type: 'error',
+                    title: 'Upload Failed',
+                    message: errorMessage,
+                });
+                return;
+            }
+
+            const data = await response.json();
+            
+            console.log('📤 Upload response:', data);
+            console.log('🖼️ Image data:', data?.data?.image);
+            console.log('📸 New avatar URL:', data?.data?.image?.media?.link);
+            
+            if (data?.data) {
+                // Update the auth store with new user data
+                setUser(data.data);
+                addNotification({
+                    type: 'success',
+                    title: 'Profile Picture Updated',
+                    message: 'Your profile picture has been updated successfully.',
+                });
+            }
+        } catch (err) {
+            console.error('Avatar upload exception:', err);
+            addNotification({
+                type: 'error',
+                title: 'Error',
+                message: 'An unexpected error occurred while uploading your profile picture.',
+            });
+        } finally {
+            setIsUploadingAvatar(false);
+            // Reset file input
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Breadcrumb */}
@@ -363,19 +465,35 @@ export default function ProfilePage() {
                         <CardHeader className="text-center">
                             <div className="relative inline-block">
                                 <Avatar className="h-24 w-24 mx-auto">
-                                    <AvatarImage src={user?.avatar_url} alt={user?.full_name || 'User'} />
+                                    <AvatarImage src={user?.image?.media?.path || undefined} alt={user?.full_name || 'User'} />
                                     <AvatarFallback className="text-2xl bg-blue-100 text-blue-600">
                                         {user?.first_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
                                     </AvatarFallback>
                                 </Avatar>
                                 {isEditing && (
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="absolute bottom-0 right-0 h-8 w-8 rounded-full p-0"
-                                    >
-                                        <Camera className="h-4 w-4" />
-                                    </Button>
+                                    <>
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleAvatarUpload}
+                                            className="hidden"
+                                        />
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            className="absolute bottom-0 right-0 h-8 w-8 rounded-full p-0"
+                                            onClick={handleAvatarClick}
+                                            disabled={isUploadingAvatar}
+                                        >
+                                            {isUploadingAvatar ? (
+                                                <div className="h-4 w-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                                            ) : (
+                                                <Camera className="h-4 w-4" />
+                                            )}
+                                        </Button>
+                                    </>
                                 )}
                             </div>
                             <CardTitle className="mt-4">

@@ -217,7 +217,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     >
                       <Avatar className="h-8 w-8 ring-2 ring-gray-200">
                         <AvatarImage 
-                          src={currentUser?.image?.media?.path || '/default-avatar-profile-picture-male-icon.svg'} 
+                          src={currentUser?.image?.media?.path || '/default-avatar-profile-picture-male-icon.png'} 
                           alt={currentUser?.first_name || 'User'} 
                         />
                         <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
@@ -240,7 +240,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       <div className="flex items-center gap-3">
                         <Avatar className="h-12 w-12">
                           <AvatarImage 
-                            src={currentUser?.image?.media?.path || '/default-avatar-profile-picture-male-icon.svg'} 
+                            src={currentUser?.image?.media?.path || '/default-avatar-profile-picture-male-icon.png'} 
                             alt={currentUser?.first_name || 'User'} 
                           />
                           <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold text-lg">

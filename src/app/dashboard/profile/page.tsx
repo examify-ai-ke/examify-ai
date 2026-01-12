@@ -466,7 +466,7 @@ export default function ProfilePage() {
                             <div className="relative inline-block">
                                 <Avatar className="h-24 w-24 mx-auto">
                                     <AvatarImage 
-                                        src={user?.image?.media?.path || '/default-avatar-profile-picture-male-icon.svg'} 
+                                        src={user?.image?.media?.path || '/default-avatar-profile-picture-male-icon.png'} 
                                         alt={user?.full_name || 'User'} 
                                     />
                                     <AvatarFallback className="text-2xl bg-blue-100 text-blue-600">

@@ -457,20 +457,11 @@ export default function ProfilePage() {
                 <div className="md:col-span-1">
                     <Card>
                         <CardHeader className="text-center">
-                            {/* Debug info */}
-                            {user && (
-                                <div className="text-xs text-left mb-4 p-2 bg-gray-100 rounded">
-                                    <div>Image object: {JSON.stringify(user.image, null, 2)}</div>
-                                    <div>Avatar URL: {user.image?.media?.link || 'NOT FOUND'}</div>
-                                </div>
-                            )}
                             <div className="relative inline-block">
                                 <Avatar className="h-24 w-24 mx-auto">
                                     <AvatarImage 
-                                        src={user?.image?.media?.path || undefined} 
+                                        src={user?.image?.media?.path || '/default-avatar-profile-picture-male-icon.svg'} 
                                         alt={user?.full_name || 'User'}
-                                        onLoad={() => console.log('✅ Avatar image loaded')}
-                                        onError={(e) => console.log('❌ Avatar image error:', e)}
                                     />
                                     <AvatarFallback className="text-2xl bg-blue-100 text-blue-600">
                                         {user?.first_name?.charAt(0) || user?.email?.charAt(0) || 'U'}

@@ -103,8 +103,11 @@ export function Header({ className, onMenuClick }: HeaderProps) {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user?.image?.url} alt={`${user?.first_name} ${user?.last_name}` || 'User'} />
-                    <AvatarFallback>
+                    <AvatarImage 
+                      src={user?.image?.media?.path || '/default-avatar-profile-picture-male-icon.svg'} 
+                      alt={`${user?.first_name} ${user?.last_name}` || 'User'} 
+                    />
+                    <AvatarFallback className="bg-blue-100 text-blue-600">
                       {user?.first_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
                     </AvatarFallback>
                   </Avatar>

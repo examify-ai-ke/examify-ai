@@ -216,7 +216,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       className="flex items-center gap-2 h-auto py-1.5 px-2 hover:bg-gray-100 rounded-lg"
                     >
                       <Avatar className="h-8 w-8 ring-2 ring-gray-200">
-                        <AvatarImage src={currentUser?.image?.url} alt={currentUser?.first_name || 'User'} />
+                        <AvatarImage 
+                          src={currentUser?.image?.media?.path || '/default-avatar-profile-picture-male-icon.svg'} 
+                          alt={currentUser?.first_name || 'User'} 
+                        />
                         <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
                           {currentUser?.first_name?.charAt(0) || currentUser?.email?.charAt(0) || 'U'}
                         </AvatarFallback>
@@ -236,7 +239,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     <DropdownMenuLabel className="font-normal">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-12 w-12">
-                          <AvatarImage src={currentUser?.image?.url} alt={currentUser?.first_name || 'User'} />
+                          <AvatarImage 
+                            src={currentUser?.image?.media?.path || '/default-avatar-profile-picture-male-icon.svg'} 
+                            alt={currentUser?.first_name || 'User'} 
+                          />
                           <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold text-lg">
                             {currentUser?.first_name?.charAt(0) || currentUser?.email?.charAt(0) || 'U'}
                           </AvatarFallback>

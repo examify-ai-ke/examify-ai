@@ -465,7 +465,10 @@ export default function ProfilePage() {
                         <CardHeader className="text-center">
                             <div className="relative inline-block">
                                 <Avatar className="h-24 w-24 mx-auto">
-                                    <AvatarImage src={user?.image?.media?.path || undefined} alt={user?.full_name || 'User'} />
+                                    <AvatarImage 
+                                        src={user?.image?.media?.path || '/default-avatar-profile-picture-male-icon.svg'} 
+                                        alt={user?.full_name || 'User'} 
+                                    />
                                     <AvatarFallback className="text-2xl bg-blue-100 text-blue-600">
                                         {user?.first_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
                                     </AvatarFallback>

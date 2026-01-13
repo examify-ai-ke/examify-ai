@@ -1,19 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, MessageSquare, ThumbsUp, ThumbsDown, Clock, CircleCheck } from 'lucide-react';
 import EditorRenderer from '@/components/ui/editor-renderer';
 import AnswerRenderer from '@/components/ui/answer-renderer';
-import Editor from '@/components/ui/editor';
 import { publicAPI } from '@/lib/api-public';
 import { useUIStore } from '@/stores/ui';
 import { useAuthStore } from '@/stores/auth';
 import { formatRelativeTime } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import type { OutputData } from '@editorjs/editorjs';
+
+// Dynamically import Editor to avoid SSR issues
+const Editor = dynamic(() => import('@/components/ui/editor'), {
+  ssr: false,
+  loading: () => <div className="text-sm text-gray-500 p-4">Loading editor...</div>
+});
 
 interface QuestionCardProps {
   question: any;
@@ -304,18 +310,49 @@ function AnswerDisplay({ answer, index }: { answer: any; index: number }) {
   const { user, isAuthenticated } = useAuthStore();
   const [likes, setLikes] = useState(answer.likes || 0);
   const [dislikes, setDislikes] = useState(answer.dislikes || 0);
-  const [showReplies, setShowReplies] = useState(false);
   const [isAccepted, setIsAccepted] = useState(answer.is_accepted || false);
+  const [showComments, setShowComments] = useState(false);
   const [showCommentForm, setShowCommentForm] = useState(false);
-  const [showReplyForm, setShowReplyForm] = useState(false);
-  const [editorData, setEditorData] = useState<OutputData>({
+  const [commentEditorData, setCommentEditorData] = useState<OutputData>({
     time: Date.now(),
     blocks: []
   });
   const [submitting, setSubmitting] = useState(false);
+  const [commentCount, setCommentCount] = useState(0);
+  const [comments, setComments] = useState<any[]>([]);
+
+  // Check if comment has content
+  const hasCommentContent = React.useMemo(() => {
+    return commentEditorData.blocks && commentEditorData.blocks.length > 0;
+  }, [commentEditorData]);
 
   // Check if user is admin or manager
   const canAcceptAnswer = user?.role === 'admin' || user?.role === 'manager';
+
+  // Fetch comment count and comments on mount
+  React.useEffect(() => {
+    const fetchComments = async () => {
+      try {
+        // Fetch comment count
+        const countResponse = await publicAPI.comments.getCountByAnswerId(answer.id);
+        if (!countResponse.error && typeof countResponse.data === 'number') {
+          setCommentCount(countResponse.data);
+        }
+
+        // Fetch comments if showing comments section
+        if (showComments) {
+          const commentsResponse = await publicAPI.comments.getByAnswerId(answer.id);
+          if (!commentsResponse.error && Array.isArray(commentsResponse.data)) {
+            setComments(commentsResponse.data);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching comments:', error);
+      }
+    };
+    
+    fetchComments();
+  }, [answer.id, showComments]);
 
   const handleLike = async () => {
     if (!isAuthenticated) {
@@ -428,37 +465,23 @@ function AnswerDisplay({ answer, index }: { answer: any; index: number }) {
       });
       return;
     }
-    // Close reply form if open
-    setShowReplyForm(false);
+    // Toggle comment form
     setShowCommentForm(!showCommentForm);
-    // Reset editor data
-    setEditorData({
-      time: Date.now(),
-      blocks: []
-    });
+    if (!showCommentForm) {
+      // Opening comment form - reset editor
+      setCommentEditorData({
+        time: Date.now(),
+        blocks: []
+      });
+    }
   };
 
-  const handleReply = () => {
-    if (!isAuthenticated) {
-      addNotification({
-        type: 'error',
-        title: 'Authentication Required',
-        message: 'Please log in to reply to answers.'
-      });
-      return;
-    }
-    // Close comment form if open
-    setShowCommentForm(false);
-    setShowReplyForm(!showReplyForm);
-    // Reset editor data
-    setEditorData({
-      time: Date.now(),
-      blocks: []
-    });
+  const handleToggleComments = () => {
+    setShowComments(!showComments);
   };
 
   const handleSubmitComment = async () => {
-    if (!editorData.blocks || editorData.blocks.length === 0) {
+    if (!commentEditorData.blocks || commentEditorData.blocks.length === 0) {
       addNotification({
         type: 'error',
         title: 'Empty Comment',
@@ -471,7 +494,7 @@ function AnswerDisplay({ answer, index }: { answer: any; index: number }) {
     
     try {
       const commentData = {
-        text: editorData,
+        text: commentEditorData,
         answer_id: answer.id
       };
 
@@ -488,12 +511,11 @@ function AnswerDisplay({ answer, index }: { answer: any; index: number }) {
       });
       
       // Reset and hide form
-      setEditorData({
+      setCommentEditorData({
         time: Date.now(),
         blocks: []
       });
       setShowCommentForm(false);
-      setShowReplies(true);
       
       // Refresh the page to show the new comment
       window.location.reload();
@@ -508,60 +530,6 @@ function AnswerDisplay({ answer, index }: { answer: any; index: number }) {
       setSubmitting(false);
     }
   };
-
-  const handleSubmitReply = async () => {
-    if (!editorData.blocks || editorData.blocks.length === 0) {
-      addNotification({
-        type: 'error',
-        title: 'Empty Reply',
-        message: 'Please enter a reply before submitting.'
-      });
-      return;
-    }
-
-    setSubmitting(true);
-    
-    try {
-      const replyData = {
-        text: editorData,
-        question_id: answer.question_id
-      };
-
-      const response = await publicAPI.answers.addReply(answer.id, replyData);
-      
-      if (response.error) {
-        throw new Error('Failed to add reply');
-      }
-      
-      addNotification({
-        type: 'success',
-        title: 'Reply Added',
-        message: 'Your reply has been added successfully.'
-      });
-      
-      // Reset and hide form
-      setEditorData({
-        time: Date.now(),
-        blocks: []
-      });
-      setShowReplyForm(false);
-      setShowReplies(true);
-      
-      // Refresh the page to show the new reply
-      window.location.reload();
-    } catch (error) {
-      console.error('Error adding reply:', error);
-      addNotification({
-        type: 'error',
-        title: 'Error',
-        message: 'Failed to add reply. Please try again.'
-      });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const hasReplies = answer.children && answer.children.length > 0;
   
   // Get author display name (prefer last name)
   const getAuthorName = () => {
@@ -685,174 +653,147 @@ function AnswerDisplay({ answer, index }: { answer: any; index: number }) {
               <span>{dislikes}</span>
             </button>
 
-            {/* Comment Button */}
+            {/* Comments Button - Shows count */}
             <button
-              onClick={handleComment}
-              className={`flex items-center gap-1 transition-colors ${showCommentForm ? 'text-blue-600' : 'hover:text-blue-600'}`}
-              title="Comment on this answer"
+              onClick={handleToggleComments}
+              className={`flex items-center gap-1 transition-colors ${showComments ? 'text-blue-600' : 'hover:text-blue-600'}`}
+              title="View comments"
             >
               <MessageSquare className="h-3.5 w-3.5" />
-              <span>Comment</span>
-            </button>
-
-            {/* Reply Button */}
-            <button
-              onClick={handleReply}
-              className={`flex items-center gap-1 transition-colors ${showReplyForm ? 'text-purple-600' : 'hover:text-purple-600'}`}
-              title="Reply to this answer"
-            >
-              <MessageSquare className="h-3.5 w-3.5" />
-              <span>Reply ({hasReplies ? answer.children.length : 0})</span>
+              <span>Comments ({commentCount})</span>
             </button>
           </div>
+        </div>
+
+        {/* Add Comment Button - Always visible below footer */}
+        <div className="mt-3 pt-3 border-t border-green-200">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleComment}
+            className={`text-xs ${showCommentForm ? 'bg-blue-100 border-blue-400 text-blue-800' : 'bg-blue-50 border-blue-300 text-blue-700 hover:bg-blue-100 hover:border-blue-400'}`}
+          >
+            <MessageSquare className="h-3 w-3 mr-1" />
+            {showCommentForm ? 'Cancel' : 'Add Comment'}
+          </Button>
         </div>
       </div>
 
-      {/* Comment Form */}
+      {/* Comment Form - Shows when Add Comment is clicked */}
       {showCommentForm && (
         <div className="px-4 pb-3 border-t border-blue-200 bg-blue-50/30">
-          <div className="mt-3 space-y-2">
-            <div className="flex items-center gap-2 mb-2">
-              <MessageSquare className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-900">Add a Comment</span>
-              <span className="text-xs text-blue-600">(Comments are for discussion and questions)</span>
-            </div>
-            <div className="border border-blue-200 rounded-md bg-white">
-              <Editor
-                data={editorData}
-                onChange={setEditorData}
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setEditorData({
-                    time: Date.now(),
-                    blocks: []
-                  });
-                  setShowCommentForm(false);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleSubmitComment}
-                disabled={submitting || !editorData.blocks || editorData.blocks.length === 0}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                {submitting ? 'Posting...' : 'Post Comment'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Reply Form */}
-      {showReplyForm && (
-        <div className="px-4 pb-3 border-t border-purple-200 bg-purple-50/30">
-          <div className="mt-3 space-y-2">
-            <div className="flex items-center gap-2 mb-2">
-              <MessageSquare className="h-4 w-4 text-purple-600" />
-              <span className="text-sm font-medium text-purple-900">Add a Reply</span>
-              <span className="text-xs text-purple-600">(Replies are direct responses to this answer)</span>
-            </div>
-            <div className="border border-purple-200 rounded-md bg-white">
-              <Editor
-                data={editorData}
-                onChange={setEditorData}
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setEditorData({
-                    time: Date.now(),
-                    blocks: []
-                  });
-                  setShowReplyForm(false);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleSubmitReply}
-                disabled={submitting || !editorData.blocks || editorData.blocks.length === 0}
-                className="bg-purple-600 hover:bg-purple-700"
-              >
-                {submitting ? 'Posting...' : 'Post Reply'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Replies Section */}
-      {hasReplies && showReplies && (
-        <div className="px-4 pb-3 border-t border-green-200 bg-white/50">
-          <div className="mt-3 space-y-3">
-            {answer.children.map((reply: any, replyIndex: number) => (
-              <div
-                key={reply.id || replyIndex}
-                className="py-3 border-b border-gray-100 last:border-b-0"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <CircleCheck className="h-4 w-4 text-gray-400" />
-                  <span className="text-xs font-medium text-gray-600">Reply {replyIndex + 1}</span>
-                  {reply.reviewed && (
-                    <Badge variant="outline" className="text-xs border-green-600 text-green-700">
-                      ✓ Verified
-                    </Badge>
-                  )}
-                </div>
-                
-                <div className="prose prose-sm max-w-none text-gray-800 mb-2 ml-6">
-                  {reply.text && <EditorRenderer data={reply.text} />}
-                </div>
-                
-                <div className="flex items-center justify-between text-xs text-gray-500 ml-6">
-                  <div className="flex items-center gap-2">
-                    <img
-                      src={reply.created_by?.profile_image || '/default-avatar-profile-picture-male-icon.svg'}
-                      alt={reply.created_by?.last_name || reply.created_by?.first_name || 'Anonymous'}
-                      className="w-5 h-5 rounded-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/default-avatar-profile-picture-male-icon.svg';
-                      }}
-                    />
-                    <span>
-                      {reply.created_by?.last_name || reply.created_by?.first_name || reply.created_by?.name || 'Anonymous'}
-                    </span>
-                    {reply.created_at && (
-                      <>
-                        <span className="text-gray-400">•</span>
-                        <span>{getTimeAgo(reply.created_at)}</span>
-                      </>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="flex items-center gap-1">
-                      <ThumbsUp className="h-3 w-3" />
-                      {reply.likes || 0}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <ThumbsDown className="h-3 w-3" />
-                      {reply.dislikes || 0}
-                    </span>
-                  </div>
-                </div>
+          <div className="mt-3 p-3 border border-blue-200 rounded-md bg-white">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-2">
+                <MessageSquare className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-medium text-blue-900">Add Your Comment</span>
               </div>
-            ))}
+              <div className="border border-blue-200 rounded-md bg-white">
+                <Editor
+                  key={`comment-editor-${answer.id}`}
+                  data={commentEditorData}
+                  onChange={setCommentEditorData}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setCommentEditorData({
+                      time: Date.now(),
+                      blocks: []
+                    });
+                    setShowCommentForm(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleSubmitComment}
+                  disabled={submitting || !hasCommentContent}
+                  className={`
+                    ${submitting || !hasCommentContent
+                      ? 'bg-gray-400 cursor-not-allowed opacity-50'
+                      : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
+                    }
+                  `}
+                  title={
+                    !hasCommentContent
+                      ? 'Please enter some text to post a comment'
+                      : 'Click to post your comment'
+                  }
+                >
+                  {submitting ? 'Posting...' : 'Post Comment'}
+                </Button>
+              </div>
+            </div>
           </div>
+        </div>
+      )}
+
+      {/* Comments Section - Shows when Comments button is clicked */}
+      {showComments && (
+        <div className="px-4 pb-3 border-t border-blue-200 bg-blue-50/30">
+          {/* Existing Comments */}
+          {comments.length > 0 ? (
+            <div className="mt-3 space-y-3">
+              {comments.map((comment: any, commentIndex: number) => (
+                <div
+                  key={comment.id || commentIndex}
+                  className="py-3 border-b border-blue-100 last:border-b-0"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <MessageSquare className="h-4 w-4 text-blue-400" />
+                    <span className="text-xs font-medium text-gray-600">Comment {commentIndex + 1}</span>
+                  </div>
+                  
+                  <div className="prose prose-sm max-w-none text-gray-800 mb-2 ml-6">
+                    {comment.text && <EditorRenderer data={comment.text} />}
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-xs text-gray-500 ml-6">
+                    <div className="flex items-center gap-2">
+                      <img
+                        src={comment.created_by?.profile_image || '/default-avatar-profile-picture-male-icon.svg'}
+                        alt={comment.created_by?.last_name || comment.created_by?.first_name || 'Anonymous'}
+                        className="w-5 h-5 rounded-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/default-avatar-profile-picture-male-icon.svg';
+                        }}
+                      />
+                      <span>
+                        {comment.created_by?.last_name || comment.created_by?.first_name || comment.created_by?.name || 'Anonymous'}
+                      </span>
+                      {comment.created_at && (
+                        <>
+                          <span className="text-gray-400">•</span>
+                          <span>{getTimeAgo(comment.created_at)}</span>
+                        </>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-1">
+                        <ThumbsUp className="h-3 w-3" />
+                        {comment.likes || 0}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <ThumbsDown className="h-3 w-3" />
+                        {comment.dislikes || 0}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-3 text-center text-sm text-gray-500 italic py-4">
+              No comments yet. Be the first to comment!
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -25,7 +25,6 @@ const Editor: React.FC<EditorProps> = ({ data, onChange, holder: externalHolder,
   const isInitializing = useRef(false);
   const isMounted = useRef(true);
   const isDestroying = useRef(false);
-  const cleanupTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // Generate a stable holder ID once on mount
   const [holder] = useState(() =>
@@ -34,24 +33,16 @@ const Editor: React.FC<EditorProps> = ({ data, onChange, holder: externalHolder,
 
   const initialDataRef = useRef(data);
 
-  // Update editor data when prop changes
-  useEffect(() => {
-    if (ref.current && isReady && data !== initialDataRef.current) {
-      try {
-        ref.current.render(data);
-        initialDataRef.current = data;
-      } catch (error) {
-        console.warn('Error updating editor data:', error);
-      }
-    }
-  }, [data, isReady]);
+  // Don't update editor data from props after initialization
+  // This prevents clearing the editor while typing
 
   useEffect(() => {
+    // Set mounted flag at the start
     isMounted.current = true;
+    isDestroying.current = false;
 
     // Prevent multiple initializations
     if (isInitializing.current) {
-      console.log('Editor already initializing, skipping...');
       return;
     }
 
@@ -65,7 +56,6 @@ const Editor: React.FC<EditorProps> = ({ data, onChange, holder: externalHolder,
 
       // Clean up any existing editor instance
       if (ref.current) {
-        console.log('Cleaning up existing editor instance');
         try {
           if (ref.current.destroy) {
             ref.current.destroy();
@@ -77,7 +67,6 @@ const Editor: React.FC<EditorProps> = ({ data, onChange, holder: externalHolder,
       }
 
       isInitializing.current = true;
-      console.log('Initializing Editor.js with data:', data);
 
       try {
         const editor = new EditorJS({
@@ -253,31 +242,24 @@ const Editor: React.FC<EditorProps> = ({ data, onChange, holder: externalHolder,
               },
             },
           },
-          onChange(api) {
+          onChange: async (api) => {
             // Don't process changes if we're destroying or unmounted
-            if (isDestroying.current || !isMounted.current) return;
-
-            // Debounce the onChange to prevent excessive calls
-            if (cleanupTimeout.current) {
-              clearTimeout(cleanupTimeout.current);
+            if (isDestroying.current || !isMounted.current) {
+              return;
             }
 
-            cleanupTimeout.current = setTimeout(async () => {
-              // Double check we're still mounted and not destroying
-              if (!isMounted.current || isDestroying.current) return;
-
-              try {
-                const data = await api.saver.save();
-                if (isMounted.current && !isDestroying.current) {
-                  onChange(data);
-                }
-              } catch (error) {
-                // Silently ignore errors during cleanup
-                if (!isDestroying.current) {
-                  console.error('Error saving editor data:', error);
-                }
+            try {
+              const data = await api.saver.save();
+              
+              if (isMounted.current && !isDestroying.current) {
+                onChange(data);
               }
-            }, 300); // 300ms debounce
+            } catch (error) {
+              // Silently ignore errors during cleanup
+              if (!isDestroying.current) {
+                console.error('Error saving editor data:', error);
+              }
+            }
           },
           minHeight: 50,
         });
@@ -318,12 +300,8 @@ const Editor: React.FC<EditorProps> = ({ data, onChange, holder: externalHolder,
       isInitializing.current = false;
       setIsReady(false);
 
-      // Clear all timeouts immediately
+      // Clear initialization timeout
       clearTimeout(timeoutId);
-      if (cleanupTimeout.current) {
-        clearTimeout(cleanupTimeout.current);
-        cleanupTimeout.current = null;
-      }
 
       // Immediate synchronous cleanup
       if (ref.current) {

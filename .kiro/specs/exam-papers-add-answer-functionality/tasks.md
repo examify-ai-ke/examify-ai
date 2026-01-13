@@ -85,7 +85,7 @@ This implementation plan breaks down the work into discrete tasks for adding ans
   - Ensure prop is passed through the component tree correctly
   - _Requirements: 3.3, 3.4_
 
-- [ ] 6. Update ExamPaperEditPage to provide onAnswersChange callback
+- [x] 6. Update ExamPaperEditPage to provide onAnswersChange callback
   - Pass `onAnswersChange={reloadQuestionSets}` to QuestionSetList component
   - Verify reloadQuestionSets function properly reloads question data with answers
   - Test that the callback chain works from edit page to question cards

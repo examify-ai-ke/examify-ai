@@ -64,9 +64,25 @@ const EditorRenderer: React.FC<EditorRendererProps> = ({ data, className = '' })
           : 'list-disc list-inside mb-4 space-y-1';
         return (
           <ListTag key={key} className={listClass}>
-            {block.data.items.map((item: string, i: number) => (
-              <li key={i} dangerouslySetInnerHTML={{ __html: item }} />
-            ))}
+            {block.data.items.map((item: any, i: number) => {
+              // Handle different item formats
+              let content = '';
+              
+              if (typeof item === 'string') {
+                // Simple string format
+                content = item;
+              } else if (item && typeof item === 'object') {
+                // Object format - try different possible properties
+                content = item.content || item.text || item.value || JSON.stringify(item);
+              } else {
+                // Fallback for unexpected formats
+                content = String(item);
+              }
+              
+              return (
+                <li key={i} dangerouslySetInnerHTML={{ __html: content }} />
+              );
+            })}
           </ListTag>
         );
 
@@ -80,6 +96,26 @@ const EditorRenderer: React.FC<EditorRendererProps> = ({ data, className = '' })
               </cite>
             )}
           </blockquote>
+        );
+
+      case 'checklist':
+        return (
+          <div key={key} className="space-y-2 mb-4">
+            {block.data.items?.map((item: any, idx: number) => (
+              <div key={idx} className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  checked={item.checked}
+                  readOnly
+                  className="mt-1 h-4 w-4 rounded border-gray-300"
+                />
+                <span 
+                  className={item.checked ? 'line-through text-gray-500' : ''}
+                  dangerouslySetInnerHTML={{ __html: item.text }}
+                />
+              </div>
+            ))}
+          </div>
         );
 
       case 'code':
@@ -168,7 +204,7 @@ const EditorRenderer: React.FC<EditorRendererProps> = ({ data, className = '' })
               <iframe
                 src={block.data.embed}
                 className="absolute top-0 left-0 w-full h-full rounded"
-                frameBorder="0"
+                style={{ border: 0 }}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />

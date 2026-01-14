@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Menu, User, LogOut, Settings } from 'lucide-react';
+import { Menu, User, LogOut, Settings, Bell } from 'lucide-react';
 import { APP_CONFIG } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
@@ -99,20 +99,27 @@ export function Header({ className, onMenuClick }: HeaderProps) {
         {/* User menu */}
         <div className="flex items-center space-x-4">
           {isAuthenticated ? (
-            <DropdownMenu open={isProfileOpen} onOpenChange={setIsProfileOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage 
-                      src={user?.image?.media?.link || '/default-avatar-profile-picture-male-icon.png'} 
-                      alt={`${user?.first_name} ${user?.last_name}` || 'User'} 
-                    />
-                    <AvatarFallback className="bg-blue-100 text-blue-600">
-                      {user?.first_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mr-1 text-gray-500 hover:text-gray-900"
+                asChild
+              >
+                <Link href="/dashboard/notifications">
+                  <Bell className="h-5 w-5" />
+                  <span className="sr-only">Notifications</span>
+                </Link>
+              </Button>
+              <span className="hidden md:inline-block text-sm font-medium text-gray-700 mr-2">
+                Hi, {user?.last_name || user?.first_name || 'User'}
+              </span>
+              <DropdownMenu open={isProfileOpen} onOpenChange={setIsProfileOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0">
+                    <UserAvatar user={user} size="sm" />
+                  </Button>
+                </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
@@ -147,6 +154,7 @@ export function Header({ className, onMenuClick }: HeaderProps) {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            </>
           ) : (
             <div className="flex items-center space-x-2">
               <Button variant="ghost" asChild>

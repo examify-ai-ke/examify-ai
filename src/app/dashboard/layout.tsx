@@ -7,7 +7,7 @@ import { Sidebar } from '@/components/layout/sidebar';
 import { LoadingPage } from '@/components/ui/loading-spinner';
 import { SearchBar } from '@/components/ui/search-bar';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
@@ -215,15 +215,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       variant="ghost" 
                       className="flex items-center gap-2 h-auto py-1.5 px-2 hover:bg-gray-100 rounded-lg"
                     >
-                      <Avatar className="h-8 w-8 ring-2 ring-gray-200">
-                        <AvatarImage 
-                          src={currentUser?.image?.media?.path || '/default-avatar-profile-picture-male-icon.png'} 
-                          alt={currentUser?.first_name || 'User'} 
-                        />
-                        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold">
-                          {currentUser?.first_name?.charAt(0) || currentUser?.email?.charAt(0) || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
+                      <UserAvatar 
+                        user={currentUser} 
+                        size="sm" 
+                        className="h-8 w-8 ring-2 ring-gray-200" 
+                      />
                       <div className="hidden lg:block text-left">
                         <div className="text-sm font-medium text-gray-900 leading-tight">
                           {currentUser?.first_name} {currentUser?.last_name}
@@ -238,15 +234,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   <DropdownMenuContent className="w-64" align="end" forceMount>
                     <DropdownMenuLabel className="font-normal">
                       <div className="flex items-center gap-3">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage 
-                            src={currentUser?.image?.media?.path || '/default-avatar-profile-picture-male-icon.png'} 
-                            alt={currentUser?.first_name || 'User'} 
-                          />
-                          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold text-lg">
-                            {currentUser?.first_name?.charAt(0) || currentUser?.email?.charAt(0) || 'U'}
-                          </AvatarFallback>
-                        </Avatar>
+                        <UserAvatar 
+                          user={currentUser} 
+                          className="h-12 w-12"
+                        />
                         <div className="flex flex-col space-y-1">
                           <p className="text-sm font-semibold leading-none">
                             {currentUser?.first_name} {currentUser?.last_name}

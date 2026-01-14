@@ -44,7 +44,7 @@ function isTokenExpired(token: string): boolean {
   return false;
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Get token and user role from cookies

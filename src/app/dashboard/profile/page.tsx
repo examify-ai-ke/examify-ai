@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { Badge } from '@/components/ui/badge';
 import { DashboardBreadcrumb } from '@/components/ui/breadcrumb';
 import {
@@ -464,15 +464,7 @@ export default function ProfilePage() {
                     <Card>
                         <CardHeader className="text-center">
                             <div className="relative inline-block">
-                                <Avatar className="h-24 w-24 mx-auto">
-                                    <AvatarImage 
-                                        src={user?.image?.media?.link || '/default-avatar-profile-picture-male-icon.png'} 
-                                        alt={user?.first_name || 'User'} 
-                                    />
-                                    <AvatarFallback className="text-2xl bg-blue-100 text-blue-600">
-                                        {user?.first_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
-                                    </AvatarFallback>
-                                </Avatar>
+                                <UserAvatar user={user} size="xl" className="mx-auto" />
                                 {isEditing && (
                                     <>
                                         <input

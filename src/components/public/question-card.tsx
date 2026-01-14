@@ -35,54 +35,27 @@ const Editor = dynamic(() => import('@/components/ui/editor'), {
 interface QuestionCardProps {
   question: any;
   questionNumber: string | number;
+  isOpen?: boolean;
+  onToggle?: () => void;
 }
 
-// AnswerData type for AnswerRenderer component
-interface AnswerData {
-  id: string;
-  text: any; // Editor.js OutputData
-  is_accepted?: boolean;
-  is_verified?: boolean;
-  upvotes_count?: number;
-  downvotes_count?: number;
-  created_at?: string;
-  updated_at?: string;
-  created_by?: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    email: string;
-    profile_image?: string;
-  };
-  question_id?: string;
-  parent_answer_id?: string;
-  replies?: AnswerData[];
-  replies_count?: number;
-}
+// ... existing code ...
 
-// Utility function to map API answer format to AnswerRenderer format
-const mapAnswerData = (answer: any): AnswerData => {
-  return {
-    id: answer.id,
-    text: answer.text,
-    is_accepted: answer.is_accepted,
-    is_verified: answer.reviewed, // Map 'reviewed' to 'is_verified'
-    upvotes_count: answer.likes, // Map 'likes' to 'upvotes_count'
-    downvotes_count: answer.dislikes, // Map 'dislikes' to 'downvotes_count'
-    created_at: answer.created_at,
-    updated_at: answer.updated_at,
-    created_by: answer.created_by,
-    question_id: answer.question_id,
-    parent_answer_id: answer.parent_answer_id,
-    replies: answer.children?.map(mapAnswerData), // Recursively map 'children' to 'replies'
-    replies_count: answer.children?.length || 0, // Calculate replies_count from children array length
-  };
-};
-
-export function QuestionCard({ question, questionNumber }: QuestionCardProps) {
+export function QuestionCard({ question, questionNumber, isOpen, onToggle }: QuestionCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [showMainAnswer, setShowMainAnswer] = useState(false);
   const [showSubAnswers, setShowSubAnswers] = useState<{ [key: string]: boolean }>({});
+  
+  // Use prop if provided, otherwise default to local state (backward compatibility)
+  const [localShowMainAnswer, setLocalShowMainAnswer] = useState(false);
+  
+  const showMainAnswer = isOpen !== undefined ? isOpen : localShowMainAnswer;
+  const toggleMainAnswer = () => {
+    if (onToggle) {
+      onToggle();
+    } else {
+      setLocalShowMainAnswer(!localShowMainAnswer);
+    }
+  };
 
   const hasSubQuestions = question.children && question.children.length > 0;
   const hasMainAnswer = question.answers && question.answers.length > 0;
@@ -206,7 +179,7 @@ export function QuestionCard({ question, questionNumber }: QuestionCardProps) {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setShowMainAnswer(!showMainAnswer);
+                        toggleMainAnswer();
                       }}
                       className="text-xs"
                     >

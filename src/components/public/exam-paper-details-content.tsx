@@ -27,6 +27,11 @@ export function ExamPaperDetailsContent({ slug }: ExamPaperDetailsContentProps) 
   const [questionsError, setQuestionsError] = useState<string | null>(null);
   const [showPDFModal, setShowPDFModal] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
+
+  const toggleQuestion = (questionId: string) => {
+    setActiveQuestionId(prevId => prevId === questionId ? null : questionId);
+  };
 
   useEffect(() => {
     async function fetchPaper() {
@@ -554,6 +559,8 @@ export function ExamPaperDetailsContent({ slug }: ExamPaperDetailsContentProps) 
                                 key={question.id || qIndex}
                                 question={question}
                                 questionNumber={question.question_number || (qIndex + 1)}
+                                isOpen={activeQuestionId === question.id}
+                                onToggle={() => toggleQuestion(question.id)}
                               />
                             ))}
                         </div>

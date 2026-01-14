@@ -1419,6 +1419,10 @@ export const publicAPI = {
          * Create a reply to a comment
          * Requires authentication
          */
+        /**
+         * Create a reply to a comment
+         * Requires authentication
+         */
         async createReply(replyData: { text: any; parent_id: string; answer_id: string }) {
             try {
                 // The endpoint is /api/v1/comment/reply/{parent_id}
@@ -1433,8 +1437,13 @@ export const publicAPI = {
                     }
                 });
 
+                // Extract data from nested response structure
+                const data = response.data && typeof response.data === 'object' && 'data' in response.data
+                    ? (response.data as any).data
+                    : response.data;
+
                 return {
-                    data: response.data,
+                    data: data,
                     error: response.error,
                 };
             } catch (error) {
@@ -1446,36 +1455,6 @@ export const publicAPI = {
             }
         },
 
-        /**
-         * Create a reply to a comment
-         * Requires authentication
-         */
-        async createReply(parentId: string, replyData: { text: any; answer_id: string }) {
-            try {
-                const response = await api.POST('/api/v1/comment/reply/{parent_id}', {
-                    params: {
-                        path: { parent_id: parentId }
-                    },
-                    body: replyData
-                });
-
-                // Extract data from nested response structure
-                const data = response.data && typeof response.data === 'object' && 'data' in response.data
-                    ? (response.data as any).data
-                    : response.data;
-
-                return {
-                    data: data || null,
-                    error: response.error,
-                };
-            } catch (error) {
-                console.error('Error creating comment reply:', error);
-                return {
-                    data: null,
-                    error: error as any,
-                };
-            }
-        },
 
         /**
          * Toggle comment like

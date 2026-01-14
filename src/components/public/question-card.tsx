@@ -5,6 +5,16 @@ import dynamic from 'next/dynamic';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ChevronDown, MessageSquare, ThumbsUp, ThumbsDown, Clock, CircleCheck, Loader2, Reply, Edit, Trash2 } from 'lucide-react';
 import EditorRenderer from '@/components/ui/editor-renderer';
 import AnswerRenderer from '@/components/ui/answer-renderer';
@@ -697,8 +707,16 @@ function AnswerDisplay({ answer, index }: { answer: any; index: number }) {
       }
   };
 
-  const handleDeleteComment = async (comment: any) => {
-      if (!confirm('Are you sure you want to delete this comment?')) return;
+  const [commentToDelete, setCommentToDelete] = useState<any>(null);
+
+  const handleDeleteComment = (comment: any) => {
+      setCommentToDelete(comment);
+  };
+
+  const handleConfirmDelete = async () => {
+      if (!commentToDelete) return;
+      
+      const comment = commentToDelete;
 
       try {
           let response;
@@ -718,23 +736,14 @@ function AnswerDisplay({ answer, index }: { answer: any; index: number }) {
               message: 'Comment deleted successfully'
           });
 
-          // Update local state - remove the comment and any children
-          // For a robust removal, we should remove any comment whose ID matches or whose ancestor path includes it.
-          // Since we have a flat list and parent_id, we can remove the item and any item that points to it as parent.
-          // But wait, recursively removing children from a flat list requires multiple passes or a recursive check.
-          // For now, let's remove the item itself. The UI tree builder will handle orphans if any (or we assume backend cleans up).
-          // Actually, if we delete a parent, the backend usually cascades delete or sets parent null.
-          // Let's assume cascade delete on backend, so we should filter out children locally too for immediate UI sync.
-          
+          // Update local state
           const idsToRemove = new Set([comment.id]);
-          
-          // Simple local cascade for depth 1 children immediately visible
           comments.forEach(c => {
               if (c.parent_id === comment.id) idsToRemove.add(c.id);
           });
           
           setComments(prev => prev.filter(c => !idsToRemove.has(c.id)));
-          setCommentCount(prev => Math.max(0, prev - 1)); // Decrement count (approximate if children deleted)
+          setCommentCount(prev => Math.max(0, prev - 1));
 
       } catch (error) {
           console.error('Error deleting comment:', error);
@@ -743,6 +752,8 @@ function AnswerDisplay({ answer, index }: { answer: any; index: number }) {
               title: 'Error',
               message: 'Failed to delete comment'
           });
+      } finally {
+          setCommentToDelete(null);
       }
   };
 
@@ -1024,6 +1035,27 @@ function AnswerDisplay({ answer, index }: { answer: any; index: number }) {
           )}
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!commentToDelete} onOpenChange={(open) => !open && setCommentToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Comment?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this comment? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white focus:ring-red-600"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

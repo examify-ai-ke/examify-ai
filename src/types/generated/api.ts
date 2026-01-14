@@ -3775,7 +3775,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Get Comment Replies
+         * @description Gets a paginated list of replies for a specific comment
+         */
+        get: operations["get_comment_replies_api_v1_comment_reply__parent_id__get"];
         put?: never;
         /**
          * Create Comment Reply
@@ -3783,6 +3787,30 @@ export interface paths {
          */
         post: operations["create_comment_reply_api_v1_comment_reply__parent_id__post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/comment/reply/{reply_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Comment Reply
+         * @description Updates a reply by its id
+         */
+        put: operations["update_comment_reply_api_v1_comment_reply__reply_id__put"];
+        post?: never;
+        /**
+         * Delete Comment Reply
+         * @description Deletes a reply by its id
+         */
+        delete: operations["delete_comment_reply_api_v1_comment_reply__reply_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -4403,7 +4431,7 @@ export interface components {
             /** Time */
             time: number;
             /** Blocks */
-            blocks: components["schemas"]["app__schemas__answer_schema__Block"][];
+            blocks: components["schemas"]["app__schemas__comment_schema__Block"][];
         };
         /** AnswerUpdate */
         AnswerUpdate: {
@@ -4896,7 +4924,7 @@ export interface components {
             /** Time */
             time: number;
             /** Blocks */
-            blocks: components["schemas"]["app__schemas__answer_schema__Block"][];
+            blocks: components["schemas"]["app__schemas__comment_schema__Block"][];
         };
         /** CommentUpdate */
         CommentUpdate: {
@@ -9494,7 +9522,7 @@ export interface components {
             type: string;
         };
         /** Block */
-        app__schemas__answer_schema__Block: {
+        app__schemas__comment_schema__Block: {
             /** Id */
             id: string;
             /** Data */
@@ -9655,7 +9683,7 @@ export interface components {
             /** Time */
             time: number;
             /** Blocks */
-            blocks: components["schemas"]["app__schemas__answer_schema__Block"][];
+            blocks: components["schemas"]["app__schemas__comment_schema__Block"][];
         };
     };
     responses: never;
@@ -16481,6 +16509,44 @@ export interface operations {
             };
         };
     };
+    get_comment_replies_api_v1_comment_reply__parent_id__get: {
+        parameters: {
+            query?: {
+                skip?: number;
+                limit?: number;
+                /** @description Field to order by */
+                order_by?: string;
+                /** @description Ascending or descending order */
+                order?: components["schemas"]["IOrderEnum"];
+            };
+            header?: never;
+            path: {
+                parent_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IGetResponsePaginated_CommentRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     create_comment_reply_api_v1_comment_reply__parent_id__post: {
         parameters: {
             query?: never;
@@ -16503,6 +16569,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IPostResponseBase_CommentRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_comment_reply_api_v1_comment_reply__reply_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reply_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommentUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IPutResponseBase_CommentRead_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_comment_reply_api_v1_comment_reply__reply_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reply_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IDeleteResponseBase_CommentRead_"];
                 };
             };
             /** @description Validation Error */

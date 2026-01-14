@@ -1350,6 +1350,44 @@ export const publicAPI = {
         },
 
         /**
+         * Get replies for a specific comment
+         */
+        async getReplies(parentId: string, params?: { skip?: number; limit?: number }) {
+            try {
+                const response = await api.GET('/api/v1/comment/reply/{parent_id}', {
+                    params: {
+                        path: { parent_id: parentId },
+                        query: {
+                            skip: params?.skip || 0,
+                            limit: params?.limit || 50,
+                        }
+                    }
+                });
+
+                // Extract data from nested response structure
+                let extractedData = response.data && typeof response.data === 'object' && 'data' in response.data
+                    ? (response.data as any).data
+                    : response.data;
+
+                // If extractedData is an object with 'items' property (paginated response), extract items
+                if (extractedData && typeof extractedData === 'object' && 'items' in extractedData) {
+                    extractedData = extractedData.items;
+                }
+
+                return {
+                    data: Array.isArray(extractedData) ? extractedData : [],
+                    error: response.error,
+                };
+            } catch (error) {
+                console.error('Error fetching replies:', error);
+                return {
+                    data: [],
+                    error: error as any,
+                };
+            }
+        },
+
+        /**
          * Create a comment on an answer
          * Requires authentication
          */
@@ -1370,6 +1408,37 @@ export const publicAPI = {
                 };
             } catch (error) {
                 console.error('Error creating comment:', error);
+                return {
+                    data: null,
+                    error: error as any,
+                };
+            }
+        },
+
+        /**
+         * Create a reply to a comment
+         * Requires authentication
+         */
+        async createReply(replyData: { text: any; parent_id: string; answer_id: string }) {
+            try {
+                // The endpoint is /api/v1/comment/reply/{parent_id}
+                const response = await api.POST('/api/v1/comment/reply/{parent_id}', {
+                    params: {
+                        path: { parent_id: replyData.parent_id }
+                    },
+                    body: {
+                        text: replyData.text,
+                        answer_id: replyData.answer_id,
+                        parent_id: replyData.parent_id
+                    }
+                });
+
+                return {
+                    data: response.data,
+                    error: response.error,
+                };
+            } catch (error) {
+                console.error('Error creating reply:', error);
                 return {
                     data: null,
                     error: error as any,

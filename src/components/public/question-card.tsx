@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, MessageSquare, ThumbsUp, ThumbsDown, Clock, CircleCheck } from 'lucide-react';
+import { ChevronDown, MessageSquare, ThumbsUp, ThumbsDown, Clock, CircleCheck, Loader2, Reply } from 'lucide-react';
 import EditorRenderer from '@/components/ui/editor-renderer';
 import AnswerRenderer from '@/components/ui/answer-renderer';
 import { publicAPI } from '@/lib/api-public';
@@ -304,6 +304,107 @@ export function QuestionCard({ question, questionNumber }: QuestionCardProps) {
   );
 }
 
+// Helper to build comment tree
+// Reusable Comment Form Component
+function CommentForm({ 
+  editorData, 
+  onEditorChange, 
+  onCancel, 
+  onSubmit, 
+  isSubmitting, 
+  title = "Add Your Comment",
+  submitLabel = "Post Comment",
+  autoFocus = false,
+  showCancel = true,
+  componentKey // Stable key for the editor instance
+}: { 
+  editorData: OutputData;
+  onEditorChange: (data: OutputData) => void;
+  onCancel: () => void;
+  onSubmit: () => void;
+  isSubmitting: boolean;
+  title?: string;
+  submitLabel?: string;
+  autoFocus?: boolean;
+  showCancel?: boolean;
+  componentKey: string | number;
+}) {
+  const hasContent = React.useMemo(() => {
+    return editorData.blocks && editorData.blocks.length > 0;
+  }, [editorData]);
+
+  return (
+    <div className="mt-3 p-3 border border-blue-200 rounded-md bg-white">
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 mb-2">
+          <MessageSquare className="h-4 w-4 text-blue-600" />
+          <span className="text-sm font-medium text-blue-900">{title}</span>
+        </div>
+        <div className="border border-blue-200 rounded-md bg-white">
+          <Editor
+            key={`comment-editor-${componentKey}`} // Use stable key passed from parent
+            data={editorData}
+            onChange={onEditorChange}
+          />
+        </div>
+        <div className="flex justify-end gap-2">
+          {showCancel && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={onCancel}
+            >
+              Cancel
+            </Button>
+          )}
+          <Button
+            type="button"
+            size="sm"
+            onClick={onSubmit}
+            disabled={isSubmitting || !hasContent}
+            className={`
+              ${isSubmitting || !hasContent
+                ? 'bg-gray-400 cursor-not-allowed opacity-50'
+                : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
+              }
+            `}
+            title={!hasContent ? 'Please enter some text' : 'Click to post'}
+          >
+            {isSubmitting ? 'Posting...' : submitLabel}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Helper to build comment tree
+const buildCommentTree = (comments: any[]) => {
+  const commentMap = new Map();
+  const roots: any[] = [];
+
+  // First pass: create map nodes
+  comments.forEach(comment => {
+    commentMap.set(comment.id, { ...comment, children: [] });
+  });
+
+  // Second pass: link children to parents
+  comments.forEach(comment => {
+    const node = commentMap.get(comment.id);
+    if (comment.parent_id && commentMap.has(comment.parent_id)) {
+      commentMap.get(comment.parent_id).children.push(node);
+    } else {
+      roots.push(node);
+    }
+  });
+
+  // Sort by created_at desc (newest first) for roots, asc for replies? 
+  // Usually roots are new first, replies are old first (chronological).
+  // Let's stick to simple chronological for now or whatever the API returned (likely chronological).
+  return roots.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+};
+
 // Answer Display Component with Interactive Like/Dislike
 function AnswerDisplay({ answer, index }: { answer: any; index: number }) {
   const { addNotification } = useUIStore();
@@ -320,6 +421,9 @@ function AnswerDisplay({ answer, index }: { answer: any; index: number }) {
   const [submitting, setSubmitting] = useState(false);
   const [commentCount, setCommentCount] = useState(0);
   const [comments, setComments] = useState<any[]>([]);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
+  const [replyToId, setReplyToId] = useState<string | null>(null);
+  const [editorKey, setEditorKey] = useState<number>(Date.now()); // Stable key for editor
 
   // Check if comment has content
   const hasCommentContent = React.useMemo(() => {
@@ -350,15 +454,59 @@ function AnswerDisplay({ answer, index }: { answer: any; index: number }) {
   React.useEffect(() => {
     if (!showComments) return; // Don't fetch if not showing
     
+    // If we already have comments and count hasn't changed, maybe don't refetch?
+    // But for now, let's just fetch to be safe and show loading.
+    
     const fetchComments = async () => {
+      setIsLoadingComments(true);
       try {
-        const commentsResponse = await publicAPI.comments.getByAnswerId(answer.id);
+        // Increase limit to ensure we get replies if they are included in the flat list
+        const commentsResponse = await publicAPI.comments.getByAnswerId(answer.id, { limit: 100 });
         
         if (!commentsResponse.error && Array.isArray(commentsResponse.data)) {
-          setComments(commentsResponse.data);
+          let allComments = [...commentsResponse.data];
+          
+          // Fetch replies for each root comment
+          // Note: This is a simple 1-level fetch. For deep nesting, we might need a recursive approach 
+          // or a "load more replies" feature.
+          const fetchRepliesPromises = commentsResponse.data.map(async (rootComment: any) => {
+             const repliesResponse = await publicAPI.comments.getReplies(rootComment.id, { limit: 100 });
+             if (!repliesResponse.error && Array.isArray(repliesResponse.data)) {
+                 return repliesResponse.data;
+             }
+             return [];
+          });
+          
+          const repliesArrays = await Promise.all(fetchRepliesPromises);
+          const allReplies = repliesArrays.flat();
+          
+          if (allReplies.length > 0) {
+              allComments = [...allComments, ...allReplies];
+              
+               // Optional: Fetch replies of replies (Depth 2)
+              const fetchRepliesOfRepliesPromises = allReplies.map(async (reply: any) => {
+                 const deepRepliesResponse = await publicAPI.comments.getReplies(reply.id, { limit: 50 });
+                 if (!deepRepliesResponse.error && Array.isArray(deepRepliesResponse.data)) {
+                     return deepRepliesResponse.data;
+                 }
+                 return [];
+              });
+              
+              const deepRepliesArrays = await Promise.all(fetchRepliesOfRepliesPromises);
+              const deepReplies = deepRepliesArrays.flat();
+              if (deepReplies.length > 0) {
+                   allComments = [...allComments, ...deepReplies];
+              }
+          }
+
+          // Remove duplicates just in case
+          const uniqueComments = Array.from(new Map(allComments.map(c => [c.id, c])).values());
+          setComments(uniqueComments);
         }
       } catch (error) {
         console.error('Error fetching comments:', error);
+      } finally {
+        setIsLoadingComments(false);
       }
     };
     
@@ -477,14 +625,40 @@ function AnswerDisplay({ answer, index }: { answer: any; index: number }) {
       return;
     }
     // Toggle comment form
-    setShowCommentForm(!showCommentForm);
+    // Toggle comment form
     if (!showCommentForm) {
       // Opening comment form - reset editor
       setCommentEditorData({
         time: Date.now(),
         blocks: []
       });
+      setEditorKey(Date.now()); // Refresh editor instance
+      setShowCommentForm(true);
+      setReplyToId(null); // Reset reply target when opening main comment form
+    } else {
+      setShowCommentForm(false);
     }
+  };
+
+  const handleReply = (commentId: string) => {
+      setReplyToId(commentId);
+      // Reset editor for fresh reply
+      setCommentEditorData({
+        time: Date.now(),
+        blocks: []
+      });
+      setEditorKey(Date.now()); // Refresh editor instance
+      // Ensure we don't show the main comment form when replying inline
+      setShowCommentForm(false);
+  };
+
+  const handleCancelReply = () => {
+    setReplyToId(null);
+    setCommentEditorData({
+      time: Date.now(),
+      blocks: []
+    });
+    // No need to refresh key here as form unmounts
   };
 
   const handleToggleComments = () => {
@@ -504,12 +678,23 @@ function AnswerDisplay({ answer, index }: { answer: any; index: number }) {
     setSubmitting(true);
     
     try {
-      const commentData = {
-        text: commentEditorData,
-        answer_id: answer.id
-      };
-
-      const response = await publicAPI.comments.create(commentData);
+      let response;
+      
+      if (replyToId) {
+         // Use specialized endpoint for replies
+         response = await publicAPI.comments.createReply({
+            text: commentEditorData,
+            answer_id: answer.id,
+            parent_id: replyToId
+         });
+      } else {
+         // Create top-level comment
+         response = await publicAPI.comments.create({
+            text: commentEditorData,
+            answer_id: answer.id,
+            parent_id: null
+         });
+      }
       
       if (response.error) {
         throw new Error('Failed to add comment');
@@ -526,21 +711,21 @@ function AnswerDisplay({ answer, index }: { answer: any; index: number }) {
         time: Date.now(),
         blocks: []
       });
+      setEditorKey(Date.now()); // Refresh editor instance
       setShowCommentForm(false);
+      setReplyToId(null);
       
-      // Fetch updated comments and count instead of reloading page
-      const [countResponse, commentsResponse] = await Promise.all([
-        publicAPI.comments.getCountByAnswerId(answer.id),
-        publicAPI.comments.getByAnswerId(answer.id)
-      ]);
-      
-      if (!countResponse.error && typeof countResponse.data === 'number') {
-        setCommentCount(countResponse.data);
-      }
-      
-      if (!commentsResponse.error && Array.isArray(commentsResponse.data)) {
-        setComments(commentsResponse.data);
-        // Auto-open comments section to show the new comment
+      // Optimistically update properties
+      if (response.data) {
+        // Construct new comment object (API returns the comment)
+        const newComment = {
+            ...response.data,
+            // Ensure created_by is populated for immediate display
+            created_by: response.data.created_by || user
+        };
+        
+        setComments(prev => [...prev, newComment]);
+        setCommentCount(prev => prev + 1);
         setShowComments(true);
       }
     } catch (error) {
@@ -710,118 +895,170 @@ function AnswerDisplay({ answer, index }: { answer: any; index: number }) {
       {/* Comment Form - Shows when Add Comment is clicked */}
       {showCommentForm && (
         <div className="px-4 pb-3 border-t border-blue-200 bg-blue-50/30">
-          <div className="mt-3 p-3 border border-blue-200 rounded-md bg-white">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 mb-2">
-                <MessageSquare className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium text-blue-900">Add Your Comment</span>
-              </div>
-              <div className="border border-blue-200 rounded-md bg-white">
-                <Editor
-                  key={`comment-editor-${answer.id}`}
-                  data={commentEditorData}
-                  onChange={setCommentEditorData}
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setCommentEditorData({
-                      time: Date.now(),
-                      blocks: []
-                    });
-                    setShowCommentForm(false);
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  onClick={handleSubmitComment}
-                  disabled={submitting || !hasCommentContent}
-                  className={`
-                    ${submitting || !hasCommentContent
-                      ? 'bg-gray-400 cursor-not-allowed opacity-50'
-                      : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
-                    }
-                  `}
-                  title={
-                    !hasCommentContent
-                      ? 'Please enter some text to post a comment'
-                      : 'Click to post your comment'
-                  }
-                >
-                  {submitting ? 'Posting...' : 'Post Comment'}
-                </Button>
-              </div>
-            </div>
-          </div>
+          <CommentForm 
+            editorData={commentEditorData}
+            onEditorChange={setCommentEditorData}
+            onCancel={handleComment}
+            onSubmit={handleSubmitComment}
+            isSubmitting={submitting}
+            title="Add Your Comment"
+            componentKey={editorKey}
+          />
         </div>
       )}
 
       {/* Comments Section - Shows when Comments button is clicked */}
       {showComments && (
         <div className="px-4 pb-3 border-t border-blue-200 bg-blue-50/30">
-          {/* Existing Comments */}
-          {comments.length > 0 ? (
+          {isLoadingComments ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+              <span className="ml-2 text-sm text-gray-500">Loading comments...</span>
+            </div>
+          ) : comments.length > 0 ? (
             <div className="mt-3 space-y-3">
-              {comments.map((comment: any, commentIndex: number) => (
-                <div
-                  key={comment.id || commentIndex}
-                  className="py-3 border-b border-blue-100 last:border-b-0"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <MessageSquare className="h-4 w-4 text-blue-400" />
-                    <span className="text-xs font-medium text-gray-600">Comment {commentIndex + 1}</span>
-                  </div>
-                  
-                  <div className="prose prose-sm max-w-none text-gray-800 mb-2 ml-6">
-                    {comment.text && <EditorRenderer data={comment.text} />}
-                  </div>
-                  
-                  <div className="flex items-center justify-between text-xs text-gray-500 ml-6">
-                    <div className="flex items-center gap-2">
-                      <img
-                        src={comment.created_by?.image?.media?.link || '/default-avatar-profile-picture-male-icon.svg'}
-                        alt={comment.created_by?.last_name || comment.created_by?.first_name || 'Anonymous'}
-                        className="w-5 h-5 rounded-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/default-avatar-profile-picture-male-icon.svg';
-                        }}
-                      />
-                      <span>
-                        {comment.created_by?.last_name || comment.created_by?.first_name || 'Anonymous'}
-                      </span>
-                      {comment.created_at && (
-                        <>
-                          <span className="text-gray-400">•</span>
-                          <span>{getTimeAgo(comment.created_at)}</span>
-                        </>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="flex items-center gap-1">
-                        <ThumbsUp className="h-3 w-3" />
-                        {comment.likes || 0}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <ThumbsDown className="h-3 w-3" />
-                        {comment.dislikes || 0}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+              {buildCommentTree(comments).map((comment: any) => (
+                <CommentItem
+                  key={comment.id}
+                  comment={comment}
+                  onReply={handleReply}
+                  activeReplyId={replyToId}
+                  onCancelReply={handleCancelReply}
+                  commentFormProps={{
+                    editorData: commentEditorData,
+                    onEditorChange: setCommentEditorData,
+                    onSubmit: handleSubmitComment,
+                    isSubmitting: submitting,
+                    componentKey: editorKey
+                  }}
+                />
               ))}
             </div>
           ) : (
-            <div className="mt-3 text-center text-sm text-gray-500 italic py-4">
-              No comments yet. Be the first to comment!
+            <div className="py-6 text-center text-sm text-gray-500 italic">
+              No comments yet. Be the first to start the discussion!
             </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Recursive Comment Item Component
+function CommentItem({ 
+  comment, 
+  onReply, 
+  depth = 0,
+  activeReplyId,
+  onCancelReply,
+  commentFormProps
+}: { 
+  comment: any; 
+  onReply: (id: string) => void; 
+  depth?: number;
+  activeReplyId: string | null;
+  onCancelReply: () => void;
+  commentFormProps: {
+    editorData: OutputData;
+    onEditorChange: (data: OutputData) => void;
+    onSubmit: () => void;
+    isSubmitting: boolean;
+    componentKey: string | number;
+  }
+}) {
+  // Get author display name (prefer last name)
+  const getAuthorName = (user: any) => {
+    if (!user) return 'Anonymous';
+    const { last_name, first_name, name } = user;
+    return last_name || first_name || name || 'Anonymous';
+  };
+
+  // Format time like "about 2 hours ago"
+  const getTimeAgo = (dateString?: string) => {
+    if (!dateString) return '';
+    try {
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+    } catch {
+      return '';
+    }
+  };
+  
+  // Get avatar URL or default
+  const getAvatarUrl = (user: any) => {
+    return user?.profile_image || user?.image?.media?.link || '/default-avatar-profile-picture-male-icon.svg';
+  };
+
+  const isReplying = activeReplyId === comment.id;
+
+  return (
+    <div className={`
+      ${depth > 0 ? 'ml-6 border-l-2 border-blue-100 pl-3 mt-2' : 'py-3 border-b border-blue-100 last:border-b-0'}
+    `}>
+      <div className="flex items-center gap-2 mb-2">
+        <img
+            src={getAvatarUrl(comment.created_by)}
+            alt={getAuthorName(comment.created_by)}
+            className="w-6 h-6 rounded-full object-cover"
+            onError={(e) => {
+                (e.target as HTMLImageElement).src = '/default-avatar-profile-picture-male-icon.svg';
+            }}
+        />
+        <span className="text-xs font-medium text-gray-600">
+           {getAuthorName(comment.created_by)}
+        </span>
+        {comment.created_at && (
+          <span className="text-gray-400 text-xs">• {getTimeAgo(comment.created_at)}</span>
+        )}
+      </div>
+      
+      <div className="prose prose-sm max-w-none text-gray-800 mb-2 ml-6">
+        {comment.text && <EditorRenderer data={comment.text} />}
+      </div>
+      
+      {/* Reply Button */}
+      {!isReplying && (
+        <div className="flex items-center justify-start text-xs text-gray-500 ml-6 mb-2">
+          <button 
+            onClick={() => onReply(comment.id)}
+            className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"
+          >
+            <Reply className="h-3 w-3" />
+            Reply
+          </button>
+        </div>
+      )}
+
+      {/* Inline Reply Form */}
+      {isReplying && (
+        <div className="ml-6 mt-2 mb-4">
+           <CommentForm 
+              editorData={commentFormProps.editorData}
+              onEditorChange={commentFormProps.onEditorChange}
+              onCancel={onCancelReply}
+              onSubmit={commentFormProps.onSubmit}
+              isSubmitting={commentFormProps.isSubmitting}
+              title="Reply to comment"
+              submitLabel="Post Reply"
+              componentKey={commentFormProps.componentKey}
+           />
+        </div>
+      )}
+
+      {/* Recursive Children */}
+      {comment.children && comment.children.length > 0 && (
+        <div className="mt-2 text-sm text-gray-500">
+          {comment.children.map((child: any) => (
+             <CommentItem 
+               key={child.id} 
+               comment={child} 
+               onReply={onReply} 
+               depth={depth + 1}
+               activeReplyId={activeReplyId}
+               onCancelReply={onCancelReply}
+               commentFormProps={commentFormProps}
+             />
+          ))}
         </div>
       )}
     </div>

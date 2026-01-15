@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AlertCircle, CheckCircle2, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -28,10 +28,18 @@ export function SubQuestionCard({
   // State for answer form visibility
   const [showAnswerForm, setShowAnswerForm] = useState(false);
   
+  // Local state for question to support smooth updates
+  const [localQuestion, setLocalQuestion] = useState(question);
+  
   const { addNotification } = useUIStore();
   
+  // Sync local question when prop changes
+  useEffect(() => {
+    setLocalQuestion(question);
+  }, [question]);
+  
   const handleAddAnswer = () => {
-    if (!question?.id) {
+    if (!localQuestion?.id) {
       console.error('Cannot add answer: question ID is missing');
       addNotification({
         type: 'error',
@@ -43,11 +51,11 @@ export function SubQuestionCard({
     setShowAnswerForm(true);
   };
   
-  const hasAnswers = question.answers && question.answers.length > 0;
-  const answersCount = question.answers?.length ?? 0;
+  const hasAnswers = localQuestion.answers && localQuestion.answers.length > 0;
+  const answersCount = localQuestion.answers?.length ?? 0;
 
   // Parse question text if it's a string (EditorJS format)
-  const questionText = question.text;
+  const questionText = localQuestion.text;
   const parsedText = typeof questionText === 'string' 
     ? JSON.parse(questionText) 
     : questionText;
@@ -59,11 +67,11 @@ export function SubQuestionCard({
           {/* Question header with number and marks */}
           <div className="flex items-center gap-2 mb-2">
             <span className="font-medium text-sm text-gray-700">
-              {question.question_number}
+              {localQuestion.question_number}
             </span>
-            {question.marks !== null && question.marks !== undefined && (
+            {localQuestion.marks !== null && localQuestion.marks !== undefined && (
               <Badge variant="secondary" className="text-xs">
-                {question.marks} {question.marks === 1 ? 'mark' : 'marks'}
+                {localQuestion.marks} {localQuestion.marks === 1 ? 'mark' : 'marks'}
               </Badge>
             )}
           </div>
@@ -81,7 +89,7 @@ export function SubQuestionCard({
         {/* Actions dropdown */}
         <div className="opacity-0 group-hover:opacity-100 transition-opacity">
           <QuestionActions
-            questionId={question.id}
+            questionId={localQuestion.id}
             questionType="sub"
             onEdit={onEdit}
             onDelete={onDelete}
@@ -108,7 +116,7 @@ export function SubQuestionCard({
 
       {/* Answers */}
       <div className="space-y-3">
-        <AnswerList answers={question.answers} onAnswersChange={onAnswersChange} />
+        <AnswerList answers={localQuestion.answers} onAnswersChange={onAnswersChange} />
         
         {/* Add Answer Button */}
         {!showAnswerForm && (
@@ -127,7 +135,7 @@ export function SubQuestionCard({
         {showAnswerForm && (
           <div className="border rounded-lg p-4 bg-gray-50">
             <AnswerForm
-              questionId={question.id}
+              questionId={localQuestion.id}
               onSuccess={() => {
                 setShowAnswerForm(false);
                 onAnswersChange?.();

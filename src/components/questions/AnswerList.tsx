@@ -12,7 +12,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { CheckCircle, ThumbsUp, ThumbsDown, MessageSquare, User, Edit, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -50,10 +50,18 @@ export function AnswerList({ answers, onAnswersChange }: AnswerListProps) {
   const { user } = useAuthStore();
   const { addNotification } = useUIStore();
   
+  // Local state to manage answers for optimistic updates
+  const [localAnswers, setLocalAnswers] = useState<AnswerReadForQuestion[]>(answers || []);
+  
   // State for answer management
   const [editingAnswerId, setEditingAnswerId] = useState<string | null>(null);
   const [answerToDelete, setAnswerToDelete] = useState<AnswerReadForQuestion | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Sync local answers when prop changes
+  useEffect(() => {
+    setLocalAnswers(answers || []);
+  }, [answers]);
 
   // State for comments
   const [showCommentsMap, setShowCommentsMap] = useState<Record<string, boolean>>({});
@@ -65,7 +73,7 @@ export function AnswerList({ answers, onAnswersChange }: AnswerListProps) {
   const [submittingCommentMap, setSubmittingCommentMap] = useState<Record<string, boolean>>({});
   const [commentCountsMap, setCommentCountsMap] = useState<Record<string, number>>({});
 
-  if (!answers || answers.length === 0) {
+  if (!localAnswers || localAnswers.length === 0) {
     return null;
   }
 
@@ -82,9 +90,15 @@ export function AnswerList({ answers, onAnswersChange }: AnswerListProps) {
   const  handleConfirmDelete = async () => {
     if (!answerToDelete?.id) return;
     
+    const deletedAnswerId = answerToDelete.id;
+    
+    // Optimistically remove the answer from local state immediately
+    setLocalAnswers(prev => prev.filter(a => a.id !== deletedAnswerId));
+    setAnswerToDelete(null);
+    
     setIsDeleting(true);
     try {
-      const response = await adminAPI.answers.delete(answerToDelete.id);
+      const response = await adminAPI.answers.delete(deletedAnswerId);
       if (response.error) {
         throw new Error('Failed to delete answer');
       }
@@ -95,9 +109,14 @@ export function AnswerList({ answers, onAnswersChange }: AnswerListProps) {
         message: 'Answer deleted successfully'
       });
       
+      // Call the callback for any additional parent updates (but without triggering full reload)
       onAnswersChange?.();
     } catch (error) {
       console.error('Error deleting answer:', error);
+      
+      // Revert the optimistic update on error
+      setLocalAnswers(answers || []);
+      
       addNotification({
         type: 'error',
         title: 'Error',
@@ -105,7 +124,6 @@ export function AnswerList({ answers, onAnswersChange }: AnswerListProps) {
       });
     } finally {
       setIsDeleting(false);
-      setAnswerToDelete(null);
     }
   };
 
@@ -376,9 +394,9 @@ export function AnswerList({ answers, onAnswersChange }: AnswerListProps) {
     <>
     <div className="mt-3 space-y-3">
       <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-        Answers ({answers.length})
+        Answers ({localAnswers.length})
       </div>
-      {answers.map((answer, index) => {
+      {localAnswers.map((answer, index) => {
         const isEditing = editingAnswerId === answer.id;
         
         if (isEditing) {
@@ -389,6 +407,7 @@ export function AnswerList({ answers, onAnswersChange }: AnswerListProps) {
                         answer={answer}
                         onSuccess={() => {
                             setEditingAnswerId(null);
+                            // Trigger parent update to refresh data
                             onAnswersChange?.();
                         }}
                         onCancel={() => setEditingAnswerId(null)}

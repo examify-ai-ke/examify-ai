@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronRight, AlertCircle, CheckCircle2, ListTree, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -39,7 +39,15 @@ export function MainQuestionCard({
   // State for answer form visibility
   const [showAnswerForm, setShowAnswerForm] = useState(false);
   
+  // Local state for answers to support smooth updates
+  const [localQuestion, setLocalQuestion] = useState(question);
+  
   const { addNotification } = useUIStore();
+  
+  // Sync local question when prop changes
+  useEffect(() => {
+    setLocalQuestion(question);
+  }, [question]);
   
   const handleToggle = () => {
     if (onToggleExpand) {
@@ -50,7 +58,7 @@ export function MainQuestionCard({
   };
 
   const handleAddAnswer = () => {
-    if (!question?.id) {
+    if (!localQuestion?.id) {
       console.error('Cannot add answer: question ID is missing');
       addNotification({
         type: 'error',
@@ -62,12 +70,12 @@ export function MainQuestionCard({
     setShowAnswerForm(true);
   };
 
-  const hasAnswers = question.answers && question.answers.length > 0;
-  const answersCount = question.answers?.length ?? 0;
+  const hasAnswers = localQuestion.answers && localQuestion.answers.length > 0;
+  const answersCount = localQuestion.answers?.length ?? 0;
   const subQuestionsCount = subQuestions.length;
 
   // Parse question text if it's a string (EditorJS format)
-  const questionText = question.text;
+  const questionText = localQuestion.text;
   const parsedText = typeof questionText === 'string' 
     ? JSON.parse(questionText) 
     : questionText;
@@ -97,11 +105,11 @@ export function MainQuestionCard({
               )}
             </Button>
             <span className="font-semibold text-gray-800">
-              {question.question_number}
+              {localQuestion.question_number}
             </span>
-            {question.marks !== null && question.marks !== undefined && (
+            {localQuestion.marks !== null && localQuestion.marks !== undefined && (
               <Badge variant="default" className="text-xs">
-                {question.marks} {question.marks === 1 ? 'mark' : 'marks'}
+                {localQuestion.marks} {localQuestion.marks === 1 ? 'mark' : 'marks'}
               </Badge>
             )}
           </div>
@@ -118,7 +126,7 @@ export function MainQuestionCard({
 
         {/* Actions dropdown */}
         <QuestionActions
-          questionId={question.id}
+          questionId={localQuestion.id}
           questionType="main"
           onEdit={onEdit}
           onDelete={onDelete}
@@ -159,7 +167,7 @@ export function MainQuestionCard({
       {/* Answers (when expanded) */}
       {isExpanded && (
         <div className="ml-9 space-y-3">
-          <AnswerList answers={question.answers} onAnswersChange={onAnswersChange} />
+          <AnswerList answers={localQuestion.answers} onAnswersChange={onAnswersChange} />
           
           {/* Add Answer Button */}
           {!showAnswerForm && (
@@ -178,7 +186,7 @@ export function MainQuestionCard({
           {showAnswerForm && (
             <div className="border rounded-lg p-4 bg-gray-50">
               <AnswerForm
-                questionId={question.id}
+                questionId={localQuestion.id}
                 onSuccess={() => {
                   setShowAnswerForm(false);
                   onAnswersChange?.();

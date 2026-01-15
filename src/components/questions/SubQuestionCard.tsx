@@ -108,7 +108,7 @@ export function SubQuestionCard({
 
       {/* Answers */}
       <div className="space-y-3">
-        <AnswerList answers={question.answers} />
+        <AnswerList answers={question.answers} onAnswersChange={onAnswersChange} />
         
         {/* Add Answer Button */}
         {!showAnswerForm && (

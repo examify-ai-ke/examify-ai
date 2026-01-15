@@ -159,7 +159,7 @@ export function MainQuestionCard({
       {/* Answers (when expanded) */}
       {isExpanded && (
         <div className="ml-9 space-y-3">
-          <AnswerList answers={question.answers} />
+          <AnswerList answers={question.answers} onAnswersChange={onAnswersChange} />
           
           {/* Add Answer Button */}
           {!showAnswerForm && (

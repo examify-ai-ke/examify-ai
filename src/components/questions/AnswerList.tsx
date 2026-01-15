@@ -2,130 +2,366 @@
  * AnswerList Component
  * 
  * Displays a list of answers for a question with interaction features.
+ * Supports:
+ * - Viewing answer content (EditorJS)
+ * - Editing answers (using AnswerForm)
+ * - Deleting answers (with confirmation)
+ * - Commenting on answers (using CommentItem/CommentForm)
+ * - Like/Dislike display
  */
 
 'use client';
 
-import { useState } from 'react';
-import { CheckCircle, ThumbsUp, ThumbsDown, MessageSquare, User } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { CheckCircle, ThumbsUp, ThumbsDown, MessageSquare, User, Edit, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import EditorJsRenderer from '@/components/ui/editor-js-renderer';
 import { useAuthStore } from '@/stores/auth';
 import { useUIStore } from '@/stores/ui';
 import { formatDistanceToNow } from 'date-fns';
 import type { components } from '@/types/generated/api';
+import { AnswerForm } from '@/components/forms/answer-form';
+import { adminAPI } from '@/lib/api-admin';
+import { publicAPI } from '@/lib/api-public';
+import { CommentForm } from '@/components/shared/comment-form';
+import { CommentItem } from '@/components/shared/comment-item';
+import { buildCommentTree } from '@/utils/comments';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type AnswerReadForQuestion = components['schemas']['AnswerReadForQuestion'];
+type OutputData = any; // EditorJS output data
 
 interface AnswerListProps {
   answers: AnswerReadForQuestion[] | null | undefined;
+  onAnswersChange?: () => void;
 }
 
-export function AnswerList({ answers }: AnswerListProps) {
+export function AnswerList({ answers, onAnswersChange }: AnswerListProps) {
   const { user } = useAuthStore();
   const { addNotification } = useUIStore();
-  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
-  const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
-  const [submittingComment, setSubmittingComment] = useState<string | null>(null);
+  
+  // State for answer management
+  const [editingAnswerId, setEditingAnswerId] = useState<string | null>(null);
+  const [answerToDelete, setAnswerToDelete] = useState<AnswerReadForQuestion | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // State for comments
+  const [showCommentsMap, setShowCommentsMap] = useState<Record<string, boolean>>({});
+  const [commentsMap, setCommentsMap] = useState<Record<string, any[]>>({});
+  const [loadingCommentsMap, setLoadingCommentsMap] = useState<Record<string, boolean>>({});
+  const [showCommentFormMap, setShowCommentFormMap] = useState<Record<string, boolean>>({});
+  const [commentEditorDataMap, setCommentEditorDataMap] = useState<Record<string, OutputData>>({});
+  const [replyToIdMap, setReplyToIdMap] = useState<Record<string, string | null>>({});
+  const [submittingCommentMap, setSubmittingCommentMap] = useState<Record<string, boolean>>({});
+  const [commentCountsMap, setCommentCountsMap] = useState<Record<string, number>>({});
 
   if (!answers || answers.length === 0) {
     return null;
   }
 
-  const toggleComments = (answerId: string) => {
-    setExpandedComments(prev => {
-      const next = new Set(prev);
-      if (next.has(answerId)) {
-        next.delete(answerId);
-      } else {
-        next.add(answerId);
-      }
-      return next;
-    });
+  // --- Answer Management ---
+
+  const handleEditClick = (answer: AnswerReadForQuestion) => {
+    setEditingAnswerId(answer.id || null);
   };
 
-  const handleCommentSubmit = async (answerId: string) => {
-    if (!user) {
-      addNotification({
-        type: 'error',
-        title: 'Authentication Required',
-        message: 'Please log in to comment on answers.'
-      });
-      return;
-    }
+  const handleDeleteClick = (answer: AnswerReadForQuestion) => {
+    setAnswerToDelete(answer);
+  };
 
-    const commentText = commentTexts[answerId]?.trim();
-    if (!commentText) {
-      addNotification({
-        type: 'error',
-        title: 'Empty Comment',
-        message: 'Please enter a comment before submitting.'
-      });
-      return;
-    }
-
-    setSubmittingComment(answerId);
+  const  handleConfirmDelete = async () => {
+    if (!answerToDelete?.id) return;
     
+    setIsDeleting(true);
     try {
-      // TODO: Implement API call to submit comment
-      // await adminAPI.answers.addComment(answerId, { text: commentText });
+      const response = await adminAPI.answers.delete(answerToDelete.id);
+      if (response.error) {
+        throw new Error('Failed to delete answer');
+      }
       
       addNotification({
         type: 'success',
-        title: 'Comment Added',
-        message: 'Your comment has been added successfully.'
+        title: 'Success',
+        message: 'Answer deleted successfully'
       });
       
-      // Clear the comment text
-      setCommentTexts(prev => ({ ...prev, [answerId]: '' }));
+      onAnswersChange?.();
     } catch (error) {
+      console.error('Error deleting answer:', error);
       addNotification({
         type: 'error',
         title: 'Error',
-        message: 'Failed to add comment. Please try again.'
+        message: 'Failed to delete answer'
       });
     } finally {
-      setSubmittingComment(null);
+      setIsDeleting(false);
+      setAnswerToDelete(null);
     }
   };
 
-  const handleLike = async (answerId: string) => {
-    if (!user) {
-      addNotification({
-        type: 'error',
-        title: 'Authentication Required',
-        message: 'Please log in to like answers.'
-      });
-      return;
-    }
+  // --- Comment Management ---
+
+  const toggleComments = async (answerId: string) => {
+    const isShowing = showCommentsMap[answerId];
     
-    // TODO: Implement like functionality
-    addNotification({
-      type: 'info',
-      title: 'Coming Soon',
-      message: 'Like functionality will be available soon.'
-    });
+    if (!isShowing) {
+        // Opening comments
+        setShowCommentsMap(prev => ({ ...prev, [answerId]: true }));
+        
+        // Fetch comments if not already loaded (or refresh?)
+        // Always refresh to show latest
+        fetchComments(answerId);
+    } else {
+        // Closing comments
+        setShowCommentsMap(prev => ({ ...prev, [answerId]: false }));
+    }
+  };
+  
+  const fetchComments = async (answerId: string) => {
+      if (!answerId) return;
+      
+      setLoadingCommentsMap(prev => ({ ...prev, [answerId]: true }));
+      try {
+          // Use publicAPI for comments as it returns the structure we expect and handles threading via fetches
+          // Simulating the QuestionCard logic
+          const commentsResponse = await publicAPI.comments.getByAnswerId(answerId, { limit: 100 });
+          
+          if (!commentsResponse.error && Array.isArray(commentsResponse.data)) {
+               let allComments = [...commentsResponse.data];
+               
+               // Fetch replies (Depth 1)
+               const fetchRepliesPromises = commentsResponse.data.map(async (rootComment: any) => {
+                  const repliesResponse = await publicAPI.comments.getReplies(rootComment.id, { limit: 100 });
+                  if (!repliesResponse.error && Array.isArray(repliesResponse.data)) {
+                      return repliesResponse.data;
+                  }
+                  return [];
+               });
+               
+               const repliesArrays = await Promise.all(fetchRepliesPromises);
+               const allReplies = repliesArrays.flat();
+               
+               if (allReplies.length > 0) {
+                   allComments = [...allComments, ...allReplies];
+                   
+                    // Optional: Fetch replies of replies (Depth 2)
+                   const fetchRepliesOfRepliesPromises = allReplies.map(async (reply: any) => {
+                      const deepRepliesResponse = await publicAPI.comments.getReplies(reply.id, { limit: 50 });
+                      if (!deepRepliesResponse.error && Array.isArray(deepRepliesResponse.data)) {
+                          return deepRepliesResponse.data;
+                      }
+                      return [];
+                   });
+                   
+                   const deepRepliesArrays = await Promise.all(fetchRepliesOfRepliesPromises);
+                   const deepReplies = deepRepliesArrays.flat();
+                   if (deepReplies.length > 0) {
+                        allComments = [...allComments, ...deepReplies];
+                   }
+               }
+
+              // De-duplicate
+              const uniqueComments = Array.from(new Map(allComments.map(c => [c.id, c])).values());
+              setCommentsMap(prev => ({ ...prev, [answerId]: uniqueComments }));
+              setCommentCountsMap(prev => ({ ...prev, [answerId]: uniqueComments.length })); // Approximate count
+          }
+      } catch (error) {
+          console.error('Error fetching comments:', error);
+          addNotification({
+              type: 'error',
+              title: 'Error',
+              message: 'Failed to load comments'
+          });
+      } finally {
+          setLoadingCommentsMap(prev => ({ ...prev, [answerId]: false }));
+      }
   };
 
-  const handleDislike = async (answerId: string) => {
-    if (!user) {
-      addNotification({
-        type: 'error',
-        title: 'Authentication Required',
-        message: 'Please log in to dislike answers.'
-      });
-      return;
-    }
-    
-    // TODO: Implement dislike functionality
-    addNotification({
-      type: 'info',
-      title: 'Coming Soon',
-      message: 'Dislike functionality will be available soon.'
-    });
+  const handleToggleCommentForm = (answerId: string) => {
+      setShowCommentFormMap(prev => ({ ...prev, [answerId]: !prev[answerId] }));
+      setReplyToIdMap(prev => ({ ...prev, [answerId]: null })); // Reset reply
+      
+      // Reset editor data if opening
+      if (!showCommentFormMap[answerId]) {
+           setCommentEditorDataMap(prev => ({ ...prev, [answerId]: { time: Date.now(), blocks: [] } }));
+      }
   };
+
+    const handleReply = (answerId: string, commentId: string) => {
+        setReplyToIdMap(prev => ({ ...prev, [answerId]: commentId }));
+        setShowCommentFormMap(prev => ({ ...prev, [answerId]: false })); // Hide main form
+        // We rely on CommentItem internal state or passed props for the reply form. 
+        // Wait, CommentItem expects commentFormProps to control the reply form if it's rendered inside CommentItem?
+        // QuestionCard implementation: QuestionCard holds state for one active reply form at a time (replyToId).
+        // It passes `onReply` which sets `replyToId`.
+        // Then `CommentItem` checks `activeReplyId === comment.id` to render the form.
+        // It uses `commentFormProps` for that form.
+        
+        // Reset editor data for reply
+        setCommentEditorDataMap(prev => ({ ...prev, [answerId]: { time: Date.now(), blocks: [] } }));
+    };
+
+    const handleCancelReply = (answerId: string) => {
+        setReplyToIdMap(prev => ({ ...prev, [answerId]: null }));
+        setCommentEditorDataMap(prev => ({ ...prev, [answerId]: { time: Date.now(), blocks: [] } }));
+    };
+
+    const handleCommentSubmit = async (answerId: string) => {
+        const editorData = commentEditorDataMap[answerId];
+        if (!editorData?.blocks?.length) {
+            addNotification({
+                type: 'error',
+                title: 'Empty Comment',
+                message: 'Please enter a comment.'
+            });
+            return;
+        }
+
+        setSubmittingCommentMap(prev => ({ ...prev, [answerId]: true }));
+        try {
+            const replyToId = replyToIdMap[answerId];
+            let response;
+            
+            if (replyToId) {
+                response = await publicAPI.comments.createReply({
+                    text: editorData,
+                    answer_id: answerId,
+                    parent_id: replyToId
+                });
+            } else {
+                response = await publicAPI.comments.create({
+                    text: editorData,
+                    answer_id: answerId,
+                    parent_id: null
+                });
+            }
+
+            if (response.error) {
+                throw new Error('Failed to create comment');
+            }
+
+            addNotification({
+                type: 'success',
+                title: 'Success',
+                message: 'Comment added successfully'
+            });
+
+            // Refresh comments
+             await fetchComments(answerId);
+            
+            // Reset forms
+            setShowCommentFormMap(prev => ({ ...prev, [answerId]: false }));
+            setReplyToIdMap(prev => ({ ...prev, [answerId]: null }));
+            setCommentEditorDataMap(prev => ({ ...prev, [answerId]: { time: Date.now(), blocks: [] } }));
+
+        } catch (error) {
+            console.error('Error creating comment:', error);
+            addNotification({
+                type: 'error',
+                title: 'Error',
+                message: 'Failed to add comment'
+            });
+        } finally {
+             setSubmittingCommentMap(prev => ({ ...prev, [answerId]: false }));
+        }
+    };
+    
+    // Edit/Delete Comment Handlers (using publicAPI/adminAPI as appropriate)
+    // CommentItem handles Like/Dislike internally via publicAPI.
+    
+    const handleEditComment = async (comment: any, newText: OutputData) => {
+          try {
+              let response;
+              if (comment.parent_id) {
+                  response = await publicAPI.comments.updateReply(comment.id, newText);
+              } else {
+                  response = await publicAPI.comments.update(comment.id, newText);
+              }
+    
+              if (response.error) {
+                  throw new Error('Failed to update comment');
+              }
+    
+              addNotification({
+                  type: 'success',
+                  title: 'Success',
+                  message: 'Comment updated successfully'
+              });
+              
+              // Refresh comments for the answer this comment belongs to?
+              // We need answerId. Comment object has answer_id? Likely.
+              if (comment.answer_id) {
+                  fetchComments(comment.answer_id);
+              } else {
+                 // Fallback: try to find which answer map contains this comment
+                 for (const [ansId, comments] of Object.entries(commentsMap)) {
+                     if (comments.find(c => c.id === comment.id)) {
+                         fetchComments(ansId);
+                         break;
+                     }
+                 }
+              }
+    
+          } catch (error) {
+              console.error('Error updating comment:', error);
+              addNotification({
+                  type: 'error',
+                  title: 'Error',
+                  message: 'Failed to update comment'
+              });
+          }
+    };
+    
+    const handleDeleteComment = async (comment: any) => {
+        // Use confirm dialog logic? CommentItem expects us to pass a onDelete handler.
+        // Or we can just do a window.confirm here for simplicity in dashboard, or use the AlertDialog state if we want better UI.
+        // Let's use window.confirm for simplicity or just delete since admins are powerful.
+        // Ideally reuse AlertDialog. But let's just use window.confirm to avoid state complexity for now unless requested.
+        // Actually, QuestionCard uses AlertDialog. Let's try to be consistent if possible but we have one dialog for answer delete.
+        // Let's use `window.confirm`.
+        
+        if (!window.confirm('Are you sure you want to delete this comment?')) return;
+        
+         try {
+              let response;
+              if (comment.parent_id) {
+                  response = await publicAPI.comments.deleteReply(comment.id);
+              } else {
+                  response = await publicAPI.comments.delete(comment.id);
+              }
+    
+              if (response.error) {
+                  throw new Error('Failed to delete comment');
+              }
+    
+              addNotification({
+                  type: 'success',
+                  title: 'Success',
+                  message: 'Comment deleted successfully'
+              });
+              
+              if (comment.answer_id) {
+                  fetchComments(comment.answer_id);
+              }
+         } catch (error) {
+               console.error('Error deleting comment:', error);
+              addNotification({
+                  type: 'error',
+                  title: 'Error',
+                  message: 'Failed to delete comment'
+              });
+         }
+    };
 
   const getTimeAgo = (dateString?: string) => {
     if (!dateString) return '';
@@ -137,19 +373,41 @@ export function AnswerList({ answers }: AnswerListProps) {
   };
 
   return (
+    <>
     <div className="mt-3 space-y-3">
       <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
         Answers ({answers.length})
       </div>
       {answers.map((answer, index) => {
+        const isEditing = editingAnswerId === answer.id;
+        
+        if (isEditing) {
+            return (
+                <div key={answer.id || index} className="border rounded-lg p-4 bg-gray-50 border-blue-200">
+                    <AnswerForm 
+                        questionId={answer.question_id!} 
+                        answer={answer}
+                        onSuccess={() => {
+                            setEditingAnswerId(null);
+                            onAnswersChange?.();
+                        }}
+                        onCancel={() => setEditingAnswerId(null)}
+                    />
+                </div>
+            );
+        }
+      
         // Parse answer text if it's a string (EditorJS format)
         const answerText = answer.text;
         const parsedText = typeof answerText === 'string' 
           ? JSON.parse(answerText) 
           : answerText;
 
-        const isCommentsExpanded = expandedComments.has(answer.id);
-        const commentsCount = 0; // TODO: Get from answer.comments_count when available
+        const isCommentsExpanded = showCommentsMap[answer.id!] || false;
+        // Use local count if available, else API count
+        const commentsCount = commentCountsMap[answer.id!] !== undefined 
+            ? commentCountsMap[answer.id!] 
+            : (answer.comments_count || 0);
 
         return (
           <div
@@ -199,34 +457,46 @@ export function AnswerList({ answers }: AnswerListProps) {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      {/* Like/Dislike */}
-                      <button
-                        onClick={() => handleLike(answer.id)}
-                        className="flex items-center gap-1 hover:text-green-600 transition-colors"
-                        title="Like this answer"
-                      >
-                        <ThumbsUp className="h-3.5 w-3.5" />
-                        <span>{answer.upvotes_count || 0}</span>
-                      </button>
-                      
-                      <button
-                        onClick={() => handleDislike(answer.id)}
-                        className="flex items-center gap-1 hover:text-red-600 transition-colors"
-                        title="Dislike this answer"
-                      >
-                        <ThumbsDown className="h-3.5 w-3.5" />
-                        <span>{answer.downvotes_count || 0}</span>
-                      </button>
+                      <div className="flex items-center gap-3 mr-2 border-r pr-3 border-gray-300">
+                          {/* Like/Dislike (Display Only for Dashboard usually, or interactive?) */}
+                          <div className="flex items-center gap-1 text-gray-500" title="Likes">
+                             <ThumbsUp className="h-3.5 w-3.5" />
+                             <span>{answer.upvotes_count || 0}</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-1 text-gray-500" title="Dislikes">
+                             <ThumbsDown className="h-3.5 w-3.5" />
+                             <span>{answer.downvotes_count || 0}</span>
+                          </div>
+                      </div>
 
                       {/* Comments Toggle */}
                       <button
-                        onClick={() => toggleComments(answer.id)}
-                        className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+                        onClick={() => toggleComments(answer.id!)}
+                        className={`flex items-center gap-1 transition-colors ${isCommentsExpanded ? 'text-blue-700 font-medium' : 'hover:text-blue-600'}`}
                         title="View comments"
                       >
                         <MessageSquare className="h-3.5 w-3.5" />
                         <span>{commentsCount} {commentsCount === 1 ? 'comment' : 'comments'}</span>
                       </button>
+                      
+                       {/* Edit/Delete Answer Actions */}
+                      <div className="flex items-center gap-1 ml-2 pl-2 border-l border-gray-300">
+                           <button
+                                onClick={() => handleEditClick(answer)}
+                                className="p-1 hover:text-blue-600 transition-colors rounded hover:bg-blue-50"
+                                title="Edit Answer"
+                            >
+                                <Edit className="h-3.5 w-3.5" />
+                           </button>
+                           <button
+                                onClick={() => handleDeleteClick(answer)}
+                                className="p-1 hover:text-red-600 transition-colors rounded hover:bg-red-50"
+                                title="Delete Answer"
+                            >
+                                <Trash2 className="h-3.5 w-3.5" />
+                           </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -234,50 +504,62 @@ export function AnswerList({ answers }: AnswerListProps) {
             </div>
 
             {/* Comments Section */}
-            {isCommentsExpanded && (
-              <div className="px-4 pb-3 border-t border-green-200 bg-white/50">
-                <div className="mt-3 space-y-3">
-                  {/* Existing Comments */}
-                  {commentsCount === 0 && (
-                    <p className="text-xs text-gray-500 italic">No comments yet. Be the first to comment!</p>
-                  )}
-
-                  {/* Add Comment Form */}
-                  {user ? (
-                    <div className="space-y-2">
-                      <Textarea
-                        placeholder="Write a comment..."
-                        value={commentTexts[answer.id] || ''}
-                        onChange={(e) => setCommentTexts(prev => ({ ...prev, [answer.id]: e.target.value }))}
-                        className="text-sm min-h-[60px] resize-none"
-                      />
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setCommentTexts(prev => ({ ...prev, [answer.id]: '' }));
-                            toggleComments(answer.id);
-                          }}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => handleCommentSubmit(answer.id)}
-                          disabled={submittingComment === answer.id || !commentTexts[answer.id]?.trim()}
-                        >
-                          {submittingComment === answer.id ? 'Posting...' : 'Post Comment'}
-                        </Button>
+            {isCommentsExpanded && answer.id && (
+              <div className="px-4 pb-3 border-t border-green-200 bg-white/50 animate-in fade-in slide-in-from-top-1 duration-200">
+                <div className="mt-3 mb-3 flex items-center justify-between">
+                     <h4 className="text-xs font-semibold text-gray-500 uppercase">Comments</h4>
+                     <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                        onClick={() => handleToggleCommentForm(answer.id!)}
+                     >
+                        <MessageSquare className="h-3 w-3 mr-1" />
+                        {showCommentFormMap[answer.id!] ? 'Cancel Comment' : 'Add Comment'}
+                     </Button>
+                </div>
+                
+                 {/* Add Comment Form */}
+                 {showCommentFormMap[answer.id!] && (
+                      <div className="mb-4">
+                        <CommentForm 
+                            editorData={commentEditorDataMap[answer.id!] || { time: Date.now(), blocks: [] }}
+                            onEditorChange={(data) => setCommentEditorDataMap(prev => ({ ...prev, [answer.id!]: data }))}
+                            onCancel={() => handleToggleCommentForm(answer.id!)}
+                            onSubmit={() => handleCommentSubmit(answer.id!)}
+                            isSubmitting={submittingCommentMap[answer.id!]}
+                            componentKey={`form-${answer.id}`}
+                        />
                       </div>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-gray-600">
-                      Please <button className="text-blue-600 hover:underline">log in</button> to comment.
-                    </p>
-                  )}
+                 )}
+
+                <div className="space-y-3">
+                   {loadingCommentsMap[answer.id!] ? (
+                       <p className="text-xs text-gray-500 italic text-center py-2">Loading comments...</p>
+                   ) : (commentsMap[answer.id!] || []).length > 0 ? (
+                       buildCommentTree(commentsMap[answer.id!]!).map(comment => (
+                           <CommentItem
+                                key={comment.id}
+                                comment={comment}
+                                onReply={(commentId) => handleReply(answer.id!, commentId)}
+                                activeReplyId={replyToIdMap[answer.id!]}
+                                onCancelReply={() => handleCancelReply(answer.id!)}
+                                onEdit={handleEditComment}
+                                onDelete={handleDeleteComment}
+                                commentFormProps={{
+                                    editorData: commentEditorDataMap[answer.id!] || { time: Date.now(), blocks: [] },
+                                    onEditorChange: (data: any) => setCommentEditorDataMap(prev => ({ ...prev, [answer.id!]: data })),
+                                    onSubmit: () => handleCommentSubmit(answer.id!),
+                                    isSubmitting: submittingCommentMap[answer.id!],
+                                    componentKey: `reply-${answer.id}`
+                                }}
+                           />
+                       ))
+                   ) : (
+                        !showCommentFormMap[answer.id!] && (
+                             <p className="text-xs text-gray-500 italic text-center py-2">No comments yet.</p>
+                        )
+                   )}
                 </div>
               </div>
             )}
@@ -285,5 +567,28 @@ export function AnswerList({ answers }: AnswerListProps) {
         );
       })}
     </div>
+    
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!answerToDelete} onOpenChange={(open) => !open && setAnswerToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Answer?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this answer? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white focus:ring-red-600"
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

@@ -272,7 +272,7 @@ export function QuestionDetailsContent({ id }: QuestionDetailsContentProps) {
                   </div>
                   
                   {/* Question Text */}
-                  <div className="prose prose-slate prose-lg max-w-none text-slate-700 leading-relaxed">
+                  <div className="prose prose-slate prose-xl max-w-none text-slate-900 leading-relaxed font-medium">
                     {typeof question.text === 'string' ? (
                       <p>{question.text}</p>
                     ) : (
@@ -357,7 +357,7 @@ export function QuestionDetailsContent({ id }: QuestionDetailsContentProps) {
                           </div>
                           
                           {/* Sub-Question Text */}
-                          <div className="prose prose-slate prose-lg max-w-none text-slate-700 dark:text-slate-300 leading-relaxed">
+                          <div className="prose prose-slate prose-lg max-w-none text-slate-900 dark:text-slate-300 leading-relaxed font-medium">
                             {typeof subQuestion.text === 'string' ? (
                               <p>{subQuestion.text}</p>
                             ) : (

@@ -227,6 +227,51 @@ export function QuestionDetailsContent({ id }: QuestionDetailsContentProps) {
                   <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 mb-4">
                     {parentQuestion ? 'Sub-Question Details' : 'Question Details'}
                   </h1>
+
+                  {/* Metadata: Date and Exam Paper */}
+                  <div className="flex flex-col gap-3 mb-4 pb-4 border-b border-slate-200">
+                    {/* Date */}
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <Calendar className="w-4 h-4 text-slate-400" />
+                      <span>
+                        Posted {question.created_at 
+                          ? formatDistanceToNow(new Date(question.created_at), { addSuffix: true })
+                          : 'at an unknown date'}
+                      </span>
+                    </div>
+
+                    {/* Exam Paper Source */}
+                    {examPaperName && (
+                      <div className="flex items-start gap-2">
+                        <FileText className="w-4 h-4 mt-0.5 text-slate-400 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-xs text-slate-500 uppercase tracking-wider font-medium">From: </span>
+                          {question.exam_paper?.slug ? (
+                            <Link
+                              href={`/exampapers/${question.exam_paper.slug}`}
+                              className="text-sm font-medium text-teal-600 hover:text-teal-700 hover:underline transition-colors"
+                            >
+                              {examPaperName}
+                            </Link>
+                          ) : (
+                            <span className="text-sm font-medium text-slate-700">{examPaperName}</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Answer Count */}
+                    {question.answers?.length > 0 && (
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <CircleCheck className="w-4 h-4 text-teal-500" />
+                        <span>
+                          {question.answers.length} {question.answers.length === 1 ? 'Answer' : 'Answers'} available
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Question Text */}
                   <div className="prose prose-slate prose-lg max-w-none text-slate-700 leading-relaxed">
                     {typeof question.text === 'string' ? (
                       <p>{question.text}</p>
@@ -236,41 +281,6 @@ export function QuestionDetailsContent({ id }: QuestionDetailsContentProps) {
                   </div>
                 </div>
               </div>
-
-              <div className="flex items-center gap-6 text-sm text-slate-600 pt-3">
-                <div className="flex items-center">
-                  <Calendar className="w-4 h-4 mr-2 text-slate-400" />
-                  {question.created_at ? new Date(question.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'Unknown date'}
-                </div>
-                {question.answers?.length > 0 && (
-                  <div className="flex items-center">
-                    <CircleCheck className="w-4 h-4 mr-2 text-teal-500" />
-                    {question.answers.length} {question.answers.length === 1 ? 'Answer' : 'Answers'} available
-                  </div>
-                )}
-              </div>
-
-              {/* Exam Paper Source */}
-              {examPaperName && (
-                <div className="pt-3 border-t border-slate-200">
-                  <div className="flex items-start gap-2">
-                    <FileText className="w-4 h-4 mt-0.5 text-slate-400 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-xs text-slate-500 uppercase tracking-wider font-medium block mb-1">From Exam Paper:</span>
-                      {question.exam_paper?.slug ? (
-                        <Link
-                          href={`/exampapers/${question.exam_paper.slug}`}
-                          className="text-sm font-medium text-teal-600 hover:text-teal-700 hover:underline line-clamp-2 transition-colors"
-                        >
-                          {examPaperName}
-                        </Link>
-                      ) : (
-                        <span className="text-sm font-medium text-slate-700 line-clamp-2">{examPaperName}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Actions */}
@@ -288,22 +298,106 @@ export function QuestionDetailsContent({ id }: QuestionDetailsContentProps) {
 
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mt-12">
 
-        {/* Answers Section */}
-        <div className="space-y-6 mb-16">
-          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
-              <div className="w-1 h-8 bg-gradient-to-b from-teal-500 to-blue-600 rounded-full" />
-              Answers <span className="text-slate-400 text-lg font-normal">({question.answers?.length || 0})</span>
-            </h2>
-          </div>
+        {/* Main Question Answers Section */}
+        {question.answers && question.answers.length > 0 && (
+          <div className="space-y-6 mb-12">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
+                <div className="w-1 h-8 bg-gradient-to-b from-teal-500 to-blue-600 rounded-full" />
+                {parentQuestion ? 'Sub-Question Answers' : 'Answers'} <span className="text-slate-400 text-lg font-normal">({question.answers.length})</span>
+              </h2>
+            </div>
 
-          {question.answers && question.answers.length > 0 ? (
             <div className="space-y-6">
               {question.answers.map((answer: any, index: number) => (
                 <EnhancedAnswerDisplay key={answer.id} answer={answer} index={index + 1} />
               ))}
             </div>
-          ) : (
+          </div>
+        )}
+
+        {/* Sub-Questions Section */}
+        {question.children && question.children.length > 0 && (
+          <div className="space-y-6 mb-16">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
+                <div className="w-1 h-8 bg-gradient-to-b from-purple-500 to-indigo-600 rounded-full" />
+                Sub-Questions <span className="text-slate-400 text-lg font-normal">({question.children.length})</span>
+              </h2>
+            </div>
+
+            <div className="space-y-8">
+              {[...question.children]
+                .sort((a: any, b: any) => {
+                  const numA = String(a.question_number || '');
+                  const numB = String(b.question_number || '');
+                  return numA.localeCompare(numB, undefined, { numeric: true });
+                })
+                .map((subQuestion: any, index: number) => (
+                  <Card key={subQuestion.id || index} className="border-2 border-slate-200 dark:border-slate-800 overflow-hidden">
+                    <CardContent className="p-6">
+                      {/* Sub-Question Header */}
+                      <div className="flex items-start gap-4 mb-4">
+                        <div className="shrink-0 flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white font-bold text-lg shadow-md">
+                          {subQuestion.question_number || String.fromCharCode(97 + index)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-3">
+                            {subQuestion.marks && (
+                              <Badge className="text-xs bg-orange-500 text-white">
+                                {subQuestion.marks} marks
+                              </Badge>
+                            )}
+                            {subQuestion.answers && subQuestion.answers.length > 0 && (
+                              <Badge variant="outline" className="text-xs border-green-500 text-green-700 bg-green-50/50">
+                                <CircleCheck className="w-3 h-3 mr-1" />
+                                {subQuestion.answers.length} {subQuestion.answers.length === 1 ? 'Answer' : 'Answers'}
+                              </Badge>
+                            )}
+                          </div>
+                          
+                          {/* Sub-Question Text */}
+                          <div className="prose prose-slate prose-lg max-w-none text-slate-700 dark:text-slate-300 leading-relaxed">
+                            {typeof subQuestion.text === 'string' ? (
+                              <p>{subQuestion.text}</p>
+                            ) : (
+                              <EditorRenderer data={subQuestion.text} />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Sub-Question Answers */}
+                      {subQuestion.answers && subQuestion.answers.length > 0 ? (
+                        <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
+                          <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                            <CircleCheck className="w-5 h-5 text-green-600" />
+                            {subQuestion.answers.length === 1 ? 'Answer' : 'Answers'}
+                          </h3>
+                          <div className="space-y-4">
+                            {subQuestion.answers.map((answer: any, ansIndex: number) => (
+                              <EnhancedAnswerDisplay key={answer.id} answer={answer} index={ansIndex + 1} />
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800">
+                          <div className="flex items-center gap-3 text-slate-500">
+                            <MessageSquare className="w-5 h-5" />
+                            <span className="text-sm italic">No answers yet for this sub-question</span>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* No Answers or Sub-Questions */}
+        {(!question.answers || question.answers.length === 0) && (!question.children || question.children.length === 0) && (
+          <div className="space-y-6 mb-16">
             <Card className="border-dashed border-2 border-slate-200 dark:border-slate-800 bg-transparent flex flex-col items-center justify-center py-16 text-center">
               <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
                 <MessageSquare className="w-8 h-8 text-slate-400" />
@@ -314,8 +408,8 @@ export function QuestionDetailsContent({ id }: QuestionDetailsContentProps) {
                 Write an Answer
               </Button>
             </Card>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Navigation bottom */}
         {siblings.length > 1 && (
@@ -572,7 +666,7 @@ function EnhancedAnswerDisplay({ answer, index }: { answer: any, index: number }
               </p>
               {answer.created_at && (
                 <p className="text-xs text-slate-500">
-                  {new Date(answer.created_at).toLocaleDateString()}
+                  {formatDistanceToNow(new Date(answer.created_at), { addSuffix: true })}
                 </p>
               )}
             </div>

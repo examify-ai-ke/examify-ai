@@ -50,6 +50,7 @@ interface QuestionDetailsContentProps {
 
 export function QuestionDetailsContent({ id }: QuestionDetailsContentProps) {
   const [question, setQuestion] = useState<any>(null);
+  const [parentQuestion, setParentQuestion] = useState<any>(null);
   const [siblings, setSiblings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +68,14 @@ export function QuestionDetailsContent({ id }: QuestionDetailsContentProps) {
         }
 
         setQuestion(data);
+
+        // If this is a sub-question, fetch the parent question
+        if (data.parent_id) {
+          const { data: parentData } = await publicAPI.questions.getById(data.parent_id);
+          if (parentData) {
+            setParentQuestion(parentData);
+          }
+        }
 
         // Fetch sibling questions from the same exam paper for next/prev navigation
         if (data.exam_paper_id) {
@@ -154,6 +163,30 @@ export function QuestionDetailsContent({ id }: QuestionDetailsContentProps) {
             Back to Exam Paper
           </Link>
 
+          {/* Parent Question Indicator (for sub-questions) */}
+          {parentQuestion && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <span className="text-xs text-blue-600 uppercase tracking-wider font-semibold">Sub-question of:</span>
+                  <Link
+                    href={getQuestionUrl(parentQuestion)}
+                    className="text-sm font-medium text-blue-700 hover:text-blue-800 hover:underline transition-colors flex items-center gap-2"
+                  >
+                    <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-blue-600 text-white font-bold text-xs">
+                      {parentQuestion.question_number || '?'}
+                    </span>
+                    <span className="line-clamp-1">
+                      {typeof parentQuestion.text === 'string' 
+                        ? parentQuestion.text 
+                        : parentQuestion.text?.blocks?.[0]?.data?.text || 'View parent question'}
+                    </span>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
             <div className="flex-1 space-y-5">
               {/* Meta Badges */}
@@ -192,7 +225,7 @@ export function QuestionDetailsContent({ id }: QuestionDetailsContentProps) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 mb-4">
-                    Question Details
+                    {parentQuestion ? 'Sub-Question Details' : 'Question Details'}
                   </h1>
                   <div className="prose prose-slate prose-lg max-w-none text-slate-700 leading-relaxed">
                     {typeof question.text === 'string' ? (

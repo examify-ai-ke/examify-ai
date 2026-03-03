@@ -5,6 +5,7 @@ import { ChevronDown, ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-rea
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import EditorRenderer from '@/components/ui/editor-renderer';
+import { getQuestionUrl } from '@/utils/question-url';
 import type { QuestionRead } from './types';
 
 interface RecentQuestionsSectionProps {
@@ -214,7 +215,7 @@ export function RecentQuestionsSection({
 
                         {/* Question text */}
                         <Link 
-                          href={`/questions/${question.id}`} 
+                          href={getQuestionUrl(question)} 
                           onClick={(e) => e.stopPropagation()}
                           className="block text-foreground mb-3 line-clamp-3 text-sm leading-relaxed hover:text-primary transition-colors cursor-pointer"
                         >
@@ -290,7 +291,7 @@ export function RecentQuestionsSection({
                             </span>
                             <div className="flex-1 min-w-0">
                               <Link 
-                                href={`/questions/${subQuestion.id || question.id}`}
+                                href={getQuestionUrl(subQuestion.id ? subQuestion : question)}
                                 onClick={(e) => e.stopPropagation()}
                                 className="block text-sm text-foreground mb-2 leading-relaxed hover:text-primary transition-colors cursor-pointer"
                               >

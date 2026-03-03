@@ -30,6 +30,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { CommentForm } from '@/components/shared/comment-form';
 import { CommentItem } from '@/components/shared/comment-item';
 import { buildCommentTree } from '@/utils/comments';
+import { getQuestionUrl } from '@/utils/question-url';
 import { formatDistanceToNow } from 'date-fns';
 import {
   AlertDialog,
@@ -116,7 +117,7 @@ export function QuestionDetailsContent({ id }: QuestionDetailsContentProps) {
 
   if (error || !question) {
     return (
-      <div className="container mx-auto max-w-4xl py-12 px-4 sm:px-6">
+      <div className="container mx-auto max-w-7xl py-12 px-4 sm:px-6 lg:px-8">
         <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-6 flex flex-col items-center justify-center min-h-[300px] text-center">
           <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
           <h2 className="text-xl font-semibold mb-2">Question Not Found</h2>
@@ -135,35 +136,34 @@ export function QuestionDetailsContent({ id }: QuestionDetailsContentProps) {
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 pb-20">
-      {/* Premium Hero Header Section */}
-      <div className="relative bg-slate-900 overflow-hidden pt-16 pb-24 sm:pt-20 sm:pb-32">
-        {/* Background Effects */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-teal-500/10 blur-[120px] rounded-full" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 blur-[120px] rounded-full" />
-          <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
+      {/* Hero Header Section */}
+      <div className="relative bg-gradient-to-br from-slate-50 via-white to-slate-100 border-b border-slate-200 overflow-hidden pt-8 pb-12 sm:pt-12 sm:pb-16">
+        {/* Subtle Background Effects */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
+          <div className="absolute top-[-10%] right-[-5%] w-[30%] h-[30%] bg-teal-500/5 blur-[100px] rounded-full" />
+          <div className="absolute bottom-[-10%] left-[-5%] w-[30%] h-[30%] bg-blue-500/5 blur-[100px] rounded-full" />
         </div>
 
-        <div className="container mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
           {/* Breadcrumb */}
           <Link 
             href={question.exam_paper?.slug ? `/exampapers/${question.exam_paper.slug}` : "/browse"}
-            className="inline-flex items-center text-sm font-medium text-slate-400 hover:text-teal-400 transition-colors mb-8 group"
+            className="inline-flex items-center text-sm font-medium text-slate-600 hover:text-teal-600 transition-colors mb-6 group"
           >
             <ChevronLeft className="w-4 h-4 mr-1 transition-transform group-hover:-translate-x-1" />
-            Back to {examPaperName}
+            Back to Exam Paper
           </Link>
 
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
-            <div className="flex-1 space-y-6">
+            <div className="flex-1 space-y-5">
               {/* Meta Badges */}
               <div className="flex flex-wrap items-center gap-3">
-                <Badge variant="outline" className="bg-white/5 border-white/10 text-slate-300 backdrop-blur-md">
+                <Badge variant="outline" className="bg-slate-100 border-slate-300 text-slate-700">
                   <FileText className="w-3.5 h-3.5 mr-2" />
                   {examPaperName}
                 </Badge>
                 {institutionName && (
-                  <Badge className="bg-teal-500/20 text-teal-300 border-teal-500/30 backdrop-blur-md">
+                  <Badge className="bg-teal-50 text-teal-700 border-teal-200">
                     {institutionName}
                   </Badge>
                 )}
@@ -176,14 +176,14 @@ export function QuestionDetailsContent({ id }: QuestionDetailsContentProps) {
 
               {/* Question Number and Title Area */}
               <div className="flex items-start gap-6">
-                <div className="shrink-0 flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-400 to-blue-600 text-white font-bold text-3xl shadow-xl shadow-teal-500/20">
+                <div className="shrink-0 flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-blue-600 text-white font-bold text-2xl shadow-lg">
                   {question.question_number || '?'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-4">
+                  <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 mb-4">
                     Question Details
                   </h1>
-                  <div className="prose prose-invert prose-lg max-w-none text-slate-200 leading-relaxed font-medium">
+                  <div className="prose prose-slate prose-lg max-w-none text-slate-700 leading-relaxed">
                     {typeof question.text === 'string' ? (
                       <p>{question.text}</p>
                     ) : (
@@ -193,14 +193,14 @@ export function QuestionDetailsContent({ id }: QuestionDetailsContentProps) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-6 text-sm text-slate-400 pt-4">
+              <div className="flex items-center gap-6 text-sm text-slate-600 pt-3">
                 <div className="flex items-center">
-                  <Calendar className="w-4 h-4 mr-2 text-slate-500" />
+                  <Calendar className="w-4 h-4 mr-2 text-slate-400" />
                   {question.created_at ? new Date(question.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'Unknown date'}
                 </div>
                 {question.answers?.length > 0 && (
                   <div className="flex items-center">
-                    <CircleCheck className="w-4 h-4 mr-2 text-teal-400" />
+                    <CircleCheck className="w-4 h-4 mr-2 text-teal-500" />
                     {question.answers.length} {question.answers.length === 1 ? 'Answer' : 'Answers'} available
                   </div>
                 )}
@@ -212,7 +212,7 @@ export function QuestionDetailsContent({ id }: QuestionDetailsContentProps) {
               <Button size="lg" className="bg-teal-500 hover:bg-teal-600 text-white border-0 shadow-lg shadow-teal-500/20 px-8">
                 <Share2 className="w-4 h-4 mr-2" /> Share
               </Button>
-              <Button variant="outline" size="lg" className="bg-white/5 border-white/10 text-white hover:bg-white/10 backdrop-blur-md">
+              <Button variant="outline" size="lg" className="bg-white border-slate-300 text-slate-700 hover:bg-slate-50">
                 <Bookmark className="w-4 h-4 mr-2" /> Bookmark
               </Button>
             </div>
@@ -220,17 +220,13 @@ export function QuestionDetailsContent({ id }: QuestionDetailsContentProps) {
         </div>
       </div>
 
-      <div className="container mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 -mt-10 relative z-20">
-        {/* Placeholder for any floating elements if needed, but we go straight to answers section below */}
-      </div>
-
-      <div className="container mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 mt-12">
+      <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mt-12">
 
         {/* Answers Section */}
         <div className="space-y-6 mb-16">
           <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
             <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-3">
-              <div className="w-2 h-8 bg-teal-500 rounded-full" />
+              <div className="w-1 h-8 bg-gradient-to-b from-teal-500 to-blue-600 rounded-full" />
               Answers <span className="text-slate-400 text-lg font-normal">({question.answers?.length || 0})</span>
             </h2>
           </div>
@@ -259,7 +255,7 @@ export function QuestionDetailsContent({ id }: QuestionDetailsContentProps) {
         {siblings.length > 1 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 border-t border-slate-100 dark:border-slate-800/50 pt-12 mt-16">
             {prev ? (
-              <Link href={`/questions/${prev.id}`} className="group relative rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 flex items-center gap-5 hover:border-teal-400 dark:hover:border-teal-500 hover:shadow-xl hover:shadow-teal-500/5 transition-all cursor-pointer">
+              <Link href={getQuestionUrl(prev)} className="group relative rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 flex items-center gap-5 hover:border-teal-400 dark:hover:border-teal-500 hover:shadow-xl hover:shadow-teal-500/5 transition-all cursor-pointer">
                 <div className="w-12 h-12 rounded-xl bg-slate-50 dark:bg-slate-800 group-hover:bg-teal-50 dark:group-hover:bg-teal-900/30 flex items-center justify-center shrink-0 transition-colors text-slate-400 group-hover:text-teal-600 shadow-inner">
                   <ChevronLeft className="w-6 h-6" />
                 </div>
@@ -271,7 +267,7 @@ export function QuestionDetailsContent({ id }: QuestionDetailsContentProps) {
             ) : <div />}
 
             {next && (
-              <Link href={`/questions/${next.id}`} className="group relative rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 flex flex-row-reverse items-center gap-5 hover:border-teal-400 dark:hover:border-teal-500 hover:shadow-xl hover:shadow-teal-500/5 transition-all cursor-pointer sm:text-right">
+              <Link href={getQuestionUrl(next)} className="group relative rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 flex flex-row-reverse items-center gap-5 hover:border-teal-400 dark:hover:border-teal-500 hover:shadow-xl hover:shadow-teal-500/5 transition-all cursor-pointer sm:text-right">
                 <div className="w-12 h-12 rounded-xl bg-slate-50 dark:bg-slate-800 group-hover:bg-teal-50 dark:group-hover:bg-teal-900/30 flex items-center justify-center shrink-0 transition-colors text-slate-400 group-hover:text-teal-600 shadow-inner">
                   <ChevronRight className="w-6 h-6" />
                 </div>
@@ -497,7 +493,7 @@ function EnhancedAnswerDisplay({ answer, index }: { answer: any, index: number }
   };
 
   return (
-    <Card className={`overflow-hidden transition-all duration-300 border ${isVerified ? 'border-green-200 dark:border-green-900/50 shadow-sm bg-green-50/10 dark:bg-green-900/5' : 'border-slate-200 dark:border-slate-800 shadow-sm'}`}>
+    <Card className={`overflow-hidden transition-all duration-300 rounded-xl border ${isVerified ? 'border-emerald-200 dark:border-emerald-900/50 shadow-md bg-emerald-50/30 dark:bg-emerald-900/5' : 'border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md'}`}>
       <div className="p-6 sm:p-8">
         <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-100 dark:border-slate-800/50">
           <div className="flex items-center gap-3 relative z-10">

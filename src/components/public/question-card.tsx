@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { getQuestionUrl } from '@/utils/question-url';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -179,7 +180,7 @@ export function QuestionCard({ question, questionNumber, isOpen, onToggle }: Que
                 </div>
 
                 {/* Main Question Text as H3 */}
-                <Link href={`/questions/${question.id}`} className="block group-hover:text-teal-600 transition-colors duration-200 cursor-pointer">
+                <Link href={getQuestionUrl(question)} className="block group-hover:text-teal-600 transition-colors duration-200 cursor-pointer">
                   {renderQuestionText(question.text, true)}
                 </Link>
 
@@ -253,7 +254,7 @@ export function QuestionCard({ question, questionNumber, isOpen, onToggle }: Que
                       </span>
                       <div className="flex-1">
                         {/* Sub-question Text as H4 */}
-                        <Link href={`/questions/${subQuestion.id || question.id}`} className="block hover:text-teal-600 transition-colors duration-200 cursor-pointer">
+                        <Link href={getQuestionUrl(subQuestion.id ? subQuestion : question)} className="block hover:text-teal-600 transition-colors duration-200 cursor-pointer">
                           {renderQuestionText(subQuestion.text, false)}
                         </Link>
 

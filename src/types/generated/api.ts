@@ -3827,7 +3827,7 @@ export interface paths {
         put?: never;
         /**
          * Like Comment
-         * @description Likes a comment
+         * @description Toggle like for a comment
          */
         post: operations["like_comment_api_v1_comment__comment_id__like_post"];
         delete?: never;
@@ -3847,7 +3847,7 @@ export interface paths {
         put?: never;
         /**
          * Dislike Comment
-         * @description Dislikes a comment
+         * @description Toggle dislike for a comment
          */
         post: operations["dislike_comment_api_v1_comment__comment_id__dislike_post"];
         delete?: never;
@@ -4274,11 +4274,8 @@ export interface components {
             text?: {
                 [key: string]: unknown;
             } | null;
-            /**
-             * Question Id
-             * Format: uuid
-             */
-            question_id: string;
+            /** Question Id */
+            question_id?: string | null;
             /**
              * Likes
              * @default 0
@@ -4375,11 +4372,8 @@ export interface components {
             text?: {
                 [key: string]: unknown;
             } | null;
-            /**
-             * Question Id
-             * Format: uuid
-             */
-            question_id: string;
+            /** Question Id */
+            question_id?: string | null;
             /**
              * Likes
              * @default 0
@@ -4431,7 +4425,7 @@ export interface components {
             /** Time */
             time: number;
             /** Blocks */
-            blocks: components["schemas"]["app__schemas__comment_schema__Block"][];
+            blocks: components["schemas"]["app__schemas__answer_schema__Block"][];
         };
         /** AnswerUpdate */
         AnswerUpdate: {
@@ -4924,7 +4918,7 @@ export interface components {
             /** Time */
             time: number;
             /** Blocks */
-            blocks: components["schemas"]["app__schemas__comment_schema__Block"][];
+            blocks: components["schemas"]["app__schemas__answer_schema__Block"][];
         };
         /** CommentUpdate */
         CommentUpdate: {
@@ -6048,38 +6042,6 @@ export interface components {
             } | unknown | null;
             data?: components["schemas"]["CommentRead"] | null;
         };
-        /** IGetResponseBase[CourseRead] */
-        IGetResponseBase_CourseRead_: {
-            /**
-             * Message
-             * @default Data got correctly
-             */
-            message: string | null;
-            /**
-             * Meta
-             * @default {}
-             */
-            meta: {
-                [key: string]: unknown;
-            } | unknown | null;
-            data?: components["schemas"]["CourseRead"] | null;
-        };
-        /** IGetResponseBase[DepartmentRead] */
-        IGetResponseBase_DepartmentRead_: {
-            /**
-             * Message
-             * @default Data got correctly
-             */
-            message: string | null;
-            /**
-             * Meta
-             * @default {}
-             */
-            meta: {
-                [key: string]: unknown;
-            } | unknown | null;
-            data?: components["schemas"]["DepartmentRead"] | null;
-        };
         /** IGetResponseBase[ExamDescriptionRead] */
         IGetResponseBase_ExamDescriptionRead_: {
             /**
@@ -6127,22 +6089,6 @@ export interface components {
                 [key: string]: unknown;
             } | unknown | null;
             data?: components["schemas"]["app__schemas__exam_paper_schema__ExamTitleRead"] | null;
-        };
-        /** IGetResponseBase[FacultyRead] */
-        IGetResponseBase_FacultyRead_: {
-            /**
-             * Message
-             * @default Data got correctly
-             */
-            message: string | null;
-            /**
-             * Meta
-             * @default {}
-             */
-            meta: {
-                [key: string]: unknown;
-            } | unknown | null;
-            data?: components["schemas"]["FacultyRead"] | null;
         };
         /** IGetResponseBase[IGroupReadWithUsers] */
         IGetResponseBase_IGroupReadWithUsers_: {
@@ -6207,22 +6153,6 @@ export interface components {
                 [key: string]: unknown;
             } | unknown | null;
             data?: components["schemas"]["IUserRead"] | null;
-        };
-        /** IGetResponseBase[InstitutionRead] */
-        IGetResponseBase_InstitutionRead_: {
-            /**
-             * Message
-             * @default Data got correctly
-             */
-            message: string | null;
-            /**
-             * Meta
-             * @default {}
-             */
-            meta: {
-                [key: string]: unknown;
-            } | unknown | null;
-            data?: components["schemas"]["InstitutionRead"] | null;
         };
         /** IGetResponseBase[InstructionRead] */
         IGetResponseBase_InstructionRead_: {
@@ -6490,22 +6420,6 @@ export interface components {
             };
             data: components["schemas"]["PageBase_ExamDescriptionRead_"];
         };
-        /** IGetResponsePaginated[ExamPaperReadForInstitution] */
-        IGetResponsePaginated_ExamPaperReadForInstitution_: {
-            /**
-             * Message
-             * @default Item retreived successfully
-             */
-            message: string | null;
-            /**
-             * Meta
-             * @default {}
-             */
-            meta: {
-                [key: string]: unknown;
-            };
-            data: components["schemas"]["PageBase_ExamPaperReadForInstitution_"];
-        };
         /** IGetResponsePaginated[ExamPaperRead] */
         IGetResponsePaginated_ExamPaperRead_: {
             /**
@@ -6633,22 +6547,6 @@ export interface components {
                 [key: string]: unknown;
             };
             data: components["schemas"]["PageBase_IUserReadWithoutGroups_"];
-        };
-        /** IGetResponsePaginated[InstitutionReadSimple] */
-        IGetResponsePaginated_InstitutionReadSimple_: {
-            /**
-             * Message
-             * @default Item retreived successfully
-             */
-            message: string | null;
-            /**
-             * Meta
-             * @default {}
-             */
-            meta: {
-                [key: string]: unknown;
-            };
-            data: components["schemas"]["PageBase_InstitutionReadSimple_"];
         };
         /** IGetResponsePaginated[InstitutionRead] */
         IGetResponsePaginated_InstitutionRead_: {
@@ -8058,60 +7956,6 @@ export interface components {
             slug?: string | null;
         };
         /**
-         * InstitutionReadSimple
-         * @description Simplified schema for list/search endpoints without nested relationships
-         */
-        InstitutionReadSimple: {
-            /** Name */
-            name: string;
-            /**
-             * Description
-             * @default An Institution of choice
-             */
-            description: string | null;
-            category: components["schemas"]["InstitutionCategory"];
-            /** Key */
-            key?: string | null;
-            /** Location */
-            location?: string | null;
-            /** Kuccps Institution Url */
-            kuccps_institution_url?: string | null;
-            institution_type?: components["schemas"]["InstitutionType"] | null;
-            /** Full Profile */
-            full_profile?: string | null;
-            /** Parent Ministry */
-            parent_ministry?: string | null;
-            /**
-             * Tags
-             * @default []
-             */
-            tags: string[] | null;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Slug */
-            slug?: string | null;
-            /**
-             * Exams Count
-             * @default 0
-             */
-            exams_count: number | null;
-            /**
-             * Campuses Count
-             * @default 0
-             */
-            campuses_count: number | null;
-            /**
-             * Faculties Count
-             * @default 0
-             */
-            faculties_count: number | null;
-            logo?: components["schemas"]["IImageMediaRead"] | null;
-            address?: components["schemas"]["AddressRead"] | null;
-        };
-        /**
          * InstitutionType
          * @enum {string}
          */
@@ -8568,29 +8412,6 @@ export interface components {
              */
             next_page?: number | null;
         };
-        /** PageBase[ExamPaperReadForInstitution] */
-        PageBase_ExamPaperReadForInstitution_: {
-            /** Items */
-            items: components["schemas"]["ExamPaperReadForInstitution"][];
-            /** Total */
-            total?: number | null;
-            /** Page */
-            page: number | null;
-            /** Size */
-            size: number | null;
-            /** Pages */
-            pages?: number | null;
-            /**
-             * Previous Page
-             * @description Page number of the previous page
-             */
-            previous_page?: number | null;
-            /**
-             * Next Page
-             * @description Page number of the next page
-             */
-            next_page?: number | null;
-        };
         /** PageBase[ExamPaperRead] */
         PageBase_ExamPaperRead_: {
             /** Items */
@@ -8756,29 +8577,6 @@ export interface components {
         PageBase_IUserReadWithoutGroups_: {
             /** Items */
             items: components["schemas"]["IUserReadWithoutGroups"][];
-            /** Total */
-            total?: number | null;
-            /** Page */
-            page: number | null;
-            /** Size */
-            size: number | null;
-            /** Pages */
-            pages?: number | null;
-            /**
-             * Previous Page
-             * @description Page number of the previous page
-             */
-            previous_page?: number | null;
-            /**
-             * Next Page
-             * @description Page number of the next page
-             */
-            next_page?: number | null;
-        };
-        /** PageBase[InstitutionReadSimple] */
-        PageBase_InstitutionReadSimple_: {
-            /** Items */
-            items: components["schemas"]["InstitutionReadSimple"][];
             /** Total */
             total?: number | null;
             /** Page */
@@ -9522,7 +9320,7 @@ export interface components {
             type: string;
         };
         /** Block */
-        app__schemas__comment_schema__Block: {
+        app__schemas__answer_schema__Block: {
             /** Id */
             id: string;
             /** Data */
@@ -9683,7 +9481,7 @@ export interface components {
             /** Time */
             time: number;
             /** Blocks */
-            blocks: components["schemas"]["app__schemas__comment_schema__Block"][];
+            blocks: components["schemas"]["app__schemas__answer_schema__Block"][];
         };
     };
     responses: never;
@@ -11519,7 +11317,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponsePaginated_InstitutionRead_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -11604,7 +11402,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponsePaginated_InstitutionReadSimple_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -11637,7 +11435,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponseBase_List_Dict_str__str___"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -11702,7 +11500,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponseBase_InstitutionRead_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -11733,7 +11531,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponseBase_InstitutionRead_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -11767,7 +11565,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponsePaginated_ExamPaperReadForInstitution_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -12065,7 +11863,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponsePaginated_FacultyRead_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -12138,7 +11936,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponsePaginated_FacultyRead_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -12203,7 +12001,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponseBase_FacultyRead_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -12431,7 +12229,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponsePaginated_DepartmentRead_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -12506,7 +12304,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponsePaginated_DepartmentRead_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -12571,7 +12369,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponseBase_DepartmentRead_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -13464,7 +13262,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponsePaginated_CourseRead_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -13543,7 +13341,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponsePaginated_CourseRead_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -13608,7 +13406,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponseBase_CourseRead_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -13836,7 +13634,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponsePaginated_ModuleRead_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -13911,7 +13709,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponsePaginated_ModuleRead_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -16665,7 +16463,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IPutResponseBase_CommentRead_"];
+                    "application/json": components["schemas"]["IPostResponseBase_CommentRead_"];
                 };
             };
             /** @description Validation Error */
@@ -16696,7 +16494,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IPutResponseBase_CommentRead_"];
+                    "application/json": components["schemas"]["IPostResponseBase_CommentRead_"];
                 };
             };
             /** @description Validation Error */

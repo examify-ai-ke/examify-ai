@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CommentForm } from '@/components/shared/comment-form';
 import { CommentItem } from '@/components/shared/comment-item';
-import { ChevronDown, MessageSquare, ThumbsUp, ThumbsDown, Clock, CircleCheck, Loader2, Reply, Edit, Trash2 } from 'lucide-react';
+import { ChevronDown, MessageSquare, ThumbsUp, ThumbsDown, Clock, CircleCheck, Loader2, Reply, Edit, Trash2, CheckCircle2 } from 'lucide-react';
 import EditorRenderer from '@/components/ui/editor-renderer';
 import AnswerRenderer from '@/components/ui/answer-renderer';
 import { publicAPI } from '@/lib/api-public';
@@ -163,6 +163,12 @@ export function QuestionCard({ question, questionNumber, isOpen, onToggle }: Que
                         {question.marks} marks
                       </Badge>
                     )}
+                    {hasMainAnswer && (
+                      <Badge variant="outline" className="text-xs border-green-500 text-green-700 bg-green-50/50">
+                        <CircleCheck className="w-3 h-3 mr-1" />
+                        Has Answer
+                      </Badge>
+                    )}
                     {hasSubQuestions && (
                       <Badge variant="outline" className="text-xs border-teal-500 text-teal-700">
                         {question.children.length} sub-questions
@@ -246,12 +252,20 @@ export function QuestionCard({ question, questionNumber, isOpen, onToggle }: Que
                         {/* Sub-question Text as H4 */}
                         {renderQuestionText(subQuestion.text, false)}
 
-                        {/* Marks Badge */}
-                        {subQuestion.marks && (
-                          <Badge className="text-xs bg-orange-500 hover:bg-orange-600 text-white mt-2">
-                            {subQuestion.marks} marks
-                          </Badge>
-                        )}
+                        {/* Marks Badge & Answer Status */}
+                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                          {subQuestion.marks && (
+                            <Badge className="text-xs bg-orange-500 hover:bg-orange-600 text-white">
+                              {subQuestion.marks} marks
+                            </Badge>
+                          )}
+                          {hasSubAnswer && (
+                            <Badge variant="outline" className="text-xs border-green-500 text-green-700 bg-green-50/50">
+                              <CircleCheck className="w-3 h-3 mr-1" />
+                              Has Answer
+                            </Badge>
+                          )}
+                        </div>
 
                         {/* Sub-question Answer Section */}
                         {hasSubAnswer ? (

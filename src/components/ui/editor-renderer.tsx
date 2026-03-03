@@ -36,26 +36,30 @@ const EditorRenderer: React.FC<EditorRendererProps> = ({ data, className = '' })
         return (
           <p
             key={key}
-            className="mb-4 text-base leading-relaxed"
+            className="mb-4 text-[1.05rem] md:text-lg leading-relaxed text-foreground/90"
             dangerouslySetInnerHTML={{ __html: block.data.text }}
           />
         );
 
-      case 'header':
-        const HeaderTag = `h${block.data.level}` as keyof JSX.IntrinsicElements;
-        const headerClasses = {
+      case 'header': {
+        const level = block.data.level as 1 | 2 | 3 | 4 | 5 | 6;
+        const HeaderTag = `h${level}` as keyof React.JSX.IntrinsicElements;
+        const headerClasses: Record<number, string> = {
           1: 'text-3xl font-bold mb-4 mt-6',
           2: 'text-2xl font-bold mb-3 mt-5',
           3: 'text-xl font-semibold mb-3 mt-4',
           4: 'text-lg font-semibold mb-2 mt-3',
+          5: 'text-base font-semibold mb-2 mt-3',
+          6: 'text-base font-semibold mb-2 mt-3',
         };
         return (
           <HeaderTag
             key={key}
-            className={headerClasses[block.data.level as keyof typeof headerClasses] || headerClasses[1]}
+            className={headerClasses[level] || headerClasses[2]}
             dangerouslySetInnerHTML={{ __html: block.data.text }}
           />
         );
+      }
 
       case 'list':
         const ListTag = block.data.style === 'ordered' ? 'ol' : 'ul';
@@ -222,7 +226,7 @@ const EditorRenderer: React.FC<EditorRendererProps> = ({ data, className = '' })
   };
 
   return (
-    <div className={`prose prose-sm max-w-none ${className}`}>
+    <div className={`prose max-w-none text-foreground ${className}`}>
       {data.blocks.map((block, index) => renderBlock(block, index))}
     </div>
   );

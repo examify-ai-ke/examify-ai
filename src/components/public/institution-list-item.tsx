@@ -43,13 +43,13 @@ export function InstitutionListItem({ institution, className = '' }: Institution
         {/* Institution Logo/Icon */}
         <div className="flex-shrink-0">
           <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
-            {institution.logo?.media?.link ? (
+            {institution.logo?.media?.link || institution.logo?.media?.path ? (
               <img
-                src={institution.logo.media.link}
-                alt={institution.logo?.media?.title || 'Institution logo'}
+                src={institution.logo?.media?.link || institution.logo?.media?.path || ''}
+                alt={institution.logo?.media?.title || institution.name || 'Institution logo'}
                 width={64}  
                 height={64}                
-                className="rounded-full object-cover"
+                className="w-full h-full object-cover"
               />
             ) : (
               <InstitutionIcon className="h-8 w-8 text-blue-600" />

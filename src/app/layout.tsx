@@ -1,15 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Fira_Sans } from "next/font/google";
 import "./globals.css";
 import { Notifications } from "@/components/ui/notifications";
 import { APP_CONFIG } from "@/lib/constants";
 import { QueryProvider } from "@/lib/query-provider";
 import { PostHogProvider } from "@/providers/posthog-provider";
+import { ThemeProvider } from "@/providers/theme-provider";
 import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 
-const inter = Inter({ 
+const firaSans = Fira_Sans({ 
   subsets: ["latin"],
-  variable: "--font-inter",
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-fira-sans",
+  display: "swap",
 });
 
 // GTSuper font - uncomment when you add the font file to public/fonts/
@@ -71,18 +74,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${gtSuper.variable} font-sans`} suppressHydrationWarning>
+      <body className={`${firaSans.variable} ${gtSuper.variable} font-sans antialiased`} suppressHydrationWarning>
         {/* Google Analytics */}
         {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
           <GoogleAnalytics measurementId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
         )}
         
-        <PostHogProvider>
-          <QueryProvider>
-            {children}
-            <Notifications />
-          </QueryProvider>
-        </PostHogProvider>
+        <ThemeProvider>
+          <PostHogProvider>
+            <QueryProvider>
+              {children}
+              <Notifications />
+            </QueryProvider>
+          </PostHogProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

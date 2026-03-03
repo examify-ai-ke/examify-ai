@@ -23,14 +23,14 @@ export function InstitutionCard({ institution, className = '' }: InstitutionCard
       <CardContent className="pt-6">
         <div className="flex flex-col items-center text-center space-y-4">
           {/* Institution Logo/Icon */}
-          <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
-            {institution.logo?.media?.link ? (
+          <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden shrink-0">
+            {institution.logo?.media?.link || institution.logo?.media?.path ? (
               <img
-                src={institution.logo.media.link}
+                src={institution.logo?.media?.link || institution.logo?.media?.path || ''}
                 alt={institution.name || 'Institution logo'}
-                width={64}
-                height={64}
-                className="rounded-full object-cover"
+                width={80}
+                height={80}
+                className="w-full h-full object-cover"
               />
             ) : (
               <Building2 className="h-10 w-10 text-blue-600" />

@@ -2,154 +2,45 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Sun, Moon, Monitor } from 'lucide-react';
-import { THEME_CONFIG, STORAGE_KEYS } from '@/lib/constants';
-import { theme } from '@/lib/utils';
-
-type Theme = 'light' | 'dark' | 'system';
+import { Sun, Moon } from 'lucide-react';
+import { useTheme } from 'next-themes';
 
 export function ThemeToggle() {
-  const [currentTheme, setCurrentTheme] = useState<Theme>('system');
   const [mounted, setMounted] = useState(false);
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     setMounted(true);
-    const savedTheme = theme.get() as Theme;
-    setCurrentTheme(savedTheme);
   }, []);
 
-  useEffect(() => {
-    const root = window.document.documentElement;
-    
-    if (currentTheme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      root.classList.remove('light', 'dark');
-      root.classList.add(systemTheme);
-    } else {
-      root.classList.remove('light', 'dark');
-      root.classList.add(currentTheme);
-    }
-  }, [currentTheme]);
-
-  const handleThemeChange = (newTheme: Theme) => {
-    setCurrentTheme(newTheme);
-    theme.set(newTheme);
+  const toggleTheme = () => {
+    setTheme(theme === 'light' ? 'dark' : 'light');
   };
 
   if (!mounted) {
     return (
-      <Button variant="ghost" size="sm" className="w-9 px-0">
+      <Button variant="ghost" size="sm" className="w-9 px-0 border border-transparent">
         <Sun className="h-4 w-4" />
         <span className="sr-only">Toggle theme</span>
       </Button>
     );
   }
 
-  const getThemeIcon = () => {
-    switch (currentTheme) {
-      case 'light':
-        return <Sun className="h-4 w-4" />;
-      case 'dark':
-        return <Moon className="h-4 w-4" />;
-      case 'system':
-        return <Monitor className="h-4 w-4" />;
-      default:
-        return <Sun className="h-4 w-4" />;
-    }
-  };
-
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="w-9 px-0">
-          {getThemeIcon()}
-          <span className="sr-only">Toggle theme</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {THEME_CONFIG.themes.map((themeOption) => (
-          <DropdownMenuItem
-            key={themeOption}
-            onClick={() => handleThemeChange(themeOption)}
-            className={currentTheme === themeOption ? 'bg-accent' : ''}
-          >
-            {themeOption === 'light' && <Sun className="mr-2 h-4 w-4" />}
-            {themeOption === 'dark' && <Moon className="mr-2 h-4 w-4" />}
-            {themeOption === 'system' && <Monitor className="mr-2 h-4 w-4" />}
-            <span className="capitalize">{themeOption}</span>
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Button 
+      variant="ghost" 
+      size="sm" 
+      onClick={toggleTheme} 
+      className="w-9 px-0 bg-transparent border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+      title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+    >
+      {theme === 'light' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      <span className="sr-only">Toggle theme</span>
+    </Button>
   );
 }
 
 // Simple theme toggle for mobile or compact spaces
 export function SimpleThemeToggle() {
-  const [currentTheme, setCurrentTheme] = useState<Theme>('system');
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    const savedTheme = theme.get() as Theme;
-    setCurrentTheme(savedTheme);
-  }, []);
-
-  useEffect(() => {
-    const root = window.document.documentElement;
-    
-    if (currentTheme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      root.classList.remove('light', 'dark');
-      root.classList.add(systemTheme);
-    } else {
-      root.classList.remove('light', 'dark');
-      root.classList.add(currentTheme);
-    }
-  }, [currentTheme]);
-
-  const toggleTheme = () => {
-    const themes: Theme[] = ['light', 'dark', 'system'];
-    const currentIndex = themes.indexOf(currentTheme);
-    const nextIndex = (currentIndex + 1) % themes.length;
-    const newTheme = themes[nextIndex];
-    
-    setCurrentTheme(newTheme);
-    theme.set(newTheme);
-  };
-
-  if (!mounted) {
-    return (
-      <Button variant="ghost" size="sm" className="w-9 px-0">
-        <Sun className="h-4 w-4" />
-        <span className="sr-only">Toggle theme</span>
-      </Button>
-    );
-  }
-
-  const getThemeIcon = () => {
-    switch (currentTheme) {
-      case 'light':
-        return <Sun className="h-4 w-4" />;
-      case 'dark':
-        return <Moon className="h-4 w-4" />;
-      case 'system':
-        return <Monitor className="h-4 w-4" />;
-      default:
-        return <Sun className="h-4 w-4" />;
-    }
-  };
-
-  return (
-    <Button variant="ghost" size="sm" className="w-9 px-0" onClick={toggleTheme}>
-      {getThemeIcon()}
-      <span className="sr-only">Toggle theme</span>
-    </Button>
-  );
+  return <ThemeToggle />;
 } 

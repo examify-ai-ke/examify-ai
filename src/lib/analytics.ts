@@ -209,6 +209,39 @@ export const analytics = {
       });
     },
   },
+
+  /**
+   * Identify a user for analytics tracking
+   */
+  identify: (userId: string, properties?: Record<string, any>) => {
+    setUserProperties({
+      user_id: userId,
+      ...properties,
+    });
+  },
+
+  /**
+   * Reset analytics (clear user identification on logout)
+   */
+  reset: () => {
+    if (typeof window !== 'undefined' && window.gtag) {
+      // Clear user properties by setting them to undefined
+      window.gtag('set', 'user_properties', {
+        user_id: undefined,
+        email: undefined,
+        name: undefined,
+        role: undefined,
+        created_at: undefined,
+      });
+    }
+  },
+
+  /**
+   * Track a custom event
+   */
+  track: (eventName: string, properties?: Record<string, any>) => {
+    trackEvent(eventName, properties);
+  },
 };
 
 export default analytics;

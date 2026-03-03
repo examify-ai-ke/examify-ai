@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -178,7 +179,9 @@ export function QuestionCard({ question, questionNumber, isOpen, onToggle }: Que
                 </div>
 
                 {/* Main Question Text as H3 */}
-                {renderQuestionText(question.text, true)}
+                <Link href={`/questions/${question.id}`} className="block group-hover:text-teal-600 transition-colors duration-200 cursor-pointer">
+                  {renderQuestionText(question.text, true)}
+                </Link>
 
                 {/* Main Question Answer Section */}
                 {hasMainAnswer ? (
@@ -250,7 +253,9 @@ export function QuestionCard({ question, questionNumber, isOpen, onToggle }: Que
                       </span>
                       <div className="flex-1">
                         {/* Sub-question Text as H4 */}
-                        {renderQuestionText(subQuestion.text, false)}
+                        <Link href={`/questions/${subQuestion.id || question.id}`} className="block hover:text-teal-600 transition-colors duration-200 cursor-pointer">
+                          {renderQuestionText(subQuestion.text, false)}
+                        </Link>
 
                         {/* Marks Badge & Answer Status */}
                         <div className="flex flex-wrap items-center gap-2 mt-2">

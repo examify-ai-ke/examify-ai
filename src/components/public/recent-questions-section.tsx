@@ -213,13 +213,17 @@ export function RecentQuestionsSection({
                         </div>
 
                         {/* Question text */}
-                        <div className="text-foreground mb-3 line-clamp-3 text-sm leading-relaxed">
+                        <Link 
+                          href={`/questions/${question.id}`} 
+                          onClick={(e) => e.stopPropagation()}
+                          className="block text-foreground mb-3 line-clamp-3 text-sm leading-relaxed hover:text-primary transition-colors cursor-pointer"
+                        >
                           {question.text && typeof question.text === 'object' && question.text.blocks ? (
                             <EditorRenderer data={question.text} className="line-clamp-3" />
                           ) : (
                             <p className="text-muted-foreground italic">No question text available</p>
                           )}
-                        </div>
+                        </Link>
 
                         {/* Meta row */}
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground mb-3">
@@ -285,13 +289,17 @@ export function RecentQuestionsSection({
                               {subQuestion.question_number || '?'}
                             </span>
                             <div className="flex-1 min-w-0">
-                              <div className="text-sm text-foreground mb-2 leading-relaxed">
+                              <Link 
+                                href={`/questions/${subQuestion.id || question.id}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="block text-sm text-foreground mb-2 leading-relaxed hover:text-primary transition-colors cursor-pointer"
+                              >
                                 {subQuestion.text && typeof subQuestion.text === 'object' && subQuestion.text.blocks ? (
                                   <EditorRenderer data={subQuestion.text} />
                                 ) : (
                                   <p className="text-muted-foreground italic">No text available</p>
                                 )}
-                              </div>
+                              </Link>
                               <div className="flex items-center gap-3">
                                 <span className="text-xs text-muted-foreground">
                                   Marks: <span className="font-semibold text-primary">{subQuestion.marks || 0}</span>

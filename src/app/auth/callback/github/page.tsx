@@ -15,6 +15,10 @@ export default function GitHubCallbackPage() {
     const { login } = useAuth();
 
     useEffect(() => {
+        // Create abort controller to cancel requests if component unmounts
+        const abortController = new AbortController();
+        let isMounted = true;
+
         const handleCallback = async () => {
             try {
                 // Get the authorization code from URL parameters
@@ -31,6 +35,14 @@ export default function GitHubCallbackPage() {
 
                 // Handle OAuth errors from GitHub
                 if (errorParam) {
+                    console.log('⚠️ GitHub OAuth cancelled:', errorParam);
+                    // User cancelled the authorization - redirect back to login immediately
+                    if (errorParam === 'access_denied' || errorParam === 'user_cancelled_login') {
+                        if (isMounted) {
+                            router.push('/auth/login');
+                        }
+                        return;
+                    }
                     throw new Error(`GitHub OAuth error: ${errorParam}`);
                 }
 
@@ -44,15 +56,33 @@ export default function GitHubCallbackPage() {
                 // Exchange the authorization code for tokens via backend
                 const response = await exchangeGitHubCode(code, 'github');
                 
-                console.log('✅ GitHub OAuth successful', {
-                    hasData: !!response?.data,
-                    userEmail: response?.data?.user?.email
-                });
+                // Check if component is still mounted before updating state
+                if (!isMounted) {
+                    console.log('Component unmounted, skipping redirect');
+                    return;
+                }
+                
+                console.log('✅ Authentication response:', response);
+                console.log('✅ Response type:', typeof response);
+                console.log('✅ Response keys:', response ? Object.keys(response) : 'null');
 
-                if (response?.data) {
-                    // Extract the token and user data
-                    const { access_token, refresh_token, user } = response.data;
-                    
+                // Extract token and user from response
+                // Response structure: { message, meta, data: { access_token, token_type, refresh_token, user } }
+                let token: string | undefined;
+                let user: any | undefined;
+                
+                if (response && typeof response === 'object' && 'data' in response) {
+                    const data = (response as any).data;
+                    if (data && typeof data === 'object') {
+                        token = data.access_token;
+                        user = data.user;
+                    }
+                }
+
+                console.log('🔑 Extracted token:', token ? `${token.substring(0, 20)}...` : 'null');
+                console.log('👤 Extracted user:', user ? user.email : 'null');
+
+                if (token && user) {
                     // Log in the user with the received tokens
                     await login({
                         email: user.email,
@@ -62,35 +92,59 @@ export default function GitHubCallbackPage() {
                     
                     // Store tokens if needed
                     if (typeof window !== 'undefined') {
-                        localStorage.setItem('auth-token', access_token);
-                        if (refresh_token) {
-                            localStorage.setItem('refresh-token', refresh_token);
+                        localStorage.setItem('auth-token', token);
+                        const refreshToken = (response as any).data?.refresh_token;
+                        if (refreshToken) {
+                            localStorage.setItem('refresh-token', refreshToken);
                         }
                     }
                     
-                    // Redirect to the original destination or dashboard
-                    const redirectUrl = state || '/dashboard';
+                    // Determine redirect URL based on user role
+                    // Admins and managers go to /dashboard, regular users go to /exampapers
+                    let redirectUrl = '/exampapers'; // Default for regular users
+                    if (user.is_superuser || user.role?.name === 'manager' || user.role?.name === 'admin') {
+                        redirectUrl = state || '/dashboard'; // Admins/managers use state or default to /dashboard
+                    } else {
+                        // Regular users always go to /exampapers, ignore /dashboard in state
+                        redirectUrl = (state && state !== '/dashboard') ? state : '/exampapers';
+                    }
+                    
                     console.log('🚀 Redirecting to:', redirectUrl);
-                    router.push(redirectUrl);
+                    if (isMounted) {
+                        router.push(redirectUrl);
+                    }
                 } else {
                     throw new Error('No authentication data received from backend');
                 }
 
             } catch (err) {
                 console.error('❌ GitHub OAuth callback error:', err);
-                const errorMessage = err instanceof Error ? err.message : 'Authentication failed';
-                setError(errorMessage);
-                
-                // Redirect to login page after a short delay
-                setTimeout(() => {
-                    router.push('/auth/login?error=github_oauth_failed');
-                }, 3000);
+                // Only update state if component is still mounted and error wasn't an abort
+                if (isMounted && err instanceof Error && err.name !== 'AbortError') {
+                    const errorMessage = err instanceof Error ? err.message : 'Authentication failed';
+                    setError(errorMessage);
+                    
+                    // Redirect to login page after a short delay
+                    setTimeout(() => {
+                        if (isMounted) {
+                            router.push('/auth/login?error=github_oauth_failed');
+                        }
+                    }, 3000);
+                }
             } finally {
-                setIsProcessing(false);
+                if (isMounted) {
+                    setIsProcessing(false);
+                }
             }
         };
 
         handleCallback();
+
+        // Cleanup function
+        return () => {
+            isMounted = false;
+            abortController.abort();
+        };
     }, [searchParams, router, login]);
 
     // Show loading state

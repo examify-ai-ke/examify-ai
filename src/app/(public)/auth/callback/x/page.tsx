@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
-import { exchangeGoogleCode } from '@/lib/social-auth';
 import { useAuthStore } from '@/stores/auth';
+import { exchangeXCode } from '@/lib/social-auth';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
-export default function GoogleCallbackPage() {
+export default function XCallbackPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const login = useAuthStore((state) => state.login);
@@ -23,14 +23,21 @@ export default function GoogleCallbackPage() {
 
         const handleCallback = async () => {
             try {
-                // Get authorization code from URL
+                // Get the authorization code from URL parameters
                 const code = searchParams.get('code');
-                const state = searchParams.get('state'); // This contains the redirect URL
+                const state = searchParams.get('state');
                 const errorParam = searchParams.get('error');
 
-                // Handle user cancellation
+                console.log('🔍 X OAuth callback received', {
+                    hasCode: !!code,
+                    hasState: !!state,
+                    hasError: !!errorParam,
+                    errorDescription: errorParam
+                });
+
+                // Handle OAuth errors from X
                 if (errorParam) {
-                    console.log('⚠️ Google OAuth cancelled:', errorParam);
+                    console.log('⚠️ X OAuth cancelled:', errorParam);
                     // User cancelled the authorization - redirect back to login immediately
                     if (errorParam === 'access_denied' || errorParam === 'user_cancelled_login') {
                         if (isMounted) {
@@ -38,19 +45,26 @@ export default function GoogleCallbackPage() {
                         }
                         return;
                     }
-                    throw new Error(`Google authentication failed: ${errorParam}`);
+                    throw new Error(`X OAuth error: ${errorParam}`);
                 }
 
+                // Validate required parameters
                 if (!code) {
-                    throw new Error('No authorization code received from Google');
+                    throw new Error('No authorization code received from X');
                 }
 
-                console.log('🔐 Received authorization code from Google');
-                console.log('📍 Redirect URL from state:', state);
-                console.log('🔑 Code length:', code.length);
+                console.log('🔄 Exchanging X code for authentication...');
+                
+                // Retrieve the PKCE code verifier stored before redirect
+                const codeVerifier = sessionStorage.getItem('x_code_verifier') || undefined;
+                sessionStorage.removeItem('x_code_verifier');
 
-                // Exchange code for tokens via backend
-                const response = await exchangeGoogleCode(code, 'google');
+                if (!codeVerifier) {
+                    console.warn('⚠️ No code_verifier found in sessionStorage — PKCE may fail');
+                }
+                
+                // Exchange the authorization code for tokens via backend
+                const response = await exchangeXCode(code, 'twitter', codeVerifier);
                 
                 // Check if component is still mounted before updating state
                 if (!isMounted) {
@@ -59,11 +73,8 @@ export default function GoogleCallbackPage() {
                 }
                 
                 console.log('✅ Authentication response:', response);
-                console.log('✅ Response type:', typeof response);
-                console.log('✅ Response keys:', response ? Object.keys(response) : 'null');
 
                 // Extract token and user from response
-                // Response structure: { message, meta, data: { access_token, token_type, refresh_token, user } }
                 let token: string | undefined;
                 let user: any | undefined;
                 
@@ -75,55 +86,56 @@ export default function GoogleCallbackPage() {
                     }
                 }
 
-                console.log('🔑 Extracted token:', token ? `${token.substring(0, 20)}...` : 'null');
-                console.log('👤 Extracted user:', user ? user.email : 'null');
+                if (token && user) {
+                    // Log in the user with the received tokens (Store state)
+                    login(user, token);
+                    
+                    // Persist tokens
+                    if (typeof window !== 'undefined') {
+                        localStorage.setItem('auth-token', token);
+                        const refreshToken = (response as any).data?.refresh_token;
+                        if (refreshToken) {
+                            localStorage.setItem('refresh-token', refreshToken);
+                        }
 
-                if (!token) {
-                    console.error('❌ Token extraction failed. Response structure:', JSON.stringify(response, null, 2));
-                    throw new Error('No authentication token received from server');
+                        // Mirror Google flow: set cookies for SSR and middleware
+                        document.cookie = `auth-token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+                        const userRole = user.is_superuser ? 'superuser' : (user.role?.name || 'user');
+                        document.cookie = `user-role=${userRole}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+                    }
+                    
+                    if (isMounted) {
+                        setStatus('success');
+                    }
+
+                    // Determine redirect URL
+                    const redirectUrl = state && state.startsWith('/') ? state : '/exampapers';
+                    
+                    console.log('🚀 Redirecting to:', redirectUrl);
+                    
+                    // Delay redirect to show success message (matches Google flow UI)
+                    if (isMounted) {
+                        setTimeout(() => {
+                            if (isMounted) {
+                                window.location.href = redirectUrl;
+                            }
+                        }, 1500);
+                    }
+                } else {
+                    throw new Error('No authentication data received from backend');
                 }
 
-                if (!user) {
-                    console.error('❌ User extraction failed. Response structure:', JSON.stringify(response, null, 2));
-                    throw new Error('No user data received from server');
-                }
-
-                // Store the token and user using login method (sets isAuthenticated: true)
-                login(user, token);
-                localStorage.setItem('auth-token', token);
-                
-                // Set cookie for SSR
-                document.cookie = `auth-token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
-                
-                // Store user role in cookie for middleware access control
-                const userRole = user.is_superuser ? 'superuser' : (user.role?.name || 'user');
-                document.cookie = `user-role=${userRole}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
-
-                console.log('✅ User and token stored successfully');
-                if (isMounted) {
-                    setStatus('success');
-                }
-
-                // Redirect immediately using window.location for a hard redirect
-                const redirectUrl = state && state.startsWith('/') ? state : '/exampapers';
-                console.log('🔄 Redirecting to:', redirectUrl);
-                if (isMounted) {
-                    window.location.href = redirectUrl;
-                }
-
-            } catch (error) {
-                console.error('❌ Google callback error:', error);
-                // Only update state if component is still mounted and error wasn't an abort
-                if (isMounted && error instanceof Error && error.name !== 'AbortError') {
+            } catch (err) {
+                console.error('❌ X OAuth callback error:', err);
+                if (isMounted && err instanceof Error && err.name !== 'AbortError') {
                     setStatus('error');
-                    setError(error instanceof Error ? error.message : 'Authentication failed');
+                    setError(err instanceof Error ? err.message : 'Authentication failed');
                 }
             }
         };
 
         handleCallback();
 
-        // Cleanup function
         return () => {
             isMounted = false;
             abortController.abort();
@@ -140,8 +152,8 @@ export default function GoogleCallbackPage() {
                         {status === 'error' && 'Sign In Failed'}
                     </CardTitle>
                     <CardDescription className="text-center">
-                        {status === 'loading' && 'Please wait while we complete your Google sign in'}
-                        {status === 'success' && 'Redirecting you to exam papers...'}
+                        {status === 'loading' && 'Please wait while we complete your X sign in'}
+                        {status === 'success' && 'Redirecting you to home...'}
                         {status === 'error' && 'There was a problem signing you in'}
                     </CardDescription>
                 </CardHeader>
@@ -156,7 +168,7 @@ export default function GoogleCallbackPage() {
                                 <CheckCircle2 className="h-12 w-12 text-green-600" />
                             </div>
                             <p className="text-sm text-muted-foreground text-center">
-                                You have successfully signed in with Google
+                                You have successfully signed in with X
                             </p>
                         </div>
                     )}

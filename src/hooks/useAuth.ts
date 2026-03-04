@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth';
 import { useUIStore } from '@/stores/ui';
 import { api, setAuthToken, clearAuthToken } from '@/lib/api';
@@ -12,6 +13,7 @@ type LoginResponse = components['schemas']['IPostResponseBase_Token_'];
 
 export const useAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
   const { user, isAuthenticated, login, logout, setError, clearError, invalidateSession } = useAuthStore();
   const { addNotification } = useUIStore();
 
@@ -200,6 +202,9 @@ export const useAuth = () => {
         title: 'Logged out',
         message: 'You have been successfully logged out.',
       });
+
+      // Redirect to login page
+      router.push('/auth/login');
     }
   };
 

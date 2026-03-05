@@ -99,7 +99,7 @@ export function Header({ className, onMenuClick }: HeaderProps) {
         {/* Navigation – Desktop */}
         <nav className="hidden md:flex items-center gap-1 ml-2">
           {[
-            { href: '/exampapers', label: 'Exam Papers' },
+            { href: '/exampapers', label: 'ExamPapers' },
             { href: '/questions', label: 'Questions' },
             { href: '/institutions', label: 'Institutions' },
           ].map(({ href, label }) => (

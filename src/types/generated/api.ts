@@ -4425,7 +4425,7 @@ export interface components {
             /** Time */
             time: number;
             /** Blocks */
-            blocks: components["schemas"]["app__schemas__question_schema__Block"][];
+            blocks: components["schemas"]["app__schemas__comment_schema__Block"][];
         };
         /** AnswerUpdate */
         AnswerUpdate: {
@@ -4920,7 +4920,7 @@ export interface components {
             /** Time */
             time: number;
             /** Blocks */
-            blocks: components["schemas"]["app__schemas__question_schema__Block"][];
+            blocks: components["schemas"]["app__schemas__comment_schema__Block"][];
         };
         /** CommentUpdate */
         CommentUpdate: {
@@ -7865,6 +7865,13 @@ export interface components {
             id: string;
             /** Slug */
             slug?: string | null;
+            /** Name */
+            name: string;
+            /** Location */
+            location?: string | null;
+            /** Description */
+            description?: string | null;
+            category: components["schemas"]["InstitutionCategory"];
             /**
              * Faculties
              * @default []
@@ -7897,7 +7904,6 @@ export interface components {
             faculties_count: number | null;
             logo?: components["schemas"]["IImageMediaRead"] | null;
             address?: components["schemas"]["AddressRead"] | null;
-            category: components["schemas"]["InstitutionCategory"];
             institution_type?: components["schemas"]["InstitutionType"] | null;
             /** Key */
             key?: string | null;
@@ -9312,6 +9318,17 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /** Block */
+        app__schemas__comment_schema__Block: {
+            /** Id */
+            id: string;
+            /** Data */
+            data: {
+                [key: string]: unknown;
+            };
+            /** Type */
+            type: string;
+        };
         /** ExamDescriptionReadForExamPaper */
         app__schemas__course_schema__ExamDescriptionReadForExamPaper: {
             /**
@@ -9391,17 +9408,6 @@ export interface components {
              */
             answers: components["schemas"]["AnswerReadForQuestion"][] | null;
         };
-        /** Block */
-        app__schemas__question_schema__Block: {
-            /** Id */
-            id: string;
-            /** Data */
-            data: {
-                [key: string]: unknown;
-            };
-            /** Type */
-            type: string;
-        };
         /** MainQuestionReadForQuestionSet */
         app__schemas__question_schema__MainQuestionReadForQuestionSet: {
             text: components["schemas"]["app__schemas__question_schema__QuestionTextSchema"] | null;
@@ -9474,7 +9480,7 @@ export interface components {
             /** Time */
             time: number;
             /** Blocks */
-            blocks: components["schemas"]["app__schemas__question_schema__Block"][];
+            blocks: components["schemas"]["app__schemas__comment_schema__Block"][];
         };
     };
     responses: never;
@@ -11310,7 +11316,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["IGetResponsePaginated_InstitutionRead_"];
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

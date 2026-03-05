@@ -26,13 +26,21 @@ export function InstitutionCard({ institution, className = '' }: InstitutionCard
           {/* Institution Logo/Icon */}
           <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden shrink-0 relative">
             {institution.logo?.media?.link ? (
-              <Image
-                src={institution.logo.media.link}
-                alt={institution.name || 'Institution logo'}
-                fill
-                className="object-contain p-2"
-                unoptimized
+            <img
+                src={institution.logo?.media?.link || '/placeholder.svg'}
+                alt={institution.logo?.media?.title || 'Institution logo'}
+                width={80}
+                height={80}
+                className="object-contain"
+                      
               />
+              // <Image
+              //   src={institution.logo.media.link}
+              //   alt={institution.name || 'Institution logo'}
+              //   fill
+              //   className="object-contain p-2"
+              //   unoptimized
+              // />
             ) : (
               <Building2 className="h-10 w-10 text-blue-600" />
             )}

@@ -202,7 +202,7 @@ export function RecentQuestionsSection({
                           <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
                             Question
                           </span>
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground text-xs font-semibold border border-border">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-yellow-500/10 text-yellow-700 text-xs font-semibold border border-yellow-500/20">
                             {totalMarks} {totalMarks === 1 ? 'mark' : 'marks'}
                           </span>
                           {hasAnswers && (

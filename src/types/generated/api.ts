@@ -4425,7 +4425,7 @@ export interface components {
             /** Time */
             time: number;
             /** Blocks */
-            blocks: components["schemas"]["app__schemas__answer_schema__Block"][];
+            blocks: components["schemas"]["app__schemas__question_schema__Block"][];
         };
         /** AnswerUpdate */
         AnswerUpdate: {
@@ -4560,6 +4560,8 @@ export interface components {
             code: string;
             /** Redirect Uri */
             redirect_uri: string;
+            /** Code Verifier */
+            code_verifier?: string | null;
         };
         /** Body_upload_campus_image_api_v1_campus__campus_id__image_post */
         Body_upload_campus_image_api_v1_campus__campus_id__image_post: {
@@ -4918,7 +4920,7 @@ export interface components {
             /** Time */
             time: number;
             /** Blocks */
-            blocks: components["schemas"]["app__schemas__answer_schema__Block"][];
+            blocks: components["schemas"]["app__schemas__question_schema__Block"][];
         };
         /** CommentUpdate */
         CommentUpdate: {
@@ -7856,30 +7858,6 @@ export interface components {
         };
         /** InstitutionRead */
         InstitutionRead: {
-            /** Name */
-            name: string;
-            /**
-             * Description
-             * @default An Institution of choice
-             */
-            description: string | null;
-            category: components["schemas"]["InstitutionCategory"];
-            /** Key */
-            key?: string | null;
-            /** Location */
-            location?: string | null;
-            /** Kuccps Institution Url */
-            kuccps_institution_url?: string | null;
-            institution_type?: components["schemas"]["InstitutionType"] | null;
-            /** Full Profile */
-            full_profile?: string | null;
-            /** Parent Ministry */
-            parent_ministry?: string | null;
-            /**
-             * Tags
-             * @default []
-             */
-            tags: string[] | null;
             /**
              * Id
              * Format: uuid
@@ -7919,6 +7897,21 @@ export interface components {
             faculties_count: number | null;
             logo?: components["schemas"]["IImageMediaRead"] | null;
             address?: components["schemas"]["AddressRead"] | null;
+            category: components["schemas"]["InstitutionCategory"];
+            institution_type?: components["schemas"]["InstitutionType"] | null;
+            /** Key */
+            key?: string | null;
+            /** Kuccps Institution Url */
+            kuccps_institution_url?: string | null;
+            /** Full Profile */
+            full_profile?: string | null;
+            /** Parent Ministry */
+            parent_ministry?: string | null;
+            /**
+             * Tags
+             * @default []
+             */
+            tags: string[] | null;
         };
         /** InstitutionReadForExamPaper */
         InstitutionReadForExamPaper: {
@@ -9319,17 +9312,6 @@ export interface components {
             /** Error Type */
             type: string;
         };
-        /** Block */
-        app__schemas__answer_schema__Block: {
-            /** Id */
-            id: string;
-            /** Data */
-            data: {
-                [key: string]: unknown;
-            };
-            /** Type */
-            type: string;
-        };
         /** ExamDescriptionReadForExamPaper */
         app__schemas__course_schema__ExamDescriptionReadForExamPaper: {
             /**
@@ -9409,6 +9391,17 @@ export interface components {
              */
             answers: components["schemas"]["AnswerReadForQuestion"][] | null;
         };
+        /** Block */
+        app__schemas__question_schema__Block: {
+            /** Id */
+            id: string;
+            /** Data */
+            data: {
+                [key: string]: unknown;
+            };
+            /** Type */
+            type: string;
+        };
         /** MainQuestionReadForQuestionSet */
         app__schemas__question_schema__MainQuestionReadForQuestionSet: {
             text: components["schemas"]["app__schemas__question_schema__QuestionTextSchema"] | null;
@@ -9481,7 +9474,7 @@ export interface components {
             /** Time */
             time: number;
             /** Blocks */
-            blocks: components["schemas"]["app__schemas__answer_schema__Block"][];
+            blocks: components["schemas"]["app__schemas__question_schema__Block"][];
         };
     };
     responses: never;
@@ -11317,7 +11310,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["IGetResponsePaginated_InstitutionRead_"];
                 };
             };
             /** @description Validation Error */

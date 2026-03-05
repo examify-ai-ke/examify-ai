@@ -13,14 +13,15 @@ interface InstitutionListItemProps {
 
 export function InstitutionListItem({ institution, className = '' }: InstitutionListItemProps) {
   const router = useRouter();
-  console.log(institution);
+  // console.log(institution);
   const handleViewInstitution = () => {
     router.push(`/institutions/${institution.slug}`);
   };
-
+  // console.log(institution);
   // Get paper count from the institution object
   const paperCount = (institution as InstitutionRead & { exams_count?: number }).exams_count || 0;
-
+  console.log(paperCount);
+  console.log(institution);
   // Get appropriate icon based on institution type
   const getInstitutionIcon = (type?: string) => {
     switch (type?.toLowerCase()) {
@@ -43,12 +44,12 @@ export function InstitutionListItem({ institution, className = '' }: Institution
         {/* Institution Logo/Icon */}
         <div className="flex-shrink-0">
           <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden">
-            {institution.logo?.media?.link || institution.logo?.media?.path ? (
+            {institution.logo?.media? (
               <img
-                src={institution.logo?.media?.link || institution.logo?.media?.path || ''}
+                src={institution.logo?.media?.link || '/placeholder.svg'}
                 alt={institution.logo?.media?.title || institution.name || 'Institution logo'}
-                width={64}  
-                height={64}                
+                width={80}  
+                height={80}                
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -56,6 +57,7 @@ export function InstitutionListItem({ institution, className = '' }: Institution
             )}
           </div>
         </div>
+        
 
         {/* Institution details */}
         <div className="flex-1 min-w-0">

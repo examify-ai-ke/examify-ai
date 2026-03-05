@@ -81,7 +81,7 @@ export default function InstitutionsPageContent() {
       
       // Sort on client side if needed
       let institutions = result.data || [];
-      
+      console.log(institutions);
       if (sortBy === 'most-papers') {
         institutions = [...institutions].sort((a: any, b: any) => 
           (b.exams_count || 0) - (a.exams_count || 0)
@@ -348,7 +348,6 @@ export default function InstitutionsPageContent() {
             </Button>
           </div>
         )}
-
         {/* Results - Grid or List View */}
         {!isLoading && institutions.length > 0 && (
           <>

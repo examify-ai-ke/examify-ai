@@ -14,7 +14,7 @@ export function InstitutionCard({ institution, className = '' }: InstitutionCard
   const handleViewInstitution = () => {
     router.push(`/institutions/${institution.slug}`);
   };
-
+  console.log(institution);
   // Get paper count from the institution object
   const paperCount = (institution as InstitutionRead & { exams_count?: number }).exams_count || 0;
 
@@ -24,10 +24,10 @@ export function InstitutionCard({ institution, className = '' }: InstitutionCard
         <div className="flex flex-col items-center text-center space-y-4">
           {/* Institution Logo/Icon */}
           <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden shrink-0">
-            {institution.logo?.media?.link || institution.logo?.media?.path ? (
+            {institution.logo?.media? (
               <img
-                src={institution.logo?.media?.link || institution.logo?.media?.path || ''}
-                alt={institution.name || 'Institution logo'}
+                src={institution.logo?.media?.link || '/placeholder.svg'}
+                alt={institution.logo?.media?.title || institution.name || 'Institution logo'}
                 width={80}
                 height={80}
                 className="w-full h-full object-cover"

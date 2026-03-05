@@ -173,20 +173,20 @@ export function RecentQuestionsSection({
                     `}
                   >
                     {/* Tags row */}
-                    <div className="flex flex-wrap items-center gap-1.5 mb-4">
-                      <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-teal-700 text-white text-sm font-bold shadow-sm">
+                    <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary/20 text-primary text-xs font-semibold border border-primary/20">
                         {institution}
                       </span>
-                      <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-rose-600 text-white text-sm font-bold shadow-sm">
+                      <span className="inline-flex items-center px-3 py-1 rounded-full bg-teal-500/10 text-teal-700 text-xs font-semibold border border-teal-500/20">
                         {courseAcronym}
                       </span>
                       {programme && (
-                        <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-amber-600 text-white text-sm font-bold shadow-sm">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-purple-500/10 text-purple-700 text-xs font-semibold border border-purple-500/20">
                           {programme}
                         </span>
                       )}
                       {module && (
-                        <span className="inline-flex items-center px-3 py-1.5 rounded-full bg-indigo-600 text-white text-sm font-bold shadow-sm">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-semibold border border-amber-500/20">
                           {module}
                         </span>
                       )}
@@ -195,19 +195,19 @@ export function RecentQuestionsSection({
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         {/* Question number + marks */}
-                        <div className="flex flex-wrap items-center gap-2.5 mb-3">
-                          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground font-bold text-sm flex-shrink-0 shadow-sm">
+                        <div className="flex flex-wrap items-center gap-2.5 mb-2.5">
+                          <span className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary text-primary-foreground font-bold text-sm flex-shrink-0">
                             {question.question_number || '?'}
                           </span>
                           <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
                             Question
                           </span>
-                          <span className="inline-flex items-center px-3 py-1 rounded-full bg-yellow-500 text-white text-sm font-bold shadow-sm">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full bg-rose-500/10 text-rose-700 text-xs font-semibold border border-rose-500/20">
                             {totalMarks} {totalMarks === 1 ? 'mark' : 'marks'}
                           </span>
                           {hasAnswers && (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-600 text-white text-sm font-bold shadow-sm">
-                              <CheckCircle2 className="w-4 h-4" />
+                            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-500/20 text-green-700 text-xs font-semibold border border-green-500/20">
+                              <CheckCircle2 className="w-3 h-3" />
                               Has Answer
                             </span>
                           )}
@@ -323,6 +323,7 @@ export function RecentQuestionsSection({
             );
           })}
         </div>
+
 
         {/* Bottom Pagination */}
         {onPageChange && totalPages > 1 && (

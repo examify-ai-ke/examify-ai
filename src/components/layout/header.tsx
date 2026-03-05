@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useTheme } from 'next-themes';
@@ -60,6 +61,7 @@ function ThemeToggle() {
 export function Header({ className, onMenuClick }: HeaderProps) {
   const { user, isAuthenticated, logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const pathname = usePathname();
 
   const handleLogoutClick = async () => {
     await logout();
@@ -102,20 +104,35 @@ export function Header({ className, onMenuClick }: HeaderProps) {
             { href: '/exampapers', label: 'ExamPapers' },
             { href: '/questions', label: 'Questions' },
             { href: '/institutions', label: 'Institutions' },
-          ].map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground px-3 py-2 rounded-lg hover:bg-muted transition-colors"
-            >
-              {label}
-            </Link>
-          ))}
+          ].map(({ href, label }) => {
+            const isActive = pathname === href;
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  'text-sm font-medium transition-all duration-200 px-3 py-2 rounded-sm flex items-center gap-1.5',
+                  isActive
+                    ? 'bg-primary/10 text-primary font-bold shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted hover:-translate-y-0.5',
+                  'active:scale-95'
+                )}
+              >
+                {label}
+              </Link>
+            );
+          })}
           {isAuthenticated && user?.role?.name &&
             (user.role.name === 'admin' || user.role.name === 'manager') && (
               <Link
                 href="/dashboard"
-                className="text-sm font-medium text-muted-foreground hover:text-foreground px-3 py-2 rounded-lg hover:bg-muted transition-colors"
+                className={cn(
+                  'text-sm font-medium transition-all duration-200 px-3 py-2 rounded-lg',
+                  pathname === '/dashboard'
+                    ? 'bg-primary/10 text-primary font-bold shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted hover:-translate-y-0.5',
+                  'active:scale-95'
+                )}
               >
                 Dashboard
               </Link>

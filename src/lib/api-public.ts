@@ -1011,13 +1011,7 @@ export const publicAPI = {
         async getPlatformStats() {
             try {
                 console.log('📊 Fetching platform statistics from dedicated endpoint...');
-                const response = await api.GET('/api/v1/report/detailed-statistics');
-
-                console.log('📦 Statistics response:', {
-                    hasData: !!response.data,
-                    hasError: !!response.error,
-                    dataType: typeof response.data,
-                });
+                const response: any = await api.GET('/api/v1/report/detailed-statistics');
 
                 // Check for API errors
                 if (response.error) {

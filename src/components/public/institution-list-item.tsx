@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Building2, FileText, MapPin, GraduationCap, School } from 'lucide-react';
 import type { InstitutionRead } from '@/components/public/types';
-// import Image from 'next/image';
+import Image from 'next/image';
 
 
 interface InstitutionListItemProps {
@@ -46,7 +46,7 @@ export function InstitutionListItem({ institution, className = '' }: Institution
         {/* Institution Logo/Icon */}
         <div className="flex-shrink-0">
           <div className="w-18 h-18 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden relative">
-            {institution.logo?.media ? (
+            {institution.logo?.media? (
              <img
                 src={institution.logo?.media?.link || '/placeholder.svg'}
                 alt={institution.logo?.media?.title || 'Institution logo'}
@@ -56,7 +56,7 @@ export function InstitutionListItem({ institution, className = '' }: Institution
                       
               />
               // <Image
-              //   src={institution.logo.media.link}
+              //   src={institution.logo?.media?.link || '/placeholder.svg'}
               //   alt={institution.name || 'Institution logo'}
               //   fill
               //   className="object-contain p-2"

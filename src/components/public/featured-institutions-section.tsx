@@ -1,7 +1,9 @@
 'use client';
 
 import { InstitutionCard } from './institution-card';
-import type { InstitutionRead } from './types';
+// import { InstitutionListItem} from './institution-list-item';
+
+import type { InstitutionRead } from '@/components/public/types';
 
 interface FeaturedInstitutionsSectionProps {
   institutions: InstitutionRead[];
@@ -11,7 +13,7 @@ export function FeaturedInstitutionsSection({ institutions }: FeaturedInstitutio
   if (!institutions || institutions.length === 0) {
     return null;
   }
-
+  console.log("institutions", institutions);
   return (
     <section className="py-16 bg-white">
       <div className="container mx-auto px-4">

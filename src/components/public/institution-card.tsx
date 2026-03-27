@@ -25,7 +25,7 @@ export function InstitutionCard({ institution, className = '' }: InstitutionCard
         <div className="flex flex-col items-center text-center space-y-4">
           {/* Institution Logo/Icon */}
           <div className="w-20 h-20 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden shrink-0 relative">
-            {institution.logo?.media?.link ? (
+            {institution.logo?.media? (
             <img
                 src={institution.logo?.media?.link || '/placeholder.svg'}
                 alt={institution.logo?.media?.title || 'Institution logo'}
@@ -35,7 +35,7 @@ export function InstitutionCard({ institution, className = '' }: InstitutionCard
                       
               />
               // <Image
-              //   src={institution.logo.media.link}
+              //   src={institution.logo?.media?.link || '/placeholder.svg'}
               //   alt={institution.name || 'Institution logo'}
               //   fill
               //   className="object-contain p-2"

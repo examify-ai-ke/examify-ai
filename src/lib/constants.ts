@@ -1,7 +1,7 @@
 // Application Constants
 export const APP_CONFIG = {
   name: process.env.NEXT_PUBLIC_APP_NAME || 'Exampapel',
-  description: process.env.NEXT_PUBLIC_APP_DESCRIPTION || 'Exam Papers Management System',
+  description: process.env.NEXT_PUBLIC_APP_DESCRIPTION || 'Exam Papers Resource Platform',
   url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   version: '0.1.0',
 } as const;

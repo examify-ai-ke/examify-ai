@@ -104,6 +104,7 @@ export function Header({ className, onMenuClick }: HeaderProps) {
             { href: '/exampapers', label: 'ExamPapers' },
             { href: '/questions', label: 'Questions' },
             { href: '/institutions', label: 'Institutions' },
+            { href: '/about-us', label: 'About Us' },
           ].map(({ href, label }) => {
             const isActive = pathname === href;
             return (
@@ -144,6 +145,10 @@ export function Header({ className, onMenuClick }: HeaderProps) {
 
         {/* Right side controls */}
         <div className="flex items-center gap-2">
+          <Button size="lg" asChild className="hidden md:flex bg-[#af1665] hover:bg-[#af1665]/90 text-white border-none shadow-md transition-all active:scale-95">
+            <Link href="/enterprise">For Institutions</Link>
+          </Button>
+
           {/* Dark mode toggle */}
           <ThemeToggle />
 

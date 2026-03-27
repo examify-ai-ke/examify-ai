@@ -20,7 +20,7 @@ export default function AboutUsPage() {
     <div className="flex flex-col min-h-screen bg-background text-foreground overflow-hidden">
       
       {/* Hero Section */}
-      <section className="relative px-6 pt-32 pb-24 md:pt-48 md:pb-32 flex flex-col items-center justify-center text-center">
+      <section className="relative px-6 pt-20 pb-16 md:pt-32 md:pb-24 flex flex-col items-center justify-center text-center">
         {/* Background decorative elements */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full overflow-hidden -z-10 bg-background pointer-events-none">
           <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[70%] rounded-full bg-teal-500/10 blur-[120px]" />
@@ -46,8 +46,8 @@ export default function AboutUsPage() {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
-          <Button size="lg" className="bg-teal-500 hover:bg-teal-600 text-white rounded-full px-8 h-12 text-base shadow-lg shadow-teal-500/25 transition-all w-full sm:w-auto">
-            Get Started For Free
+          <Button size="lg" className="bg-teal-500 hover:bg-teal-600 text-white rounded-full px-8 h-12 text-base shadow-lg shadow-teal-500/25 transition-all w-full sm:w-auto" asChild>
+            <Link href="/questions">Get Started For Free</Link>
           </Button>
           <Button size="lg" variant="outline" className="rounded-full px-8 h-12 text-base w-full sm:w-auto hover:bg-muted/50 transition-all border-border" asChild>
             <Link href="/enterprise">

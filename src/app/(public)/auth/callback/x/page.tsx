@@ -28,16 +28,16 @@ function XCallbackContent() {
                 const state = searchParams.get('state');
                 const errorParam = searchParams.get('error');
 
-                console.log('🔍 X OAuth callback received', {
+                /* console.log('🔍 X OAuth callback received', {
                     hasCode: !!code,
                     hasState: !!state,
                     hasError: !!errorParam,
                     errorDescription: errorParam
-                });
+                }); */
 
                 // Handle OAuth errors from X
                 if (errorParam) {
-                    console.log('⚠️ X OAuth cancelled:', errorParam);
+                    // console.log('⚠️ X OAuth cancelled:', errorParam);
                     // User cancelled the authorization - redirect back to login immediately
                     if (errorParam === 'access_denied' || errorParam === 'user_cancelled_login') {
                         if (isMounted) {
@@ -53,14 +53,14 @@ function XCallbackContent() {
                     throw new Error('No authorization code received from X');
                 }
 
-                console.log('🔄 Exchanging X code for authentication...');
+                // console.log('🔄 Exchanging X code for authentication...');
                 
                 // Retrieve the PKCE code verifier stored before redirect
                 const codeVerifier = sessionStorage.getItem('x_code_verifier') || undefined;
                 sessionStorage.removeItem('x_code_verifier');
 
                 if (!codeVerifier) {
-                    console.warn('⚠️ No code_verifier found in sessionStorage — PKCE may fail');
+                    // console.warn('⚠️ No code_verifier found in sessionStorage — PKCE may fail');
                 }
                 
                 // Exchange the authorization code for tokens via backend
@@ -68,11 +68,11 @@ function XCallbackContent() {
                 
                 // Check if component is still mounted before updating state
                 if (!isMounted) {
-                    console.log('Component unmounted, skipping redirect');
+                    // console.log('Component unmounted, skipping redirect');
                     return;
                 }
                 
-                console.log('✅ Authentication response:', response);
+                // console.log('✅ Authentication response:', response);
 
                 // Extract token and user from response
                 let token: string | undefined;
@@ -111,7 +111,7 @@ function XCallbackContent() {
                     // Determine redirect URL
                     const redirectUrl = state && state.startsWith('/') ? state : '/exampapers';
                     
-                    console.log('🚀 Redirecting to:', redirectUrl);
+                    // console.log('🚀 Redirecting to:', redirectUrl);
                     
                     // Delay redirect to show success message (matches Google flow UI)
                     if (isMounted) {
@@ -126,7 +126,7 @@ function XCallbackContent() {
                 }
 
             } catch (err) {
-                console.error('❌ X OAuth callback error:', err);
+                // console.error('❌ X OAuth callback error:', err);
                 if (isMounted && err instanceof Error && err.name !== 'AbortError') {
                     setStatus('error');
                     setError(err instanceof Error ? err.message : 'Authentication failed');

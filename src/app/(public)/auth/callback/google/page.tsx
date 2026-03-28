@@ -30,7 +30,7 @@ function GoogleCallbackContent() {
 
                 // Handle user cancellation
                 if (errorParam) {
-                    console.log('⚠️ Google OAuth cancelled:', errorParam);
+                    // console.log('⚠️ Google OAuth cancelled:', errorParam);
                     // User cancelled the authorization - redirect back to login immediately
                     if (errorParam === 'access_denied' || errorParam === 'user_cancelled_login') {
                         if (isMounted) {
@@ -45,22 +45,22 @@ function GoogleCallbackContent() {
                     throw new Error('No authorization code received from Google');
                 }
 
-                console.log('🔐 Received authorization code from Google');
+                /* console.log('🔐 Received authorization code from Google');
                 console.log('📍 Redirect URL from state:', state);
-                console.log('🔑 Code length:', code.length);
+                console.log('🔑 Code length:', code.length); */
 
                 // Exchange code for tokens via backend
                 const response = await exchangeGoogleCode(code, 'google');
                 
                 // Check if component is still mounted before updating state
                 if (!isMounted) {
-                    console.log('Component unmounted, skipping redirect');
+                    // console.log('Component unmounted, skipping redirect');
                     return;
                 }
                 
-                console.log('✅ Authentication response:', response);
+                /* console.log('✅ Authentication response:', response);
                 console.log('✅ Response type:', typeof response);
-                console.log('✅ Response keys:', response ? Object.keys(response) : 'null');
+                console.log('✅ Response keys:', response ? Object.keys(response) : 'null'); */
 
                 // Extract token and user from response
                 // Response structure: { message, meta, data: { access_token, token_type, refresh_token, user } }
@@ -75,16 +75,16 @@ function GoogleCallbackContent() {
                     }
                 }
 
-                console.log('🔑 Extracted token:', token ? `${token.substring(0, 20)}...` : 'null');
-                console.log('👤 Extracted user:', user ? user.email : 'null');
+                // console.log('🔑 Extracted token:', token ? `${token.substring(0, 20)}...` : 'null');
+                // console.log('👤 Extracted user:', user ? user.email : 'null');
 
                 if (!token) {
-                    console.error('❌ Token extraction failed. Response structure:', JSON.stringify(response, null, 2));
+                    // console.error('❌ Token extraction failed. Response structure:', JSON.stringify(response, null, 2));
                     throw new Error('No authentication token received from server');
                 }
 
                 if (!user) {
-                    console.error('❌ User extraction failed. Response structure:', JSON.stringify(response, null, 2));
+                    // console.error('❌ User extraction failed. Response structure:', JSON.stringify(response, null, 2));
                     throw new Error('No user data received from server');
                 }
 
@@ -99,20 +99,20 @@ function GoogleCallbackContent() {
                 const userRole = user.is_superuser ? 'superuser' : (user.role?.name || 'user');
                 document.cookie = `user-role=${userRole}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
 
-                console.log('✅ User and token stored successfully');
+                // console.log('✅ User and token stored successfully');
                 if (isMounted) {
                     setStatus('success');
                 }
 
                 // Redirect immediately using window.location for a hard redirect
                 const redirectUrl = state && state.startsWith('/') ? state : '/exampapers';
-                console.log('🔄 Redirecting to:', redirectUrl);
+                // console.log('🔄 Redirecting to:', redirectUrl);
                 if (isMounted) {
                     window.location.href = redirectUrl;
                 }
 
             } catch (error) {
-                console.error('❌ Google callback error:', error);
+                // console.error('❌ Google callback error:', error);
                 // Only update state if component is still mounted and error wasn't an abort
                 if (isMounted && error instanceof Error && error.name !== 'AbortError') {
                     setStatus('error');

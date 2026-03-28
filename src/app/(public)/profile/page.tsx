@@ -99,10 +99,10 @@ export default function ProfilePage() {
     // Update form data when user changes
     useEffect(() => {
         if (user) {
-            console.log('👤 User data:', user);
+            /* console.log('👤 User data:', user);
             console.log('🖼️ User image:', user.image);
             console.log('📸 Avatar URL (path):', user.image?.media?.path);
-            console.log('🔗 Avatar URL (link - double encoded):', user.image?.media?.link);
+            console.log('🔗 Avatar URL (link - double encoded):', user.image?.media?.link); */
             setFormData({
                 first_name: user.first_name || '',
                 last_name: user.last_name || '',
@@ -149,15 +149,15 @@ export default function ProfilePage() {
 
     const handleAutoSave = async (dataToSave: IUserUpdate) => {
         try {
-            console.log('Auto-saving profile with data:', dataToSave);
+            // console.log('Auto-saving profile with data:', dataToSave);
             const { data, error } = await api.PUT('/api/v1/user', {
                 body: dataToSave,
             });
 
-            console.log('Auto-save response:', { data, error });
+            // console.log('Auto-save response:', { data, error });
 
             if (error) {
-                console.error('Auto-save error:', error);
+                // console.error('Auto-save error:', error);
                 setAutoSaveStatus('idle');
                 return;
             }
@@ -173,7 +173,7 @@ export default function ProfilePage() {
                 }, 2000);
             }
         } catch (err) {
-            console.error('Auto-save exception:', err);
+            // console.error('Auto-save exception:', err);
             setAutoSaveStatus('idle');
         }
     };
@@ -181,15 +181,15 @@ export default function ProfilePage() {
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            console.log('Manual save with data:', formData);
+            // console.log('Manual save with data:', formData);
             const { data, error } = await api.PUT('/api/v1/user', {
                 body: formData,
             });
 
-            console.log('Save response:', { data, error });
+            // console.log('Save response:', { data, error });
 
             if (error) {
-                console.error('Save error:', error);
+                // console.error('Save error:', error);
                 const errorMessage = typeof error.detail === 'string'
                     ? error.detail
                     : Array.isArray(error.detail)
@@ -215,7 +215,7 @@ export default function ProfilePage() {
                 setIsEditing(false);
             }
         } catch (err) {
-            console.error('Save exception:', err);
+            // console.error('Save exception:', err);
             addNotification({
                 type: 'error',
                 title: 'Error',
@@ -379,9 +379,9 @@ export default function ProfilePage() {
 
             const data = await response.json();
             
-            console.log('📤 Upload response:', data);
-            console.log('🖼️ Image data:', data?.data?.image);
-            console.log('📸 New avatar URL:', data?.data?.image?.media?.link);
+            // console.log('📤 Upload response:', data);
+            // console.log('🖼️ Image data:', data?.data?.image);
+            // console.log('📸 New avatar URL:', data?.data?.image?.media?.link);
             
             if (data?.data) {
                 // Update the auth store with new user data
@@ -393,7 +393,7 @@ export default function ProfilePage() {
                 });
             }
         } catch (err) {
-            console.error('Avatar upload exception:', err);
+            // console.error('Avatar upload exception:', err);
             addNotification({
                 type: 'error',
                 title: 'Error',

@@ -8,7 +8,7 @@ export function CaptchaProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     if (!siteKey) {
-      console.warn('reCAPTCHA site key is missing in CaptchaProvider. If you just added it to .env, please restart your dev server.');
+      // console.warn('reCAPTCHA site key is missing in CaptchaProvider. If you just added it to .env, please restart your dev server.');
     }
   }, [siteKey]);
 

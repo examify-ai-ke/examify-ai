@@ -49,7 +49,7 @@ api.use({
     if (!response.ok) {
       // Handle 401 Unauthorized - token expired
       if (response.status === 401) {
-        console.warn('API 401 Unauthorized - Token expired:', response.url);
+        // console.warn('API 401 Unauthorized - Token expired:', response.url);
 
         // Clear expired tokens
         clearAuthToken();
@@ -75,11 +75,11 @@ api.use({
       }
 
       // Log error for debugging
-      console.log('API Error:', {
+      /* console.log('API Error:', {
         status: response.status,
         statusText: response.statusText,
         url: response.url,
-      });
+      }); */
     }
 
     return response;

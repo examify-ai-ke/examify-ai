@@ -66,14 +66,15 @@ export default function ContactUsPage() {
 
       const requestData = {
         ...formData,
+        topic: formData.topic as any,
         recaptcha_token: token
       };
 
-      console.log('Sending contact form data:', requestData);
+      // console.log('Sending contact form data:', requestData);
 
       const response = await publicAPI.contact.send(requestData);
       
-      console.log('Contact API Response:', response);
+      // console.log('Contact API Response:', response);
       
       const success = (response.data as any)?.success;
       const message = (response.data as any)?.message;

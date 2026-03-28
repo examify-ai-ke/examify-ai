@@ -36,13 +36,13 @@ export default function HomePage() {
   const { data: questionsData, isLoading: questionsLoading } = useQuery({
     queryKey: ['public', 'questions', 'paginated', currentPage, pageSize],
     queryFn: async () => {
-      console.log('🔍 Fetching paginated questions - Page:', currentPage);
+      // console.log('🔍 Fetching paginated questions - Page:', currentPage);
       const result = await publicAPI.questions.getRecent(pageSize, (currentPage - 1) * pageSize);
-      console.log('📦 Questions Response:', {
+      /* console.log('📦 Questions Response:', {
         dataCount: result.data?.length,
         total: result.total,
         page: currentPage,
-      });
+      }); */
       return result;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -50,7 +50,7 @@ export default function HomePage() {
   });
 
   const handlePageChange = (page: number) => {
-    console.log('📄 Page change requested:', page);
+    // console.log('📄 Page change requested:', page);
     setCurrentPage(page);
     // Scroll to questions section
     const questionsSection = document.querySelector('#recent-questions');

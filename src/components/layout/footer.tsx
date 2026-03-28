@@ -94,7 +94,7 @@ export function Footer({ className }: FooterProps) {
               </li>
               <li>
                 <Link
-                  href="/about"
+                  href="/about-us"
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   About Us
@@ -110,6 +110,7 @@ export function Footer({ className }: FooterProps) {
               <li>
                 <Link
                   href="/help"
+                  prefetch={false}
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Help Center
@@ -118,6 +119,7 @@ export function Footer({ className }: FooterProps) {
               <li>
                 <Link
                   href="/docs"
+                  prefetch={false}
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Documentation
@@ -126,6 +128,7 @@ export function Footer({ className }: FooterProps) {
               <li>
                 <Link
                   href="/api"
+                  prefetch={false}
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   API Reference
@@ -134,6 +137,7 @@ export function Footer({ className }: FooterProps) {
               <li>
                 <Link
                   href="/status"
+                  prefetch={false}
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   System Status
@@ -149,6 +153,7 @@ export function Footer({ className }: FooterProps) {
               <li>
                 <Link
                   href="/privacy"
+                  prefetch={false}
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Privacy Policy
@@ -157,6 +162,7 @@ export function Footer({ className }: FooterProps) {
               <li>
                 <Link
                   href="/terms"
+                  prefetch={false}
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Terms of Service
@@ -165,6 +171,7 @@ export function Footer({ className }: FooterProps) {
               <li>
                 <Link
                   href="/cookies"
+                  prefetch={false}
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Cookie Policy

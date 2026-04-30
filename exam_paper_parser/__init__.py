@@ -15,7 +15,7 @@ from .providers import MinerUProvider, ZAiProvider, get_provider
 from .providers.base import ConversionResult, PdfParserProvider
 from .s3_client import S3Client
 from .tracking import ProcessingTracker
-from .metadata import ExamPaperMetadataExtractor, z_chat_completion
+from .metadata import ExamPaperMetadataExtractor
 from .image_processor import process_images, replace_urls_in_json
 from .validator import validate_output
 from .schemas import QuestionSetWithQuestionsSchema

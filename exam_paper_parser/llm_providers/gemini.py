@@ -1,3 +1,5 @@
+import json
+import re
 import time
 
 from decouple import config
@@ -8,6 +10,13 @@ from .base import LlmProvider
 
 MAX_RETRIES = 3
 RETRY_BASE_DELAY = 5
+
+
+def _repair_json(text: str) -> str:
+    """Try to fix common JSON issues from LLM output."""
+    # Remove trailing commas before } or ]
+    text = re.sub(r",\s*([}\]])", r"\1", text)
+    return text
 
 
 class GeminiLlmProvider(LlmProvider):
@@ -31,7 +40,23 @@ class GeminiLlmProvider(LlmProvider):
                         temperature=0.4,
                     ),
                 )
-                return response.text
+                text = response.text
+                # Validate JSON, attempt repair if needed
+                try:
+                    json.loads(text)
+                except json.JSONDecodeError:
+                    repaired = _repair_json(text)
+                    json.loads(repaired)  # validate repair worked
+                    text = repaired
+                return text
+            except json.JSONDecodeError as e:
+                if attempt < MAX_RETRIES - 1:
+                    delay = RETRY_BASE_DELAY * (2 ** attempt)
+                    print(f"  Gemini returned invalid JSON, retrying in {delay}s (attempt {attempt + 1}/{MAX_RETRIES})...")
+                    time.sleep(delay)
+                    last_error = e
+                    continue
+                raise
             except Exception as e:
                 status = getattr(e, "code", 0) or 0
                 if status in (429, 500, 502, 503, 504) and attempt < MAX_RETRIES - 1:

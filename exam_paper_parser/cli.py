@@ -10,7 +10,8 @@ from typing import Dict, Optional
 
 from dotenv import load_dotenv
 
-from .metadata import ExamPaperMetadataExtractor, z_chat_completion
+from .metadata import ExamPaperMetadataExtractor
+from .llm_providers import get_llm_provider
 from .image_processor import process_images, replace_urls_in_json
 from .validator import validate_output
 from .pdf_parser import PdfParser
@@ -21,7 +22,8 @@ from .prompts import QUESTION_EXTRACTION_PROMPT
 
 load_dotenv()
 
-extractor = ExamPaperMetadataExtractor()
+llm = get_llm_provider()
+extractor = ExamPaperMetadataExtractor(provider=llm)
 s3 = S3Client()
 tracker = ProcessingTracker(s3)
 pdf_service = PdfParser(s3, tracker)
@@ -112,13 +114,12 @@ def convert_exam_metadata(metadata: dict) -> dict:
 def generate_from_text(markdown_text: str, metadata: dict) -> dict:
     print(f"Input length: {len(markdown_text)} chars")
 
-    z_messages = [
-        {"role": "system", "content": QUESTION_EXTRACTION_PROMPT},
-        {"role": "user", "content": markdown_text},
-    ]
+    json_response = llm.chat_completion(
+        system_prompt=QUESTION_EXTRACTION_PROMPT,
+        user_message=markdown_text,
+    )
     converted_metadata = convert_exam_metadata(metadata)
 
-    json_response = z_chat_completion(z_messages)
     json_questions = json.loads(json_response)
     final_output = {"questions": json_questions}
     final_output.update(converted_metadata)

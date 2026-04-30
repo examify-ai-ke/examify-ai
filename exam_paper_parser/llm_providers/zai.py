@@ -20,7 +20,7 @@ class ZAiLlmProvider(LlmProvider):
     def _get_client(self):
         return ZaiClient(
             api_key=self.api_key,
-            base_url="https://api.z.ai/api/paas/v4/chat/completions",
+            base_url="https://api.z.ai/api/paas/v4",
         )
 
     def chat_completion(self, system_prompt: str, user_message: str) -> str:

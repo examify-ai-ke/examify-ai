@@ -1,0 +1,44 @@
+import time
+
+from decouple import config
+from google import genai
+from google.genai import types
+
+from .base import LlmProvider
+
+MAX_RETRIES = 3
+RETRY_BASE_DELAY = 5
+
+
+class GeminiLlmProvider(LlmProvider):
+    """Google Gemini API provider using the google-genai SDK."""
+
+    def __init__(self):
+        self.api_key = config("GEMINI_API_KEY", "")
+        self.model = config("GEMINI_MODEL", default="gemini-2.0-flash")
+        self.client = genai.Client(api_key=self.api_key)
+
+    def chat_completion(self, system_prompt: str, user_message: str) -> str:
+        last_error = None
+        for attempt in range(MAX_RETRIES):
+            try:
+                response = self.client.models.generate_content(
+                    model=self.model,
+                    contents=user_message,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_prompt,
+                        response_mime_type="application/json",
+                        temperature=0.4,
+                    ),
+                )
+                return response.text
+            except Exception as e:
+                status = getattr(e, "code", 0) or 0
+                if status in (429, 500, 502, 503, 504) and attempt < MAX_RETRIES - 1:
+                    delay = RETRY_BASE_DELAY * (2 ** attempt)
+                    print(f"  Gemini {status} error, retrying in {delay}s (attempt {attempt + 1}/{MAX_RETRIES})...")
+                    time.sleep(delay)
+                    last_error = e
+                    continue
+                raise
+        raise last_error

@@ -1,55 +1,12 @@
 import json
-import os
-import time
 import uuid
-from pathlib import Path
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
-from zai import ZaiClient
-from decouple import config
 
+from .llm_providers import get_llm_provider
+from .llm_providers.base import LlmProvider
 from .prompts import METADATA_EXTRACTION_PROMPT
-
-
-def _get_zai_client():
-    return ZaiClient(
-        api_key=config("Z_API_KEY", ""),
-        base_url="https://api.z.ai/api/paas/v4/chat/completions",
-    )
-
-
-ZAI_MAX_RETRIES = 3
-ZAI_RETRY_BASE_DELAY = 5
-
-
-def z_chat_completion(messages_list: list) -> str:
-    """Send a chat completion request to Z.ai with retry on 429/5xx."""
-    last_error = None
-    for attempt in range(ZAI_MAX_RETRIES):
-        try:
-            client = _get_zai_client()
-            completion = client.chat.completions.create(
-                model=os.environ.get("Z_API_MODEL", "glm-5.1"),
-                messages=messages_list,
-                thinking={"type": "enabled"},
-                temperature=1.0,
-                response_format={"type": "json_object"},
-            )
-            return completion.choices[0].message.content
-        except Exception as e:
-            status = getattr(getattr(e, "status_code", None), "__int__", lambda: 0)()
-            if not status:
-                resp = getattr(e, "response", None)
-                status = getattr(resp, "status_code", 0) if resp else 0
-            if status in (429, 500, 502, 503, 504) and attempt < ZAI_MAX_RETRIES - 1:
-                delay = ZAI_RETRY_BASE_DELAY * (2 ** attempt)
-                print(f"  Z.ai {status} error, retrying in {delay}s (attempt {attempt + 1}/{ZAI_MAX_RETRIES})...")
-                time.sleep(delay)
-                last_error = e
-                continue
-            raise
-    raise last_error
 
 
 class ExamPaperMetadataSchema(BaseModel):
@@ -66,8 +23,8 @@ class ExamPaperMetadataSchema(BaseModel):
 
 
 class ExamPaperMetadataExtractor:
-    def __init__(self, api_key=os.environ.get("GEMINI_API_KEY")):
-        pass
+    def __init__(self, provider: LlmProvider | None = None):
+        self.provider = provider or get_llm_provider()
 
     def extract_metadata(
         self, markdown_file_url=None, markdown_text: Optional[str] = None
@@ -87,13 +44,11 @@ class ExamPaperMetadataExtractor:
             prompt = METADATA_EXTRACTION_PROMPT + "\nHere is the schema of the output format we expect:\n"
             prompt += json.dumps(ExamPaperMetadataSchema.model_json_schema())
 
-            z_messages = [
-                {"role": "system", "content": prompt},
-                {"role": "user", "content": text_head},
-            ]
-            metadata_response_text = z_chat_completion(z_messages)
-            metadata = json.loads(metadata_response_text)
-            return metadata
+            response_text = self.provider.chat_completion(
+                system_prompt=prompt,
+                user_message=text_head,
+            )
+            return json.loads(response_text)
         except Exception as e:
             raise Exception(f"Error extracting metadata: {str(e)}")
 

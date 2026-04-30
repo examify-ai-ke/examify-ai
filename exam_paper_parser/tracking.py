@@ -80,6 +80,17 @@ class ProcessingTracker:
         except Exception as e:
             print(f"Warning: NocoDB sync failed: {e}")
 
+    def remove_by_status(self, status: str) -> int:
+        """Remove all manifest entries with the given status. Returns count removed."""
+        manifest = self._load_manifest()
+        files = manifest.get("processed_files", [])
+        before = len(files)
+        manifest["processed_files"] = [f for f in files if f.get("status") != status]
+        removed = before - len(manifest["processed_files"])
+        if removed:
+            self._save_manifest()
+        return removed
+
     def get_processing_stats(self) -> Dict:
         manifest = self._load_manifest()
         files = manifest.get("processed_files", [])

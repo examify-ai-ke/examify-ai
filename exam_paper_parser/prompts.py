@@ -143,7 +143,7 @@ Required output format (return ONLY valid JSON):
     "year_of_exam": "YYYY_YYYY format (e.g., 2010_2011)",
     "exam_date": "Date of the Exam as indicated on the provided text (e.g., AUGUST 2011)",
     "exam_duration": "Duration as written (e.g., 2 HOURS)",
-    "instructions": List["List of instruction(s) as they appear on the provided text"],
+    "instructions": ["Each instruction as a separate string, e.g., \"Answer Question One and Any Other Two Questions\", \"No electronic devices allowed\""],
     "exam_description": "Stage description (e.g., FIRST YEAR STAGE EXAMINATION)",
     "exam_title": "Main title (e.g., UNIVERSITY EXAMINATIONS)",
     "course": ["List of degree/course names as they appear on the provided text, sometimes comes in 2 lines"],

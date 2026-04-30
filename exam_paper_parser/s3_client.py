@@ -73,6 +73,27 @@ class S3Client:
 
         return institution_files
 
+    def list_failed_files(self, institution: Optional[str] = None) -> Dict[str, List[str]]:
+        """List all files in failed/<institution>/, grouped by institution."""
+        prefix = PREFIX_FAILED
+        if institution:
+            prefix += f"{institution}/"
+
+        paginator = self.s3.get_paginator("list_objects_v2")
+        failed_files: Dict[str, List[str]] = {}
+
+        for page in paginator.paginate(Bucket=self.bucket, Prefix=prefix):
+            for obj in page.get("Contents", []):
+                key = obj["Key"]
+                if key.endswith("/"):
+                    continue
+                # failed/<institution>/file -> extract institution
+                parts = key[len(PREFIX_FAILED):].split("/", 1)
+                if len(parts) == 2:
+                    failed_files.setdefault(parts[0], []).append(key)
+
+        return failed_files
+
     # ------------------------------------------------------------------
     # File I/O
     # ------------------------------------------------------------------

@@ -59,6 +59,8 @@ def convert_exam_metadata(metadata: dict) -> dict:
         exam_date = datetime.now().date()
 
     instructions_list = metadata.get("instructions", [])
+    if isinstance(instructions_list, str):
+        instructions_list = [instructions_list]
     instructions = [{"name": instruction} for instruction in instructions_list]
 
     courses = metadata.get("course", [])
@@ -121,6 +123,8 @@ def generate_from_text(markdown_text: str, metadata: dict) -> dict:
     converted_metadata = convert_exam_metadata(metadata)
 
     json_questions = json.loads(json_response)
+    if isinstance(json_questions, list):
+        json_questions = {"question_sets": json_questions}
     final_output = {"questions": json_questions}
     final_output.update(converted_metadata)
     return final_output
@@ -364,10 +368,62 @@ def _run_local():
     print(f"\nDone. {files_processed} file(s) processed locally.")
 
 
+def retry_failed(phase: str = "all"):
+    """Move files from failed/ back to their input location and reprocess them.
+
+    Args:
+        phase: "pdf" to retry Phase 1 (PDFs -> inbox),
+               "md" to retry Phase 2 (markdown -> staging),
+               "all" to retry both.
+    """
+    failed_files = s3.list_failed_files()
+    if not failed_files:
+        print("No failed files found.")
+        return
+
+    total = sum(len(keys) for keys in failed_files.values())
+    print(f"Found {total} failed file(s) across {len(failed_files)} institution(s)\n")
+
+    pdf_count = 0
+    md_count = 0
+
+    for institution, keys in failed_files.items():
+        for s3_key in keys:
+            filename = Path(s3_key).name
+
+            if filename.lower().endswith(".pdf") and phase in ("pdf", "all"):
+                dest = f"{PREFIX_INBOX}{institution}/{filename}"
+                s3.move_object(s3_key, dest)
+                print(f"  PDF retry: {s3_key} -> {dest}")
+                pdf_count += 1
+
+            elif filename.lower().endswith(".md") and phase in ("md", "all"):
+                dest = f"{PREFIX_STAGING}{institution}/{filename}"
+                s3.move_object(s3_key, dest)
+                print(f"  MD retry:  {s3_key} -> {dest}")
+                md_count += 1
+
+    # Remove old error entries from manifest so they get reprocessed
+    tracker.remove_by_status("error")
+
+    print(f"\nMoved {pdf_count} PDF(s) to inbox/, {md_count} markdown file(s) to staging/")
+
+    # Run the pipeline to reprocess
+    if pdf_count > 0 or md_count > 0:
+        print("\nRe-running pipeline on retried files...\n")
+        run(source_mode="s3")
+
+
 def main():
     mode = "s3"
-    if len(sys.argv) > 1 and sys.argv[1] == "--local":
-        mode = "local"
+    if len(sys.argv) > 1:
+        arg = sys.argv[1]
+        if arg == "--local":
+            mode = "local"
+        elif arg == "--retry-failed":
+            phase = sys.argv[2] if len(sys.argv) > 2 else "all"
+            retry_failed(phase=phase)
+            return
     run(source_mode=mode)
 
 

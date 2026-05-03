@@ -25,6 +25,19 @@ Exampapel serves as the ultimate growth engine for the Examify ecosystem. By mak
 
 ---
 
+## 📸 Platform Screenshots
+
+### Public Exam Browser
+![Browse Exam Papers](docs/assets/Browse-Exam-Papers-Past-Papers-Solutions-Exampapel-01-04-2026_12_05_PM.png)
+
+### Subject Topics & Materials
+![Subject Details](docs/assets/Browse-Exam-Papers-Past-Papers-Solutions-Exampapel-01-04-2026_12_06_PM.png)
+
+### Dashboard Overview
+![Exampapel Dashboard](docs/assets/Exampapel-01-04-2026_12_07_PM.png)
+
+---
+
 ## 💻 Local Development
 
 ### 1. Environment Setup

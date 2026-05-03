@@ -1,5 +1,0 @@
-{
-  "name": "Exam Paper Generator",
-  "description": "A web application to display a formatted exam paper from JSON data and provide an option to generate a PDF.",
-  "requestFramePermissions": []
-}

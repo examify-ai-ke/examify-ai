@@ -1,100 +1,81 @@
-# Exampapel Frontend
+# Exampapel Frontend (Next.js)
 
-A modern Next.js frontend application for the Exampapel exam papers management system.
+Welcome to the frontend application for **Exampapel** — the B2C student hub of the **Examify.ai** ecosystem.
 
-## Tech Stack
+This application provides students with an interactive platform to access highly accurate, AI-generated step-by-step answers for authentic past papers, eliminating the friction of hunting down professors or textbooks.
 
-- **Framework**: Next.js 15+ (App Router)
-- **UI Components**: shadcn/ui
-- **Styling**: Tailwind CSS
-- **Authentication**: Better-Auth (email/password + social providers)
-- **State Management**: Zustand
-- **API Integration**: openapi-fetch + openapi-typescript
-- **Type Safety**: TypeScript
-- **Deployment**: Docker
+## 🚀 Mission
+Exampapel serves as the ultimate growth engine for the Examify ecosystem. By making high-quality revision tools entirely free for students, we democratize education across Africa. Our RAG-powered intelligence guarantees zero hallucinations because the data is strictly sourced from verified institutional materials.
 
-## Features
+## 🛠️ Tech Stack
+- **Framework:** Next.js 15+ (App Router)
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS
+- **UI Components:** shadcn/ui & Radix UI
+- **Rich Text Editor:** Editor.js (for rendering interactive math/science questions)
+- **Authentication:** Better-Auth (Email/Password & Social OAuth)
+- **State Management:** Zustand & React Query (@tanstack/react-query)
+- **API Client:** openapi-fetch + openapi-typescript (End-to-end type safety with FastAPI backend)
 
-- 🔐 Secure authentication with JWT tokens
-- 👥 Role-based access control (Admin, Manager, User)
-- 📊 Admin dashboard and management panels
-- 📝 Exam papers and questions management
-- 🔍 Public exam papers browser
-- 📱 Responsive design
-- 🔄 Automatic token refresh
-- 🛡️ Protected routes with middleware
+## ⚙️ Key Features
+- **Public Exam Browser:** Searchable repository of digitized past papers.
+- **Interactive Revision:** Topic-based quizzes and step-by-step AI marking schemes.
+- **Role-Based Dashboards:** Separate experiences for Students, Educators, and Admins.
+- **Mobile-First Design:** Fully responsive interface tailored for the African mobile context.
 
-## Getting Started
+---
 
-See [TASK.md](./TASK.md) for detailed development tasks and [PRD.md](./PRD.md) for product requirements.
+## 💻 Local Development
 
-## Development
-
+### 1. Environment Setup
+Copy the environment variables template:
 ```bash
-# Install dependencies
+cp .env.example .env.local
+```
+Update `.env.local` to point to the local backend:
+```env
+NEXT_PUBLIC_API_URL=http://fastapi.localhost/api/v1
+BETTER_AUTH_SECRET=your_dev_secret_key
+BETTER_AUTH_URL=http://localhost:3000
+```
+
+### 2. Install Dependencies
+```bash
 npm install
+```
 
-# Generate API types from backend
+### 3. Generate API Types
+We use `openapi-typescript` to ensure our frontend stays perfectly in sync with the FastAPI backend. Make sure the backend is running locally, then run:
+```bash
 npm run generate-api
+```
 
-# Start development server
+### 4. Start Development Server
+```bash
 npm run dev
 ```
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-## Docker
+---
 
-```bash
-# Build and run with Docker
-docker build -t exampapel-frontend .
-docker run -p 3000:3000 exampapel-frontend
-```
-
-## Project Structure
-
-```
+## 🏗️ Project Structure
+```text
 src/
-├── app/                 # Next.js App Router
-├── components/          # Reusable components
-│   └── ui/             # shadcn/ui components
-├── lib/                # Utilities and configurations
-│   ├── api.ts          # API client setup
-│   └── utils.ts        # General utilities
-├── types/              # Generated and custom types
-├── hooks/              # Custom React hooks
-└── stores/             # Zustand stores
+├── app/             # Next.js App Router (Pages, Layouts, API Routes)
+├── components/      # Reusable UI components
+│   └── ui/          # shadcn/ui generic components
+├── lib/             # Utility functions, API clients, and constants
+├── hooks/           # Custom React hooks
+├── stores/          # Zustand global state managers
+└── types/           # Generated API types and interfaces
 ```
 
-## Environment Variables
+## 🧪 Scripts
+- `npm run dev`: Start the development server with Turbopack.
+- `npm run build`: Build for production.
+- `npm run generate-api`: Fetch the `openapi.json` from the backend and generate TypeScript definitions.
+- `npm run format`: Format the code using Prettier.
+- `npm run type-check`: Run strict TypeScript validation without emitting files.
 
-Copy `.env.example` to `.env.local` and configure:
-
-```bash
-NEXT_PUBLIC_API_URL=http://fastapi.localhost/api/v1
-BETTER_AUTH_SECRET=your-secret-key
-BETTER_AUTH_URL=http://localhost:3000
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-GITHUB_CLIENT_ID=your-github-client-id
-GITHUB_CLIENT_SECRET=your-github-client-secret
-```
-
-## Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
-- `npm run generate-api` - Generate API types from backend
-- `npm run type-check` - Run TypeScript type checking
-
-## Contributing
-
-1. Follow the task breakdown in [TASK.md](./TASK.md)
-2. Ensure all TypeScript types are properly defined
-3. Write tests for new components and features
-4. Follow the established code style and conventions
-5. Update documentation as needed
-
-## License
-
-This project is licensed under the MIT License.
+---
+*Built with ❤️ for African Education.*

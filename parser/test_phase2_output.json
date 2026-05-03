@@ -1,0 +1,834 @@
+{
+  "questions": {
+    "question_sets": [
+      {
+        "title": "Question One",
+        "main_questions": [
+          {
+            "question_number": "a",
+            "numbering_style": "alphabetic",
+            "marks": 6,
+            "text": {
+              "time": 1739100000000,
+              "blocks": [
+                {
+                  "id": "q1a_stem",
+                  "type": "paragraph",
+                  "data": {
+                    "text": "Using relevant examples, distinguish between the following terms"
+                  }
+                }
+              ]
+            },
+            "sub_questions": [
+              {
+                "question_number": "i",
+                "numbering_style": "roman",
+                "marks": 2,
+                "text": {
+                  "time": 1739100000000,
+                  "blocks": [
+                    {
+                      "id": "q1ai",
+                      "type": "paragraph",
+                      "data": {
+                        "text": "Universal set and Set difference"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "question_number": "ii",
+                "numbering_style": "roman",
+                "marks": 2,
+                "text": {
+                  "time": 1739100000000,
+                  "blocks": [
+                    {
+                      "id": "q1aii",
+                      "type": "paragraph",
+                      "data": {
+                        "text": "Power of a set and class as used in set theory"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "question_number": "iii",
+                "numbering_style": "roman",
+                "marks": 2,
+                "text": {
+                  "time": 1739100000000,
+                  "blocks": [
+                    {
+                      "id": "q1aiii",
+                      "type": "paragraph",
+                      "data": {
+                        "text": "A Relation and a function"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "question_number": "b",
+            "numbering_style": "alphabetic",
+            "marks": 5,
+            "text": {
+              "time": 1739100000000,
+              "blocks": [
+                {
+                  "id": "q1b",
+                  "type": "paragraph",
+                  "data": {
+                    "text": "Compute the following: ((19i + 3)/5) - (i / (13 + 7i))"
+                  }
+                }
+              ]
+            },
+            "sub_questions": []
+          },
+          {
+            "question_number": "c",
+            "numbering_style": "alphabetic",
+            "marks": 8,
+            "text": {
+              "time": 1739100000000,
+              "blocks": [
+                {
+                  "id": "q1c_stem",
+                  "type": "paragraph",
+                  "data": {
+                    "text": "Given that Set U = { 1, 2, 3, 4, 5, 6, 7, 8, 9 }, Set A = { 2, 3, 4, 7 } and set B = { 2, 4, 6, 7, 9 }"
+                  }
+                }
+              ]
+            },
+            "sub_questions": [
+              {
+                "question_number": "i",
+                "numbering_style": "roman",
+                "marks": 4,
+                "text": {
+                  "time": 1739100000000,
+                  "blocks": [
+                    {
+                      "id": "q1ci",
+                      "type": "paragraph",
+                      "data": {
+                        "text": "Show that (U \\ A) \\ (B \\ A) = A"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "question_number": "ii",
+                "numbering_style": "roman",
+                "marks": 2,
+                "text": {
+                  "time": 1739100000000,
+                  "blocks": [
+                    {
+                      "id": "q1cii",
+                      "type": "paragraph",
+                      "data": {
+                        "text": "Determine set AxB"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "question_number": "iii",
+                "numbering_style": "roman",
+                "marks": 1,
+                "text": {
+                  "time": 1739100000000,
+                  "blocks": [
+                    {
+                      "id": "q1ciii",
+                      "type": "paragraph",
+                      "data": {
+                        "text": "Determine set AUB"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "question_number": "iv",
+                "numbering_style": "roman",
+                "marks": 1,
+                "text": {
+                  "time": 1739100000000,
+                  "blocks": [
+                    {
+                      "id": "q1civ",
+                      "type": "paragraph",
+                      "data": {
+                        "text": "Compliment of set B"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "question_number": "d",
+            "numbering_style": "alphabetic",
+            "marks": 4,
+            "text": {
+              "time": 1739100000000,
+              "blocks": [
+                {
+                  "id": "q1d",
+                  "type": "paragraph",
+                  "data": {
+                    "text": "If we consider Set A = { 1, 2, 3 } and Set B = { x, y, z }, we can derive the following relations: R1 = {{1, x}, {2, y}, {3, z}, {3, x}, {2, z}, {1, z}} and R2 = {{1, y}, {2, x}, {2, z}, {3, y}, {3, x}}. Where the Relations R1, and R2 are subsets of set AxB. For each relation, determine the domain and the range and use matrix method to represent them."
+                  }
+                }
+              ]
+            },
+            "sub_questions": []
+          },
+          {
+            "question_number": "e",
+            "numbering_style": "alphabetic",
+            "marks": 3,
+            "text": {
+              "time": 1739100000000,
+              "blocks": [
+                {
+                  "id": "q1e",
+                  "type": "paragraph",
+                  "data": {
+                    "text": "Find the inverse of the following function: f(x) = 2 / (x + 3)"
+                  }
+                }
+              ]
+            },
+            "sub_questions": []
+          },
+          {
+            "question_number": "f",
+            "numbering_style": "alphabetic",
+            "marks": 4,
+            "text": {
+              "time": 1739100000000,
+              "blocks": [
+                {
+                  "id": "q1f",
+                  "type": "paragraph",
+                  "data": {
+                    "text": "Compute the following: 9i + ((13 - i) / -16i)"
+                  }
+                }
+              ]
+            },
+            "sub_questions": []
+          }
+        ]
+      },
+      {
+        "title": "Question Two",
+        "main_questions": [
+          {
+            "question_number": "a",
+            "numbering_style": "alphabetic",
+            "marks": 6,
+            "text": {
+              "time": 1739100000000,
+              "blocks": [
+                {
+                  "id": "q2a_stem",
+                  "type": "paragraph",
+                  "data": {
+                    "text": "Illustrate the following laws as used in set theory"
+                  }
+                }
+              ]
+            },
+            "sub_questions": [
+              {
+                "question_number": "i",
+                "numbering_style": "roman",
+                "marks": 2,
+                "text": {
+                  "time": 1739100000000,
+                  "blocks": [
+                    {
+                      "id": "q2ai",
+                      "type": "paragraph",
+                      "data": {
+                        "text": "Distributive laws"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "question_number": "ii",
+                "numbering_style": "roman",
+                "marks": 2,
+                "text": {
+                  "time": 1739100000000,
+                  "blocks": [
+                    {
+                      "id": "q2aii",
+                      "type": "paragraph",
+                      "data": {
+                        "text": "De' Morgans laws"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "question_number": "iii",
+                "numbering_style": "roman",
+                "marks": 2,
+                "text": {
+                  "time": 1739100000000,
+                  "blocks": [
+                    {
+                      "id": "q2aiii",
+                      "type": "paragraph",
+                      "data": {
+                        "text": "Distributive laws"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "question_number": "b",
+            "numbering_style": "alphabetic",
+            "marks": 4,
+            "text": {
+              "time": 1739100000000,
+              "blocks": [
+                {
+                  "id": "q2b",
+                  "type": "paragraph",
+                  "data": {
+                    "text": "Consider the following relations and use the arrow diagrams to determine whether they are functions or not and give a reason. If a function, identify which function property. R1 = {{1, 2}, {2, 3}, {3, 4}, {4, 2}}. R2 = {{1, 2}, {2, 2}, {2, 4}, {3, 4}}."
+                  }
+                }
+              ]
+            },
+            "sub_questions": []
+          },
+          {
+            "question_number": "c",
+            "numbering_style": "alphabetic",
+            "marks": 2,
+            "text": {
+              "time": 1739100000000,
+              "blocks": [
+                {
+                  "id": "q2c",
+                  "type": "paragraph",
+                  "data": {
+                    "text": "Consider the following relation and use a directed graph to represent it: R3 = {{1, 2}, {2, 3}, {2, 4}}"
+                  }
+                }
+              ]
+            },
+            "sub_questions": []
+          },
+          {
+            "question_number": "d",
+            "numbering_style": "alphabetic",
+            "marks": 8,
+            "text": {
+              "time": 1739100000000,
+              "blocks": [
+                {
+                  "id": "q2d_stem",
+                  "type": "paragraph",
+                  "data": {
+                    "text": "Complex numbers operations"
+                  }
+                }
+              ]
+            },
+            "sub_questions": [
+              {
+                "question_number": "i",
+                "numbering_style": "roman",
+                "marks": 1,
+                "text": {
+                  "time": 1739100000000,
+                  "blocks": [
+                    {
+                      "id": "q2di",
+                      "type": "paragraph",
+                      "data": {
+                        "text": "Define the term complex number"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "question_number": "ii",
+                "numbering_style": "roman",
+                "marks": 7,
+                "text": {
+                  "time": 1739100000000,
+                  "blocks": [
+                    {
+                      "id": "q2dii_1",
+                      "type": "paragraph",
+                      "data": {
+                        "text": "Compute: (17 + 6i)(1 - 108i) (3 Marks)"
+                      }
+                    },
+                    {
+                      "id": "q2dii_2",
+                      "type": "paragraph",
+                      "data": {
+                        "text": "Compute: (7 - 6i) / (9 + 4i) (4 Marks)"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Question Three",
+        "main_questions": [
+          {
+            "question_number": "a",
+            "numbering_style": "alphabetic",
+            "marks": 4,
+            "text": {
+              "time": 1739100000000,
+              "blocks": [
+                {
+                  "id": "q3a_stem",
+                  "type": "paragraph",
+                  "data": {
+                    "text": "Distinguish between the following terms"
+                  }
+                }
+              ]
+            },
+            "sub_questions": [
+              {
+                "question_number": "i",
+                "numbering_style": "roman",
+                "marks": 2,
+                "text": {
+                  "time": 1739100000000,
+                  "blocks": [
+                    {
+                      "id": "q3ai",
+                      "type": "paragraph",
+                      "data": {
+                        "text": "A Tautology and a Contradiction"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "question_number": "ii",
+                "numbering_style": "roman",
+                "marks": 2,
+                "text": {
+                  "time": 1739100000000,
+                  "blocks": [
+                    {
+                      "id": "q3aii",
+                      "type": "paragraph",
+                      "data": {
+                        "text": "Proposition and a Postulate"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "question_number": "b",
+            "numbering_style": "alphabetic",
+            "marks": 7,
+            "text": {
+              "time": 1739100000000,
+              "blocks": [
+                {
+                  "id": "q3b_stem",
+                  "type": "paragraph",
+                  "data": {
+                    "text": "Fill in the following table:"
+                  }
+                },
+                {
+                  "id": "q3b_table",
+                  "type": "table",
+                  "data": {
+                    "withHeadings": true,
+                    "content": [
+                      [
+                        "W",
+                        "N",
+                        "~W",
+                        "~N",
+                        "W^N",
+                        "~(W^N)",
+                        "W^(W v N)",
+                        "W^~(W^N)",
+                        "~N^~W",
+                        "~N^(W^N)"
+                      ],
+                      [
+                        "T",
+                        "T",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        ""
+                      ],
+                      [
+                        "T",
+                        "F",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        ""
+                      ],
+                      [
+                        "F",
+                        "T",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        ""
+                      ],
+                      [
+                        "F",
+                        "F",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        ""
+                      ]
+                    ]
+                  }
+                }
+              ]
+            },
+            "sub_questions": []
+          },
+          {
+            "question_number": "c",
+            "numbering_style": "alphabetic",
+            "marks": 5,
+            "text": {
+              "time": 1739100000000,
+              "blocks": [
+                {
+                  "id": "q3c",
+                  "type": "paragraph",
+                  "data": {
+                    "text": "By the principle of mathematical induction, show that: 1^2 + 2^2 + 3^2 + ... + p^2 = 1/6 p(p + 1)(2p + 1)"
+                  }
+                }
+              ]
+            },
+            "sub_questions": []
+          },
+          {
+            "question_number": "d",
+            "numbering_style": "alphabetic",
+            "marks": 4,
+            "text": {
+              "time": 1739100000000,
+              "blocks": [
+                {
+                  "id": "q3d",
+                  "type": "paragraph",
+                  "data": {
+                    "text": "Compute the following: 26 - (2i / (5i + 5))"
+                  }
+                }
+              ]
+            },
+            "sub_questions": []
+          }
+        ]
+      },
+      {
+        "title": "Question Four",
+        "main_questions": [
+          {
+            "question_number": "a",
+            "numbering_style": "alphabetic",
+            "marks": 9,
+            "text": {
+              "time": 1739100000000,
+              "blocks": [
+                {
+                  "id": "q4a",
+                  "type": "paragraph",
+                  "data": {
+                    "text": "Identify and explain three methods that can be used to represent relations"
+                  }
+                }
+              ]
+            },
+            "sub_questions": []
+          },
+          {
+            "question_number": "b",
+            "numbering_style": "alphabetic",
+            "marks": 4,
+            "text": {
+              "time": 1739100000000,
+              "blocks": [
+                {
+                  "id": "q4b_stem",
+                  "type": "paragraph",
+                  "data": {
+                    "text": "Relations and Functions"
+                  }
+                }
+              ]
+            },
+            "sub_questions": [
+              {
+                "question_number": "i",
+                "numbering_style": "roman",
+                "marks": 2,
+                "text": {
+                  "time": 1739100000000,
+                  "blocks": [
+                    {
+                      "id": "q4bi",
+                      "type": "paragraph",
+                      "data": {
+                        "text": "Distinguish between a symmetric relation and non-symmetric (asymmetric) relation"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "question_number": "ii",
+                "numbering_style": "roman",
+                "marks": 2,
+                "text": {
+                  "time": 1739100000000,
+                  "blocks": [
+                    {
+                      "id": "q4bii",
+                      "type": "paragraph",
+                      "data": {
+                        "text": "Explain what is meant by a Bijective function"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "question_number": "c",
+            "numbering_style": "alphabetic",
+            "marks": 3,
+            "text": {
+              "time": 1739100000000,
+              "blocks": [
+                {
+                  "id": "q4c",
+                  "type": "paragraph",
+                  "data": {
+                    "text": "Determine the inverse of the following function: f(x) = 2 / (x - 16)"
+                  }
+                }
+              ]
+            },
+            "sub_questions": []
+          },
+          {
+            "question_number": "d",
+            "numbering_style": "alphabetic",
+            "marks": 4,
+            "text": {
+              "time": 1739100000000,
+              "blocks": [
+                {
+                  "id": "q4d",
+                  "type": "paragraph",
+                  "data": {
+                    "text": "Show that (7 + sqrt(3)) / 5 is irrational"
+                  }
+                }
+              ]
+            },
+            "sub_questions": []
+          }
+        ]
+      },
+      {
+        "title": "Question Five",
+        "main_questions": [
+          {
+            "question_number": "a",
+            "numbering_style": "alphabetic",
+            "marks": 1,
+            "text": {
+              "time": 1739100000000,
+              "blocks": [
+                {
+                  "id": "q5a",
+                  "type": "paragraph",
+                  "data": {
+                    "text": "Explain what is meant by a rational number."
+                  }
+                }
+              ]
+            },
+            "sub_questions": []
+          },
+          {
+            "question_number": "b",
+            "numbering_style": "alphabetic",
+            "marks": 3,
+            "text": {
+              "time": 1739100000000,
+              "blocks": [
+                {
+                  "id": "q5b",
+                  "type": "paragraph",
+                  "data": {
+                    "text": "Rationalize the denominator of 15 / (4 + sqrt(3))"
+                  }
+                }
+              ]
+            },
+            "sub_questions": []
+          },
+          {
+            "question_number": "c",
+            "numbering_style": "alphabetic",
+            "marks": 6,
+            "text": {
+              "time": 1739100000000,
+              "blocks": [
+                {
+                  "id": "q5c_stem",
+                  "type": "paragraph",
+                  "data": {
+                    "text": "Prove that the following is irrational"
+                  }
+                }
+              ]
+            },
+            "sub_questions": [
+              {
+                "question_number": "i",
+                "numbering_style": "roman",
+                "marks": 3,
+                "text": {
+                  "time": 1739100000000,
+                  "blocks": [
+                    {
+                      "id": "q5ci",
+                      "type": "paragraph",
+                      "data": {
+                        "text": "5 - sqrt(3)"
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "question_number": "ii",
+                "numbering_style": "roman",
+                "marks": 3,
+                "text": {
+                  "time": 1739100000000,
+                  "blocks": [
+                    {
+                      "id": "q5cii",
+                      "type": "paragraph",
+                      "data": {
+                        "text": "3 / (2 + sqrt(3))"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "question_number": "d",
+            "numbering_style": "alphabetic",
+            "marks": 6,
+            "text": {
+              "time": 1739100000000,
+              "blocks": [
+                {
+                  "id": "q5d",
+                  "type": "paragraph",
+                  "data": {
+                    "text": "Define the term complex number hence work out the following: ((-i) / (5i + 7)) - ((i + 16) / (-3i - 9))"
+                  }
+                }
+              ]
+            },
+            "sub_questions": []
+          },
+          {
+            "question_number": "e",
+            "numbering_style": "alphabetic",
+            "marks": 4,
+            "text": {
+              "time": 1739100000000,
+              "blocks": [
+                {
+                  "id": "q5e",
+                  "type": "paragraph",
+                  "data": {
+                    "text": "Find the domain and the range of the following function: y = 5 / (x^2 - 121)"
+                  }
+                }
+              ]
+            },
+            "sub_questions": []
+          }
+        ]
+      }
+    ]
+  }
+}

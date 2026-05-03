@@ -1,0 +1,104 @@
+[project]
+name = "app"
+version = "0.1.0"
+description = "Exampapel-API"
+authors = [
+    { name = "jonra1993", email = "jon_ra@hotmail.es" }
+]
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "alembic>=1.15.2",
+    "asyncpg>=0.29.0",
+    "fastapi>=0.115.12",
+    "sqlmodel>=0.0.24",
+    "cryptography>=41.0.7",
+    "bcrypt>=4.1.1",
+    "fastapi-mail==1.5.0",
+    "SQLAlchemy-Utils>=0.41.1",
+    "SQLAlchemy>=2.0.40",
+    "fastapi-cache2>=0.2.1",
+    "minio>=7.2.0",
+    "Pillow>=10.1.0",
+    "watchfiles>=0.21.0",
+    "asyncer==0.0.5",
+    "httpx>=0.25.2",
+    "pandas>=2.1.4",
+    "openpyxl>=3.1.2",
+    "redis>=4.5.1",
+    "fastapi-async-sqlalchemy>=0.6.0",
+    "oso>=0.27.0",
+    "celery>=5.3.6",
+    "celery-sqlalchemy-scheduler>=0.3.0",
+    "psycopg2-binary>=2.9.10",
+    "requests>=2.31.0",
+    "wheel>=0.42.0",
+    "setuptools>=69.0.2",
+    "fastapi-limiter>=0.1.5",
+    "pyjwt[crypto]>=2.8.0",
+    "python-slugify>=8.0.4",
+    "pydantic[email]>=2.5",
+    "pydantic-extra-types>=2.7.0",
+    "pydantic-core>=2.18.2",
+    "starlette-admin[sqlmodel]>=0.14.1",
+    "pydantic-settings>=2.0.0",
+    "email-validator>=2.1.0",
+    "boto3>=1.37.31",
+    "psycopg[binary]>=3.2.6",
+    "python-dotenv>=0.9.9",
+    "fastapi-pagination==0.13.0a3",
+    "fastapi-sqla>=3.4.8",
+    "psycopg-binary>=3.2.6",
+    "rich>=14.2.0",
+    "weasyprint>=67.0",
+    "jinja2>=3.1.6",
+]
+readme = "README.md"
+
+[dependency-groups]
+dev = [
+    "black>=23.1.0",
+    "ruff>=0.0.256",
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.1",
+    "mypy>=1.5.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.black]
+line-length = 88
+target-version = [ "py312" ]
+exclude = "((.eggs | .git | .pytest_cache | build | dist))"
+
+[tool.ruff]
+line-length = 88
+exclude = [".git", "__pycache__", ".mypy_cache", ".pytest_cache"]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    # "I",  # isort
+    "C",  # flake8-comprehensions
+    "B",  # flake8-bugbear
+]
+ignore = [
+    "B904",
+    "B006",    
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.mypy]
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+exclude = ["alembic", "__pycache__"]

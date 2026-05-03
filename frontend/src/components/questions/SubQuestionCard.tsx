@@ -1,0 +1,150 @@
+/**
+ * SubQuestionCard Component
+ * 
+ * Displays a sub-question with its answers.
+ * Shows question number, text (EditorJS rendered), marks badge,
+ * answer indicator, and action dropdown.
+ */
+
+'use client';
+
+import { useState, useEffect } from 'react';
+import { AlertCircle, CheckCircle2, Plus } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import EditorJsRenderer from '@/components/ui/editor-js-renderer';
+import { QuestionActions } from './QuestionActions';
+import { AnswerList } from './AnswerList';
+import { AnswerForm } from '@/components/forms/answer-form';
+import { useUIStore } from '@/stores/ui';
+import type { SubQuestionCardProps } from './types';
+
+export function SubQuestionCard({
+  question,
+  onEdit,
+  onDelete,
+  onAnswersChange,
+}: SubQuestionCardProps) {
+  // State for answer form visibility
+  const [showAnswerForm, setShowAnswerForm] = useState(false);
+  
+  // Local state for question to support smooth updates
+  const [localQuestion, setLocalQuestion] = useState(question);
+  
+  const { addNotification } = useUIStore();
+  
+  // Sync local question when prop changes
+  useEffect(() => {
+    setLocalQuestion(question);
+  }, [question]);
+  
+  const handleAddAnswer = () => {
+    if (!localQuestion?.id) {
+      console.error('Cannot add answer: question ID is missing');
+      addNotification({
+        type: 'error',
+        title: 'Error',
+        message: 'Cannot add answer: question data is invalid'
+      });
+      return;
+    }
+    setShowAnswerForm(true);
+  };
+  
+  const hasAnswers = localQuestion.answers && localQuestion.answers.length > 0;
+  const answersCount = localQuestion.answers?.length ?? 0;
+
+  // Parse question text if it's a string (EditorJS format)
+  const questionText = localQuestion.text;
+  const parsedText = typeof questionText === 'string' 
+    ? JSON.parse(questionText) 
+    : questionText;
+
+  return (
+    <div className="ml-8 border-l-2 border-gray-200 pl-4 py-3 hover:bg-gray-50/50 transition-colors rounded-r-md group">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          {/* Question header with number and marks */}
+          <div className="flex items-center gap-2 mb-2">
+            <span className="font-medium text-sm text-gray-700">
+              {localQuestion.question_number}
+            </span>
+            {localQuestion.marks !== null && localQuestion.marks !== undefined && (
+              <Badge variant="secondary" className="text-xs">
+                {localQuestion.marks} {localQuestion.marks === 1 ? 'mark' : 'marks'}
+              </Badge>
+            )}
+          </div>
+
+          {/* Question text */}
+          <div className="text-sm text-gray-600 prose prose-sm max-w-none">
+            {parsedText ? (
+              <EditorJsRenderer data={parsedText} />
+            ) : (
+              <p className="text-gray-400 italic">No question text</p>
+            )}
+          </div>
+        </div>
+
+        {/* Actions dropdown */}
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+          <QuestionActions
+            questionId={localQuestion.id}
+            questionType="sub"
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
+        </div>
+      </div>
+
+      {/* Answer indicator */}
+      <div className="mt-2 flex items-center gap-2">
+        {hasAnswers ? (
+          <>
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+            <span className="text-xs text-green-600">
+              {answersCount} {answersCount === 1 ? 'answer' : 'answers'}
+            </span>
+          </>
+        ) : (
+          <>
+            <AlertCircle className="h-4 w-4 text-amber-500" />
+            <span className="text-xs text-amber-600">No answers yet</span>
+          </>
+        )}
+      </div>
+
+      {/* Answers */}
+      <div className="space-y-3">
+        <AnswerList answers={localQuestion.answers} onAnswersChange={onAnswersChange} />
+        
+        {/* Add Answer Button */}
+        {!showAnswerForm && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleAddAnswer}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Answer
+          </Button>
+        )}
+        
+        {/* Answer Form */}
+        {showAnswerForm && (
+          <div className="border rounded-lg p-4 bg-gray-50">
+            <AnswerForm
+              questionId={localQuestion.id}
+              onSuccess={() => {
+                setShowAnswerForm(false);
+                onAnswersChange?.();
+              }}
+              onCancel={() => setShowAnswerForm(false)}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

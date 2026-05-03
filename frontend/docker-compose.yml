@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://api.exampapel.com/api/v1
+      - NEXT_PUBLIC_API_BASE_URL=http://api.exampapel.com
+    volumes:
+      - ./.env.local:/app/.env.local:ro
+    restart: unless-stopped
+    networks:
+      - exampapel-network
+
+networks:
+  exampapel-network:
+    external: true

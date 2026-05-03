@@ -1,0 +1,130 @@
+# version: '3.8'
+
+services:
+  examify_api:
+    container_name: examify_api
+    build: ./backend
+    restart: always
+    command: "sh -c 'alembic upgrade head && uvicorn app.main:app --reload --workers 3 --host 0.0.0.0 --port 8000'"
+    #command: "sh -c 'alembic upgrade head && gunicorn -w 3 -k uvicorn.workers.UvicornWorker app.main:app  --bind 0.0.0.0:8000 --preload --log-level=debug --timeout 120'"
+    volumes:
+      - ./backend/app:/code
+    expose:
+      - 8000
+    env_file: ".env"
+    depends_on:
+      - examify_database
+    links:
+      - examify_reverse_proxy:storage.localhost
+
+  examify_database:
+    image:  docker.io/bitnami/postgresql:latest
+    restart: always
+    container_name: examify_database
+    env_file: ".env"
+    user: root
+    volumes:
+      - examify_db_data:/bitnami/postgresql
+      # - ./examify_postgres_data:/bitnami/postgresql
+      - ./create-dbs.sql:/docker-entrypoint-initdb.d/create-dbs.sql
+    ports:
+      - 5454:5432 # Remove this on production
+    expose:
+      - 5432
+    environment:
+      - POSTGRESQL_USERNAME=${DATABASE_USER}
+      - POSTGRESQL_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRESQL_DATABASE=${DATABASE_NAME}
+
+  examify_redis:
+    image: redis:alpine
+    container_name: examify_redis    
+    restart: always
+    expose:
+      - 6379
+    ports:
+      - "6379:6379"
+    env_file: .env
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    volumes:
+      - examify_redis_data:/data
+    command: redis-server --appendonly yes
+
+  examify_celery_worker:
+    container_name: examify_celery_worker
+    restart: always
+    # platform: linux/arm64/v8
+    build: ./backend
+    command: "watchfiles 'celery -A app.core.celery worker -l info' "
+    volumes:
+      - ./backend/app:/code
+      # - "${EB_LOG_BASE_DIR}/php-app:/var/log/celery"
+    depends_on:
+      - examify_database
+      - examify_redis
+    env_file: .env
+  
+  examify_celery_beat:  #Good for crontab and schedule tasks
+    container_name: examify_celery_beat
+    restart: always
+    # platform: linux/arm64/v8
+    build:
+      context: ./backend
+      args:
+        INSTALL_DEV: ${INSTALL_DEV-false}
+    command: celery -A app.core.celery beat -l info -S celery_sqlalchemy_scheduler.schedulers:DatabaseScheduler -l info
+    volumes:
+      - ./backend/app:/code
+      # - "${EB_LOG_BASE_DIR}/php-app:/var/log/celery-beat"
+    depends_on:
+      - examify_database
+      - examify_redis
+    env_file: .env
+
+  examify_minio:
+    image: minio/minio
+    restart: always
+    container_name: examify_minio
+    volumes:
+      - ./minio/data:/data
+    
+    expose:
+      - 9000
+    #   - 9000
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      # MINIO_BROWSER_REDIRECT_URL: http://stash.localhost
+      MINIO_BUCKET_NAME: ${S3_BUCKET_NAME}
+      MINIO_URL: ${MINIO_URL}
+      MINIO_SECURE: "False"
+      MINIO_ADDRESS: ':9000'
+      # MINIO_ACCESS_KEY: HLWUPhDTtg4ZeEygSEuE
+      # MINIO_SECRET_KEY: FBvuDyJbVOHbJ6XrTwNavnUqy0d1vLgqEksIw3SW
+    command: server /data --console-address ":9002"
+    ports:
+      - "9000:9000"
+      - "9002:9002"
+
+  examify_reverse_proxy:
+    container_name: examify_reverse_proxy
+    image: caddy:latest
+    restart: always
+    ports:
+      - 80:80      
+    environment:
+      - EXT_ENDPOINT1=${EXT_ENDPOINT1}
+      - LOCAL_1=${LOCAL_1}
+      - LOCAL_2=${LOCAL_2}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
+      - ./static:/code/static
+      - examify_caddy_data:/data
+      - examify_caddy_config:/config
+
+volumes:
+  examify_db_data:
+  examify_caddy_data:
+  examify_caddy_config:
+  examify_redis_data:

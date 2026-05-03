@@ -1,0 +1,285 @@
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from app.utils.partial import optional
+from uuid import UUID
+from app.models.question_model import QuestionSetBase, NumberingStyleEnum
+from app.schemas.answer_schema import AnswerReadForQuestion
+from pydantic import field_validator, BaseModel, Field
+
+
+class BlockData(BaseModel):
+    text: str
+
+class Block(BaseModel):
+    id: str
+    data: Dict[str, Any]
+    type: str
+
+class QuestionTextSchema(BaseModel):
+    time: int
+    blocks: list[Block]
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "time": 1761416444650,
+                "blocks": [
+                    {
+                        "id": "8z7KYTOioJ",
+                        "data": {
+                            "file": {
+                                "url": "https://exampapel-images-bucket2025.s3.amazonaws.com/019a1c1c-a20e-77fc-b3c8-dfd5587162b0favicon-exam.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIA6QJRQF7UB6UGBA4E%2F20251025%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20251025T160351Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=4d2bc69a2d68b30da57cfd18cebae3f18150f3d0936ad566a0fb6a7b5cc32fee",
+                                "name": "favicon-exam.png",
+                                "size": 104763,
+                                "width": 265,
+                                "format": "PNG",
+                                "height": 262,
+                            },
+                            "caption": "logo-sample",
+                            "stretched": False,
+                            "withBorder": False,
+                            "withBackground": False,
+                        },
+                        "type": "image",
+                    },
+                    {
+                        "id": "pp0wt2psxQ",
+                        "data": {"text": "this is a question with an image.edited"},
+                        "type": "paragraph",
+                    },
+                ],
+            },
+        }
+
+# Unified Question schemas
+class QuestionBase(BaseModel):
+    text: Optional[QuestionTextSchema]
+    marks: Optional[int] = None
+    numbering_style: NumberingStyleEnum
+    question_number: str
+
+    @field_validator("text", mode="before")
+    @classmethod
+    def text_to_dict(cls, v):
+        if v is None:
+            return v
+        if isinstance(v, dict):
+            return v
+        if hasattr(v, "model_dump"):
+            return v.model_dump()
+        return v
+
+# For creating main questions
+class MainQuestionCreate(QuestionBase):
+    question_set_id: UUID 
+    exam_paper_id: UUID
+
+# For creating sub-questions
+class SubQuestionCreate(QuestionBase):
+    parent_id: UUID  # References the main question
+
+# For updating questions
+@optional()
+class MainQuestionUpdate(QuestionBase):
+    question_set_id: Optional[UUID] = None
+    exam_paper_id: Optional[UUID] = None
+
+@optional()
+class SubQuestionUpdate(QuestionBase):
+    parent_id: Optional[UUID] = None
+
+# Minimal schemas for nested relationships
+class QuestionSetReadMinimal(BaseModel):
+    id: UUID
+    title: Optional[str] = None
+    slug: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
+class InstitutionReadMinimal(BaseModel):
+    id: UUID
+    name: Optional[str] = None
+    slug: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
+class CourseReadMinimal(BaseModel):
+    id: UUID
+    name: Optional[str] = None
+    course_acronym: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
+class ModuleReadMinimal(BaseModel):
+    id: UUID
+    name: Optional[str] = None
+    unit_code: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
+class ProgrammeReadMinimal(BaseModel):
+    id: UUID
+    name: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
+class ExamPaperReadMinimal(BaseModel):
+    id: UUID
+    year_of_exam: Optional[str] = None
+    identifying_name: Optional[str] = None
+    slug: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class UserReadMinimal(BaseModel):
+    id: UUID
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
+
+# Main Question Read schema
+class QuestionRead(QuestionBase):
+    id: UUID
+    slug: str | None = None
+    marks: int | None
+    created_at: datetime
+    
+    # For main questions
+    question_set_id: Optional[UUID] = None
+    exam_paper_id: Optional[UUID] = None
+    
+    # For sub-questions
+    parent_id: Optional[UUID] = None
+    
+    # Direct relationships
+    children: Optional[List["QuestionRead"]] = []  # Sub-questions
+    answers: Optional[List[AnswerReadForQuestion]] = []
+    question_set: Optional[QuestionSetReadMinimal] = None
+    exam_paper: Optional[ExamPaperReadMinimal] = None
+    created_by: Optional[UserReadMinimal] = None
+    
+    # Academic hierarchy (via exam_paper)
+    institution: Optional[InstitutionReadMinimal] = None
+    course: Optional[CourseReadMinimal] = None
+    modules: Optional[List[ModuleReadMinimal]] = []
+    programme: Optional[ProgrammeReadMinimal] = None
+    
+    # Counts (computed from model)
+    children_count: Optional[int] = 0
+    answers_count: Optional[int] = 0
+    total_marks: Optional[int] = 0
+    
+    # Helper properties (computed from model)
+    is_main_question: Optional[bool] = False
+    is_sub_question: Optional[bool] = False
+
+    class Config:
+        from_attributes = True
+
+# Update the forward reference
+QuestionRead.model_rebuild()
+
+# Specific read schemas for different contexts
+class MainQuestionRead(QuestionRead):
+    """Schema for main questions with required fields"""
+    question_set_id: UUID  # Required for main questions
+    exam_paper_id: UUID    # Required for main questions
+    children: Optional[List[QuestionRead]] = []  # Sub-questions
+    
+    class Config:
+        from_attributes = True
+
+class SubQuestionRead(QuestionRead):
+    """Schema for sub-questions with required fields"""
+    parent_id: UUID  # Required for sub-questions
+    
+    class Config:
+        from_attributes = True
+
+# For use in QuestionSet responses
+class QuestionReadForQuestionSet(QuestionBase):
+    id: UUID
+    slug: str | None = None
+    marks: int | None
+    answers: Optional[List[AnswerReadForQuestion]] = []
+    children: Optional[List[QuestionRead]] = []  # Sub-questions
+
+    class Config:
+        from_attributes = True
+
+# ---------------------------QuestionSet ------------------------
+
+class QuestionSetCreate(QuestionSetBase):
+    pass
+
+@optional()
+class QuestionSetUpdate(QuestionSetBase):
+    pass
+
+class QuestionSetRead(QuestionSetBase):
+    id: UUID
+    slug: str | None = None
+    questions_count: Optional[int] = 0
+    # exam_papers_count: Optional[int] = 0
+    # created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class QuestionReadForQuestionSet(QuestionBase):
+    id: UUID
+    slug: str | None = None
+    # marks: int | None
+    created_at: datetime
+    question_set_id: Optional[UUID] = None
+    exam_paper_id: Optional[UUID] = None
+    parent_id: Optional[UUID] = None
+    children: Optional[List[AnswerReadForQuestion]] = None  # Sub-questions
+    answers: Optional[List[AnswerReadForQuestion]] = []
+    
+    class Config:
+        from_attributes = True
+
+class SubQuestionReadSimple(QuestionBase):
+    id: UUID
+    slug: str | None = None
+    # marks: int | None
+    created_at: datetime
+    parent_id: Optional[UUID] = None
+    answers: Optional[List[AnswerReadForQuestion]] = []
+    
+    class Config:
+        from_attributes = True
+
+class MainQuestionReadForQuestionSet(QuestionBase):
+    id: UUID
+    slug: str | None = None
+    # marks: int | None
+    created_at: datetime
+    question_set_id: Optional[UUID] = None
+    exam_paper_id: Optional[UUID] = None
+    children: Optional[List[SubQuestionReadSimple]] = []  # Only one level of sub-questions
+    answers: Optional[List[AnswerReadForQuestion]] = []
+    
+    class Config:
+        from_attributes = True
+
+class QuestionSetReadWithQuestions(QuestionSetBase):
+    id: UUID
+    slug: str | None = None
+    questions: Optional[List[MainQuestionReadForQuestionSet]] = []
+    questions_count: Optional[int] = 0
+    exam_papers_count: Optional[int] = 0
+    
+    class Config:
+        from_attributes = True

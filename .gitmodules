@@ -1,0 +1,6 @@
+[submodule "frontend"]
+	path = frontend
+	url = https://github.com/examify-ai-ke/exampapel-frontend.git
+[submodule "parser"]
+	path = parser
+	url = https://github.com/examify-ai-ke/exam-paper-parser.git

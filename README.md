@@ -59,9 +59,40 @@ git submodule update --remote --merge
 
 ## 📐 Architecture
 
+The platform follows a microservices-inspired monorepo strategy, with core systems in this repository and specialized AI services handled externally.
+
+### High-Level System Architecture
+
+```mermaid
+graph TD
+    subgraph Examify Core [examify-ai]
+        FE[Educator UI / Next.js]
+        BE[Core FastAPI Backend]
+        DB[(PostgreSQL DB)]
+    end
+
+    subgraph Exam Generator Monorepo [exampaper-generator]
+        API[Generator API / FastAPI]
+        T2S[Text-to-SQL Agent]
+        Assembler[Exam JSON Assembler]
+    end
+
+    FE -->|1. Generate Request| BE
+    BE -->|2. Pass Config & Auth| API
+    API -->|3. Invoke Text-to-SQL| T2S
+    T2S -->|4. Direct Read-Only Query| DB
+    DB -->|5. Historical Questions| T2S
+    T2S -->|6. Raw Data to Assembler| Assembler
+    Assembler -->|7. Build Editor.js JSON| API
+    API -->|8. Return Draft Exam| BE
+    BE -->|9. Render Draft| FE
 ```
+
+### Directory Map
+
+```text
 examify.ai
-├── backend/     ← FastAPI REST API + PostgreSQL + AI exam generation
+├── backend/     ← FastAPI REST API + PostgreSQL
 ├── frontend/    ← Next.js student/educator portal
 └── parser/      ← PDF ingestion + AI-powered paper structuring
 ```

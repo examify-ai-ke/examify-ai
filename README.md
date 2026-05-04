@@ -12,9 +12,10 @@ This is the **company monorepo** for examify.ai. It contains three core services
 
 | Service | Directory | Description |
 |---|---|---|
-| **Backend API** | [`backend/`](./backend/) | FastAPI backend — REST API, auth, DB, AI question generation |
+| **Backend API** | [`backend/`](./backend/) | FastAPI backend — REST API, auth, DB |
 | **Frontend** | [`frontend/`](./frontend/) | Next.js frontend — student & educator portal, UI |
 | **Parser** | [`parser/`](./parser/) | AI exam paper parser — PDF ingestion, OCR, structured extraction |
+| **Exam Generator** | *External Repo* | [exampaper-generator](https://github.com/examify-ai-ke/exampaper-generator) — Text-to-SQL AI service |
 
 ---
 
@@ -54,6 +55,11 @@ git submodule update --remote --merge
 - **Tech:** Python, Gemini AI, PDF processing
 - **Repo:** [examify-ai/exam-paper-parser](https://github.com/examify-ai/exam-paper-parser)
 - See [`parser/README.md`](./parser/README.md) for setup instructions
+
+### Exam Generator (Standalone Service)
+- **Tech:** FastAPI, LangChain, OpenAI/Claude (Text-to-SQL)
+- **Repo:** [examify-ai-ke/exampaper-generator](https://github.com/examify-ai-ke/exampaper-generator)
+- **Role:** Handles intelligent exam paper synthesis by querying historical data via natural language.
 
 ---
 

@@ -99,9 +99,10 @@ graph TD
 
 ```text
 examify.ai
-├── backend/     ← FastAPI REST API + PostgreSQL
-├── frontend/    ← Next.js student/educator portal
-└── parser/      ← PDF ingestion + AI-powered paper structuring
+├── backend/              ← FastAPI REST API + PostgreSQL
+├── exampaper-generator/  ← AI Text-to-SQL Service
+├── frontend/             ← Next.js student/educator portal
+└── parser/               ← PDF ingestion + AI-powered paper structuring
 ```
 
 ---
